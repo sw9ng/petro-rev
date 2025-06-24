@@ -7,76 +7,113 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Clock, DollarSign, Calculator } from 'lucide-react';
+import { Plus, Clock, Calculator } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export const ShiftManagement = () => {
   const { toast } = useToast();
-  const [selectedShift, setSelectedShift] = useState(null);
   const [newShiftOpen, setNewShiftOpen] = useState(false);
+  const [newShiftData, setNewShiftData] = useState({
+    employee: '',
+    startTime: '',
+    cashSales: '',
+    bankTransfers: '',
+    posAmount: '',
+    posBank: '',
+    paidAmount: ''
+  });
 
-  // Sample data
-  const activeShifts = [
+  // Basit personel listesi
+  const staff = ['Ahmet Yılmaz', 'Fatma Demir', 'Mehmet Kaya', 'Ayşe Özkan', 'Mustafa Çelik'];
+  const banks = ['Ziraat Bankası', 'İş Bankası', 'Akbank', 'Garanti BBVA', 'Yapı Kredi'];
+
+  // Aktif vardiyalar - manuel veriler
+  const [activeShifts, setActiveShifts] = useState([
     {
       id: 1,
       employee: 'Ahmet Yılmaz',
       startTime: '2024-01-15 06:00',
       cashSales: 1200.00,
-      cardSales: 800.50,
       bankTransfers: 300.00,
-      posTransactions: [
-        { bank: 'Ziraat Bankası', amount: 450.00 },
-        { bank: 'İş Bankası', amount: 350.50 }
-      ],
+      posAmount: 800.50,
+      posBank: 'Ziraat Bankası',
       paidAmount: 2250.00,
-      status: 'active'
+      status: 'aktif'
     },
     {
       id: 2,
       employee: 'Fatma Demir',
       startTime: '2024-01-15 14:00',
       cashSales: 950.00,
-      cardSales: 1200.00,
       bankTransfers: 150.00,
-      posTransactions: [
-        { bank: 'Akbank', amount: 1200.00 }
-      ],
+      posAmount: 1200.00,
+      posBank: 'Akbank',
       paidAmount: 2300.00,
-      status: 'active'
+      status: 'aktif'
     }
-  ];
-
-  const staff = ['Ahmet Yılmaz', 'Fatma Demir', 'Mehmet Kaya', 'Ayşe Özkan', 'Mustafa Çelik'];
-  const banks = ['Ziraat Bankası', 'İş Bankası', 'Akbank', 'Garanti BBVA', 'Yapı Kredi'];
+  ]);
 
   const calculateOverShort = (shift) => {
-    const totalPOS = shift.posTransactions.reduce((sum, pos) => sum + pos.amount, 0);
-    const totalSales = shift.cashSales + shift.bankTransfers + totalPOS;
+    const totalSales = shift.cashSales + shift.bankTransfers + shift.posAmount;
     return shift.paidAmount - totalSales;
   };
 
   const handleCreateShift = () => {
+    if (!newShiftData.employee || !newShiftData.startTime) {
+      toast({
+        title: "Hata",
+        description: "Personel ve başlangıç saati zorunludur.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const newShift = {
+      id: Date.now(),
+      employee: newShiftData.employee,
+      startTime: newShiftData.startTime,
+      cashSales: parseFloat(newShiftData.cashSales) || 0,
+      bankTransfers: parseFloat(newShiftData.bankTransfers) || 0,
+      posAmount: parseFloat(newShiftData.posAmount) || 0,
+      posBank: newShiftData.posBank || '',
+      paidAmount: parseFloat(newShiftData.paidAmount) || 0,
+      status: 'aktif'
+    };
+
+    setActiveShifts([...activeShifts, newShift]);
+    
     toast({
       title: "Vardiya Oluşturuldu",
-      description: "Yeni vardiya başarıyla başlatıldı.",
+      description: `${newShiftData.employee} için yeni vardiya başlatıldı.`,
     });
+    
     setNewShiftOpen(false);
+    setNewShiftData({
+      employee: '',
+      startTime: '',
+      cashSales: '',
+      bankTransfers: '',
+      posAmount: '',
+      posBank: '',
+      paidAmount: ''
+    });
   };
 
   const handleCloseShift = (shiftId) => {
+    setActiveShifts(activeShifts.filter(shift => shift.id !== shiftId));
     toast({
       title: "Vardiya Kapatıldı",
-      description: "Vardiya kapatıldı ve kaydedildi.",
+      description: "Vardiya başarıyla kapatıldı.",
     });
   };
 
   return (
     <div className="space-y-6">
-      {/* Header with Create Button */}
+      {/* Başlık ve Yeni Vardiya Butonu */}
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Vardiya Yönetimi</h2>
-          <p className="text-muted-foreground">Günlük vardiyaları yönet ve satışları takip et</p>
+          <p className="text-muted-foreground">Manuel vardiya bilgilerini girin ve yönetin</p>
         </div>
         <Dialog open={newShiftOpen} onOpenChange={setNewShiftOpen}>
           <DialogTrigger asChild>
@@ -87,13 +124,13 @@ export const ShiftManagement = () => {
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Yeni Vardiya Başlat</DialogTitle>
-              <DialogDescription>Yeni vardiya oluştur ve personel ata</DialogDescription>
+              <DialogTitle>Yeni Vardiya Oluştur</DialogTitle>
+              <DialogDescription>Vardiya bilgilerini manuel olarak girin</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="employee">Personel Ata</Label>
-                <Select>
+                <Label>Personel *</Label>
+                <Select value={newShiftData.employee} onValueChange={(value) => setNewShiftData({...newShiftData, employee: value})}>
                   <SelectTrigger>
                     <SelectValue placeholder="Personel seçin" />
                   </SelectTrigger>
@@ -104,10 +141,71 @@ export const ShiftManagement = () => {
                   </SelectContent>
                 </Select>
               </div>
+              
               <div className="space-y-2">
-                <Label htmlFor="startTime">Başlangıç Saati</Label>
-                <Input type="datetime-local" defaultValue={new Date().toISOString().slice(0, 16)} />
+                <Label>Başlangıç Saati *</Label>
+                <Input 
+                  type="datetime-local" 
+                  value={newShiftData.startTime}
+                  onChange={(e) => setNewShiftData({...newShiftData, startTime: e.target.value})}
+                />
               </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <Label>Nakit Satış (₺)</Label>
+                  <Input 
+                    type="number" 
+                    placeholder="0.00"
+                    value={newShiftData.cashSales}
+                    onChange={(e) => setNewShiftData({...newShiftData, cashSales: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Banka Transfer (₺)</Label>
+                  <Input 
+                    type="number" 
+                    placeholder="0.00"
+                    value={newShiftData.bankTransfers}
+                    onChange={(e) => setNewShiftData({...newShiftData, bankTransfers: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>POS Bankası</Label>
+                <Select value={newShiftData.posBank} onValueChange={(value) => setNewShiftData({...newShiftData, posBank: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Banka seçin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {banks.map((bank) => (
+                      <SelectItem key={bank} value={bank}>{bank}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>POS Tutarı (₺)</Label>
+                <Input 
+                  type="number" 
+                  placeholder="0.00"
+                  value={newShiftData.posAmount}
+                  onChange={(e) => setNewShiftData({...newShiftData, posAmount: e.target.value})}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Ödenen Tutar (₺)</Label>
+                <Input 
+                  type="number" 
+                  placeholder="0.00"
+                  value={newShiftData.paidAmount}
+                  onChange={(e) => setNewShiftData({...newShiftData, paidAmount: e.target.value})}
+                />
+              </div>
+
               <Button onClick={handleCreateShift} className="w-full">
                 Vardiya Oluştur
               </Button>
@@ -116,11 +214,11 @@ export const ShiftManagement = () => {
         </Dialog>
       </div>
 
-      {/* Active Shifts */}
+      {/* Aktif Vardiyalar */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {activeShifts.map((shift) => {
           const overShort = calculateOverShort(shift);
-          const totalSales = shift.cashSales + shift.bankTransfers + shift.posTransactions.reduce((sum, pos) => sum + pos.amount, 0);
+          const totalSales = shift.cashSales + shift.bankTransfers + shift.posAmount;
           
           return (
             <Card key={shift.id} className="relative">
@@ -139,21 +237,19 @@ export const ShiftManagement = () => {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Sales Summary */}
+                {/* Satış Özeti */}
                 <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
                   <div>
-                    <p className="text-sm text-muted-foreground">Nakit Satışlar</p>
+                    <p className="text-sm text-muted-foreground">Nakit</p>
                     <p className="font-semibold">₺{shift.cashSales.toFixed(2)}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Banka Transferleri</p>
+                    <p className="text-sm text-muted-foreground">Banka Transfer</p>
                     <p className="font-semibold">₺{shift.bankTransfers.toFixed(2)}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">POS Satışları</p>
-                    <p className="font-semibold">
-                      ₺{shift.posTransactions.reduce((sum, pos) => sum + pos.amount, 0).toFixed(2)}
-                    </p>
+                    <p className="text-sm text-muted-foreground">POS ({shift.posBank})</p>
+                    <p className="font-semibold">₺{shift.posAmount.toFixed(2)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Toplam Satış</p>
@@ -161,22 +257,7 @@ export const ShiftManagement = () => {
                   </div>
                 </div>
 
-                {/* POS Transactions */}
-                {shift.posTransactions.length > 0 && (
-                  <div>
-                    <p className="text-sm font-medium mb-2">POS İşlemleri</p>
-                    <div className="space-y-2">
-                      {shift.posTransactions.map((pos, index) => (
-                        <div key={index} className="flex justify-between text-sm p-2 bg-blue-50 rounded">
-                          <span>{pos.bank}</span>
-                          <span className="font-medium">₺{pos.amount.toFixed(2)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Over/Short Calculation */}
+                {/* Fazla/Eksik Hesaplama */}
                 <div className="p-4 border rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-medium">Fazla/Eksik Hesaplama</span>
@@ -199,11 +280,8 @@ export const ShiftManagement = () => {
                   </div>
                 </div>
 
-                {/* Actions */}
+                {/* İşlemler */}
                 <div className="flex space-x-2">
-                  <Button variant="outline" size="sm" className="flex-1">
-                    Satışları Düzenle
-                  </Button>
                   <Button 
                     variant="default" 
                     size="sm" 
@@ -219,40 +297,14 @@ export const ShiftManagement = () => {
         })}
       </div>
 
-      {/* Recent Closed Shifts */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Son Kapatılan Vardiyalar</CardTitle>
-          <CardDescription>Son 10 tamamlanmış vardiya</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {[
-              { employee: 'Mehmet Kaya', date: '2024-01-14', shift: 'Gece', sales: 3200.00, overShort: 15.50 },
-              { employee: 'Ayşe Özkan', date: '2024-01-14', shift: 'Akşam', sales: 2800.00, overShort: -8.25 },
-              { employee: 'Mustafa Çelik', date: '2024-01-14', shift: 'Sabah', sales: 4100.00, overShort: 0.00 }
-            ].map((shift, index) => (
-              <div key={index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
-                <div className="flex items-center space-x-4">
-                  <div>
-                    <p className="font-medium">{shift.employee}</p>
-                    <p className="text-sm text-muted-foreground">{shift.date} - {shift.shift} Vardiyası</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <div className="text-right">
-                    <p className="font-medium">₺{shift.sales.toFixed(2)}</p>
-                    <p className={`text-sm ${shift.overShort >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {shift.overShort >= 0 ? '+' : ''}₺{shift.overShort.toFixed(2)}
-                    </p>
-                  </div>
-                  <Button variant="ghost" size="sm">Detayları Gör</Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {activeShifts.length === 0 && (
+        <Card>
+          <CardContent className="text-center py-8">
+            <p className="text-muted-foreground">Henüz aktif vardiya bulunmuyor.</p>
+            <p className="text-sm text-muted-foreground mt-2">Yeni vardiya başlatmak için yukarıdaki butonu kullanın.</p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
