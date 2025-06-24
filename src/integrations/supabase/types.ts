@@ -9,7 +9,119 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      personnel: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          join_date: string | null
+          name: string
+          phone: string | null
+          role: string
+          station_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          join_date?: string | null
+          name: string
+          phone?: string | null
+          role: string
+          station_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          join_date?: string | null
+          name?: string
+          phone?: string | null
+          role?: string
+          station_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          full_name: string | null
+          id: string
+          station_name: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          full_name?: string | null
+          id: string
+          station_name?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          full_name?: string | null
+          id?: string
+          station_name?: string | null
+        }
+        Relationships: []
+      }
+      shifts: {
+        Row: {
+          actual_amount: number | null
+          bank_transfers: number | null
+          card_sales: number | null
+          cash_sales: number | null
+          created_at: string | null
+          end_time: string | null
+          expected_amount: number | null
+          id: string
+          over_short: number | null
+          personnel_id: string
+          start_time: string
+          station_id: string
+          status: string
+        }
+        Insert: {
+          actual_amount?: number | null
+          bank_transfers?: number | null
+          card_sales?: number | null
+          cash_sales?: number | null
+          created_at?: string | null
+          end_time?: string | null
+          expected_amount?: number | null
+          id?: string
+          over_short?: number | null
+          personnel_id: string
+          start_time: string
+          station_id: string
+          status?: string
+        }
+        Update: {
+          actual_amount?: number | null
+          bank_transfers?: number | null
+          card_sales?: number | null
+          cash_sales?: number | null
+          created_at?: string | null
+          end_time?: string | null
+          expected_amount?: number | null
+          id?: string
+          over_short?: number | null
+          personnel_id?: string
+          start_time?: string
+          station_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shifts_personnel_id_fkey"
+            columns: ["personnel_id"]
+            isOneToOne: false
+            referencedRelation: "personnel"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

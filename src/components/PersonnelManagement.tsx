@@ -7,80 +7,65 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Plus, User, Clock, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
+import { Plus, User, Clock, DollarSign } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { usePersonnel } from '@/hooks/usePersonnel';
 
 export const PersonnelManagement = () => {
   const { toast } = useToast();
+  const { personnel, loading, addPersonnel } = usePersonnel();
   const [addStaffOpen, setAddStaffOpen] = useState(false);
+  const [newPersonnelData, setNewPersonnelData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    role: ''
+  });
 
-  // Sample staff data
-  const staff = [
-    {
-      id: 1,
-      name: 'Ahmet Yılmaz',
-      email: 'ahmet.yilmaz@email.com',
-      phone: '+90 (555) 123-4567',
-      role: 'Kıdemli Pompa Görevlisi',
-      status: 'active',
-      currentShift: true,
-      totalShifts: 145,
-      totalSales: 125000.00,
-      avgOverShort: 5.25,
-      joinDate: '2023-01-15'
-    },
-    {
-      id: 2,
-      name: 'Fatma Demir',
-      email: 'fatma.demir@email.com',
-      phone: '+90 (555) 234-5678',
-      role: 'Pompa Görevlisi',
-      status: 'active',
-      currentShift: true,
-      totalShifts: 89,
-      totalSales: 78000.00,
-      avgOverShort: -2.10,
-      joinDate: '2023-03-22'
-    },
-    {
-      id: 3,
-      name: 'Mehmet Kaya',
-      email: 'mehmet.kaya@email.com',
-      phone: '+90 (555) 345-6789',
-      role: 'Gece Vardiya Amiri',
-      status: 'active',
-      currentShift: false,
-      totalShifts: 201,
-      totalSales: 195000.00,
-      avgOverShort: 8.75,
-      joinDate: '2022-08-10'
-    },
-    {
-      id: 4,
-      name: 'Ayşe Özkan',
-      email: 'ayse.ozkan@email.com',
-      phone: '+90 (555) 456-7890',
-      role: 'Pompa Görevlisi',
-      status: 'inactive',
-      currentShift: false,
-      totalShifts: 67,
-      totalSales: 52000.00,
-      avgOverShort: -1.50,
-      joinDate: '2023-06-01'
+  const handleAddStaff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newPersonnelData.name || !newPersonnelData.role) {
+      toast({
+        title: "Hata",
+        description: "Ad soyad ve görev alanları zorunludur.",
+        variant: "destructive"
+      });
+      return;
     }
-  ];
 
-  const handleAddStaff = () => {
-    toast({
-      title: "Personel Eklendi",
-      description: "Yeni personel başarıyla eklendi.",
+    const { error } = await addPersonnel({
+      ...newPersonnelData,
+      status: 'active'
     });
-    setAddStaffOpen(false);
+
+    if (error) {
+      toast({
+        title: "Hata",
+        description: "Personel eklenirken bir hata oluştu.",
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Başarılı",
+        description: "Personel başarıyla eklendi.",
+      });
+      setAddStaffOpen(false);
+      setNewPersonnelData({ name: '', email: '', phone: '', role: '' });
+    }
   };
 
-  const getInitials = (name) => {
+  const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <p className="text-muted-foreground">Personel bilgileri yükleniyor...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -102,27 +87,50 @@ export const PersonnelManagement = () => {
               <DialogTitle>Yeni Personel Ekle</DialogTitle>
               <DialogDescription>Yeni çalışanın detaylarını girin</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <form onSubmit={handleAddStaff} className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Ad Soyad</Label>
-                <Input id="name" placeholder="Ad soyad girin" />
+                <Label htmlFor="name">Ad Soyad *</Label>
+                <Input 
+                  id="name" 
+                  placeholder="Ad soyad girin"
+                  value={newPersonnelData.name}
+                  onChange={(e) => setNewPersonnelData({...newPersonnelData, name: e.target.value})}
+                  required
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">E-posta</Label>
-                <Input id="email" type="email" placeholder="E-posta adresini girin" />
+                <Input 
+                  id="email" 
+                  type="email" 
+                  placeholder="E-posta adresini girin"
+                  value={newPersonnelData.email}
+                  onChange={(e) => setNewPersonnelData({...newPersonnelData, email: e.target.value})}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Telefon Numarası</Label>
-                <Input id="phone" placeholder="Telefon numarasını girin" />
+                <Input 
+                  id="phone" 
+                  placeholder="Telefon numarasını girin"
+                  value={newPersonnelData.phone}
+                  onChange={(e) => setNewPersonnelData({...newPersonnelData, phone: e.target.value})}
+                />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="role">Görev</Label>
-                <Input id="role" placeholder="örn. Pompa Görevlisi, Vardiya Amiri" />
+                <Label htmlFor="role">Görev *</Label>
+                <Input 
+                  id="role" 
+                  placeholder="örn. Pompa Görevlisi, Vardiya Amiri"
+                  value={newPersonnelData.role}
+                  onChange={(e) => setNewPersonnelData({...newPersonnelData, role: e.target.value})}
+                  required
+                />
               </div>
-              <Button onClick={handleAddStaff} className="w-full">
+              <Button type="submit" className="w-full">
                 Personel Ekle
               </Button>
-            </div>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
@@ -135,138 +143,107 @@ export const PersonnelManagement = () => {
               <User className="h-5 w-5 text-blue-600" />
               <span className="text-sm font-medium">Toplam Personel</span>
             </div>
-            <p className="text-2xl font-bold mt-2">{staff.length}</p>
+            <p className="text-2xl font-bold mt-2">{personnel.length}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center space-x-2">
               <Clock className="h-5 w-5 text-green-600" />
-              <span className="text-sm font-medium">Şu An Çalışan</span>
+              <span className="text-sm font-medium">Aktif Personel</span>
             </div>
-            <p className="text-2xl font-bold mt-2">{staff.filter(s => s.currentShift).length}</p>
+            <p className="text-2xl font-bold mt-2">{personnel.filter(p => p.status === 'active').length}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center space-x-2">
               <DollarSign className="h-5 w-5 text-purple-600" />
-              <span className="text-sm font-medium">Ortalama Performans</span>
+              <span className="text-sm font-medium">Bu Ay Eklenen</span>
             </div>
-            <p className="text-2xl font-bold mt-2 text-green-600">+₺2.10</p>
+            <p className="text-2xl font-bold mt-2">
+              {personnel.filter(p => new Date(p.join_date) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length}
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center space-x-2">
-              <TrendingUp className="h-5 w-5 text-orange-600" />
-              <span className="text-sm font-medium">Aktif Personel</span>
+              <User className="h-5 w-5 text-orange-600" />
+              <span className="text-sm font-medium">Pasif Personel</span>
             </div>
-            <p className="text-2xl font-bold mt-2">{staff.filter(s => s.status === 'active').length}</p>
+            <p className="text-2xl font-bold mt-2">{personnel.filter(p => p.status !== 'active').length}</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Staff List */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {staff.map((member) => (
-          <Card key={member.id} className="relative">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-blue-100 text-blue-700">
-                      {getInitials(member.name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <CardTitle className="text-lg">{member.name}</CardTitle>
-                    <CardDescription>{member.role}</CardDescription>
+      {personnel.length === 0 ? (
+        <Card>
+          <CardContent className="text-center py-8">
+            <p className="text-muted-foreground">Henüz personel eklenmemiş.</p>
+            <p className="text-sm text-muted-foreground mt-2">Yeni personel eklemek için yukarıdaki butonu kullanın.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {personnel.map((member) => (
+            <Card key={member.id}>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback className="bg-blue-100 text-blue-700">
+                        {getInitials(member.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <CardTitle className="text-lg">{member.name}</CardTitle>
+                      <CardDescription>{member.role}</CardDescription>
+                    </div>
                   </div>
-                </div>
-                <div className="flex space-x-2">
                   <Badge variant={member.status === 'active' ? 'default' : 'secondary'}>
                     {member.status === 'active' ? 'aktif' : 'pasif'}
                   </Badge>
-                  {member.currentShift && (
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                      Vardiyada
-                    </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Contact Info */}
+                <div className="space-y-2">
+                  {member.email && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">E-posta:</span>
+                      <span>{member.email}</span>
+                    </div>
                   )}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Contact Info */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">E-posta:</span>
-                  <span>{member.email}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Telefon:</span>
-                  <span>{member.phone}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Başlangıç:</span>
-                  <span>{new Date(member.joinDate).toLocaleDateString('tr-TR')}</span>
-                </div>
-              </div>
-
-              {/* Performance Stats */}
-              <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
-                <div className="text-center">
-                  <p className="text-lg font-semibold">{member.totalShifts}</p>
-                  <p className="text-xs text-muted-foreground">Toplam Vardiya</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-lg font-semibold">₺{(member.totalSales / 1000).toFixed(0)}K</p>
-                  <p className="text-xs text-muted-foreground">Toplam Satış</p>
-                </div>
-                <div className="text-center">
-                  <p className={`text-lg font-semibold ${member.avgOverShort >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {member.avgOverShort >= 0 ? '+' : ''}₺{member.avgOverShort.toFixed(2)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Ort. Fazla/Eksik</p>
-                </div>
-              </div>
-
-              {/* Performance Indicator */}
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <span className="text-sm font-medium">Performans Trendi</span>
-                <div className="flex items-center space-x-2">
-                  {member.avgOverShort >= 0 ? (
-                    <>
-                      <TrendingUp className="h-4 w-4 text-green-600" />
-                      <span className="text-sm text-green-600 font-medium">Pozitif</span>
-                    </>
-                  ) : (
-                    <>
-                      <TrendingDown className="h-4 w-4 text-red-600" />
-                      <span className="text-sm text-red-600 font-medium">Dikkat Gerekli</span>
-                    </>
+                  {member.phone && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Telefon:</span>
+                      <span>{member.phone}</span>
+                    </div>
                   )}
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Başlangıç:</span>
+                    <span>{new Date(member.join_date).toLocaleDateString('tr-TR')}</span>
+                  </div>
                 </div>
-              </div>
 
-              {/* Actions */}
-              <div className="flex space-x-2">
-                <Button variant="outline" size="sm" className="flex-1">
-                  Geçmişi Gör
-                </Button>
-                <Button variant="outline" size="sm" className="flex-1">
-                  Bilgileri Düzenle
-                </Button>
-                {!member.currentShift && member.status === 'active' && (
-                  <Button size="sm" className="flex-1">
-                    Vardiya Başlat
+                {/* Actions */}
+                <div className="flex space-x-2">
+                  <Button variant="outline" size="sm" className="flex-1">
+                    Bilgileri Düzenle
                   </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                  {member.status === 'active' && (
+                    <Button size="sm" className="flex-1">
+                      Vardiya Başlat
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

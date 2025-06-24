@@ -1,5 +1,7 @@
 
-import { useState } from 'react';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,9 +10,40 @@ import { DashboardOverview } from '@/components/DashboardOverview';
 import { ShiftManagement } from '@/components/ShiftManagement';
 import { PersonnelManagement } from '@/components/PersonnelManagement';
 import { ReportsView } from '@/components/ReportsView';
-import { Fuel, Users, BarChart3, Clock } from 'lucide-react';
+import { Fuel, Users, BarChart3, Clock, LogOut } from 'lucide-react';
 
 const Index = () => {
+  const { user, loading, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth');
+    }
+  }, [user, loading, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="bg-blue-600 p-3 rounded-lg inline-block mb-4">
+            <Fuel className="h-8 w-8 text-white" />
+          </div>
+          <p className="text-lg text-gray-600">Yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/auth');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100">
       {/* Header */}
@@ -30,7 +63,10 @@ const Index = () => {
               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                 İstasyon Aktif
               </Badge>
-              <Button variant="outline">Ayarlar</Button>
+              <Button variant="outline" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Çıkış Yap
+              </Button>
             </div>
           </div>
         </div>
