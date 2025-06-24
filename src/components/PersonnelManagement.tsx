@@ -18,10 +18,10 @@ export const PersonnelManagement = () => {
   const staff = [
     {
       id: 1,
-      name: 'John Smith',
-      email: 'john.smith@email.com',
-      phone: '+1 (555) 123-4567',
-      role: 'Senior Attendant',
+      name: 'Ahmet Yılmaz',
+      email: 'ahmet.yilmaz@email.com',
+      phone: '+90 (555) 123-4567',
+      role: 'Kıdemli Pompa Görevlisi',
       status: 'active',
       currentShift: true,
       totalShifts: 145,
@@ -31,10 +31,10 @@ export const PersonnelManagement = () => {
     },
     {
       id: 2,
-      name: 'Maria Garcia',
-      email: 'maria.garcia@email.com',
-      phone: '+1 (555) 234-5678',
-      role: 'Attendant',
+      name: 'Fatma Demir',
+      email: 'fatma.demir@email.com',
+      phone: '+90 (555) 234-5678',
+      role: 'Pompa Görevlisi',
       status: 'active',
       currentShift: true,
       totalShifts: 89,
@@ -44,10 +44,10 @@ export const PersonnelManagement = () => {
     },
     {
       id: 3,
-      name: 'Ahmed Hassan',
-      email: 'ahmed.hassan@email.com',
-      phone: '+1 (555) 345-6789',
-      role: 'Night Supervisor',
+      name: 'Mehmet Kaya',
+      email: 'mehmet.kaya@email.com',
+      phone: '+90 (555) 345-6789',
+      role: 'Gece Vardiya Amiri',
       status: 'active',
       currentShift: false,
       totalShifts: 201,
@@ -57,10 +57,10 @@ export const PersonnelManagement = () => {
     },
     {
       id: 4,
-      name: 'Sarah Wilson',
-      email: 'sarah.wilson@email.com',
-      phone: '+1 (555) 456-7890',
-      role: 'Attendant',
+      name: 'Ayşe Özkan',
+      email: 'ayse.ozkan@email.com',
+      phone: '+90 (555) 456-7890',
+      role: 'Pompa Görevlisi',
       status: 'inactive',
       currentShift: false,
       totalShifts: 67,
@@ -72,8 +72,8 @@ export const PersonnelManagement = () => {
 
   const handleAddStaff = () => {
     toast({
-      title: "Staff Added",
-      description: "New staff member has been added successfully.",
+      title: "Personel Eklendi",
+      description: "Yeni personel başarıyla eklendi.",
     });
     setAddStaffOpen(false);
   };
@@ -87,40 +87,40 @@ export const PersonnelManagement = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">Personnel Management</h2>
-          <p className="text-muted-foreground">Manage staff and track performance</p>
+          <h2 className="text-2xl font-bold">Personel Yönetimi</h2>
+          <p className="text-muted-foreground">Personeli yönet ve performansı takip et</p>
         </div>
         <Dialog open={addStaffOpen} onOpenChange={setAddStaffOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              Add Staff Member
+              Personel Ekle
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Add New Staff Member</DialogTitle>
-              <DialogDescription>Enter the details of the new employee</DialogDescription>
+              <DialogTitle>Yeni Personel Ekle</DialogTitle>
+              <DialogDescription>Yeni çalışanın detaylarını girin</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input id="name" placeholder="Enter full name" />
+                <Label htmlFor="name">Ad Soyad</Label>
+                <Input id="name" placeholder="Ad soyad girin" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="Enter email address" />
+                <Label htmlFor="email">E-posta</Label>
+                <Input id="email" type="email" placeholder="E-posta adresini girin" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input id="phone" placeholder="Enter phone number" />
+                <Label htmlFor="phone">Telefon Numarası</Label>
+                <Input id="phone" placeholder="Telefon numarasını girin" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
-                <Input id="role" placeholder="e.g., Attendant, Supervisor" />
+                <Label htmlFor="role">Görev</Label>
+                <Input id="role" placeholder="örn. Pompa Görevlisi, Vardiya Amiri" />
               </div>
               <Button onClick={handleAddStaff} className="w-full">
-                Add Staff Member
+                Personel Ekle
               </Button>
             </div>
           </DialogContent>
@@ -133,7 +133,7 @@ export const PersonnelManagement = () => {
           <CardContent className="p-6">
             <div className="flex items-center space-x-2">
               <User className="h-5 w-5 text-blue-600" />
-              <span className="text-sm font-medium">Total Staff</span>
+              <span className="text-sm font-medium">Toplam Personel</span>
             </div>
             <p className="text-2xl font-bold mt-2">{staff.length}</p>
           </CardContent>
@@ -142,7 +142,7 @@ export const PersonnelManagement = () => {
           <CardContent className="p-6">
             <div className="flex items-center space-x-2">
               <Clock className="h-5 w-5 text-green-600" />
-              <span className="text-sm font-medium">Currently Working</span>
+              <span className="text-sm font-medium">Şu An Çalışan</span>
             </div>
             <p className="text-2xl font-bold mt-2">{staff.filter(s => s.currentShift).length}</p>
           </CardContent>
@@ -151,16 +151,16 @@ export const PersonnelManagement = () => {
           <CardContent className="p-6">
             <div className="flex items-center space-x-2">
               <DollarSign className="h-5 w-5 text-purple-600" />
-              <span className="text-sm font-medium">Avg Performance</span>
+              <span className="text-sm font-medium">Ortalama Performans</span>
             </div>
-            <p className="text-2xl font-bold mt-2 text-green-600">+$2.10</p>
+            <p className="text-2xl font-bold mt-2 text-green-600">+₺2.10</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center space-x-2">
               <TrendingUp className="h-5 w-5 text-orange-600" />
-              <span className="text-sm font-medium">Active Staff</span>
+              <span className="text-sm font-medium">Aktif Personel</span>
             </div>
             <p className="text-2xl font-bold mt-2">{staff.filter(s => s.status === 'active').length}</p>
           </CardContent>
@@ -186,11 +186,11 @@ export const PersonnelManagement = () => {
                 </div>
                 <div className="flex space-x-2">
                   <Badge variant={member.status === 'active' ? 'default' : 'secondary'}>
-                    {member.status}
+                    {member.status === 'active' ? 'aktif' : 'pasif'}
                   </Badge>
                   {member.currentShift && (
                     <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                      On Shift
+                      Vardiyada
                     </Badge>
                   )}
                 </div>
@@ -200,16 +200,16 @@ export const PersonnelManagement = () => {
               {/* Contact Info */}
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Email:</span>
+                  <span className="text-muted-foreground">E-posta:</span>
                   <span>{member.email}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Phone:</span>
+                  <span className="text-muted-foreground">Telefon:</span>
                   <span>{member.phone}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Joined:</span>
-                  <span>{new Date(member.joinDate).toLocaleDateString()}</span>
+                  <span className="text-muted-foreground">Başlangıç:</span>
+                  <span>{new Date(member.joinDate).toLocaleDateString('tr-TR')}</span>
                 </div>
               </div>
 
@@ -217,33 +217,33 @@ export const PersonnelManagement = () => {
               <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
                 <div className="text-center">
                   <p className="text-lg font-semibold">{member.totalShifts}</p>
-                  <p className="text-xs text-muted-foreground">Total Shifts</p>
+                  <p className="text-xs text-muted-foreground">Toplam Vardiya</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-lg font-semibold">${(member.totalSales / 1000).toFixed(0)}K</p>
-                  <p className="text-xs text-muted-foreground">Total Sales</p>
+                  <p className="text-lg font-semibold">₺{(member.totalSales / 1000).toFixed(0)}K</p>
+                  <p className="text-xs text-muted-foreground">Toplam Satış</p>
                 </div>
                 <div className="text-center">
                   <p className={`text-lg font-semibold ${member.avgOverShort >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {member.avgOverShort >= 0 ? '+' : ''}${member.avgOverShort.toFixed(2)}
+                    {member.avgOverShort >= 0 ? '+' : ''}₺{member.avgOverShort.toFixed(2)}
                   </p>
-                  <p className="text-xs text-muted-foreground">Avg Over/Short</p>
+                  <p className="text-xs text-muted-foreground">Ort. Fazla/Eksik</p>
                 </div>
               </div>
 
               {/* Performance Indicator */}
               <div className="flex items-center justify-between p-3 border rounded-lg">
-                <span className="text-sm font-medium">Performance Trend</span>
+                <span className="text-sm font-medium">Performans Trendi</span>
                 <div className="flex items-center space-x-2">
                   {member.avgOverShort >= 0 ? (
                     <>
                       <TrendingUp className="h-4 w-4 text-green-600" />
-                      <span className="text-sm text-green-600 font-medium">Positive</span>
+                      <span className="text-sm text-green-600 font-medium">Pozitif</span>
                     </>
                   ) : (
                     <>
                       <TrendingDown className="h-4 w-4 text-red-600" />
-                      <span className="text-sm text-red-600 font-medium">Needs Attention</span>
+                      <span className="text-sm text-red-600 font-medium">Dikkat Gerekli</span>
                     </>
                   )}
                 </div>
@@ -252,14 +252,14 @@ export const PersonnelManagement = () => {
               {/* Actions */}
               <div className="flex space-x-2">
                 <Button variant="outline" size="sm" className="flex-1">
-                  View History
+                  Geçmişi Gör
                 </Button>
                 <Button variant="outline" size="sm" className="flex-1">
-                  Edit Info
+                  Bilgileri Düzenle
                 </Button>
                 {!member.currentShift && member.status === 'active' && (
                   <Button size="sm" className="flex-1">
-                    Start Shift
+                    Vardiya Başlat
                   </Button>
                 )}
               </div>

@@ -19,35 +19,35 @@ export const ShiftManagement = () => {
   const activeShifts = [
     {
       id: 1,
-      employee: 'John Smith',
+      employee: 'Ahmet Yılmaz',
       startTime: '2024-01-15 06:00',
       cashSales: 1200.00,
       cardSales: 800.50,
       bankTransfers: 300.00,
       posTransactions: [
-        { bank: 'Chase Bank', amount: 450.00 },
-        { bank: 'Wells Fargo', amount: 350.50 }
+        { bank: 'Ziraat Bankası', amount: 450.00 },
+        { bank: 'İş Bankası', amount: 350.50 }
       ],
       paidAmount: 2250.00,
       status: 'active'
     },
     {
       id: 2,
-      employee: 'Maria Garcia',
+      employee: 'Fatma Demir',
       startTime: '2024-01-15 14:00',
       cashSales: 950.00,
       cardSales: 1200.00,
       bankTransfers: 150.00,
       posTransactions: [
-        { bank: 'Bank of America', amount: 1200.00 }
+        { bank: 'Akbank', amount: 1200.00 }
       ],
       paidAmount: 2300.00,
       status: 'active'
     }
   ];
 
-  const staff = ['John Smith', 'Maria Garcia', 'Ahmed Hassan', 'Sarah Wilson', 'Mike Johnson'];
-  const banks = ['Chase Bank', 'Wells Fargo', 'Bank of America', 'CitiBank', 'TD Bank'];
+  const staff = ['Ahmet Yılmaz', 'Fatma Demir', 'Mehmet Kaya', 'Ayşe Özkan', 'Mustafa Çelik'];
+  const banks = ['Ziraat Bankası', 'İş Bankası', 'Akbank', 'Garanti BBVA', 'Yapı Kredi'];
 
   const calculateOverShort = (shift) => {
     const totalPOS = shift.posTransactions.reduce((sum, pos) => sum + pos.amount, 0);
@@ -57,16 +57,16 @@ export const ShiftManagement = () => {
 
   const handleCreateShift = () => {
     toast({
-      title: "Shift Created",
-      description: "New shift has been started successfully.",
+      title: "Vardiya Oluşturuldu",
+      description: "Yeni vardiya başarıyla başlatıldı.",
     });
     setNewShiftOpen(false);
   };
 
   const handleCloseShift = (shiftId) => {
     toast({
-      title: "Shift Closed",
-      description: "Shift has been closed and recorded.",
+      title: "Vardiya Kapatıldı",
+      description: "Vardiya kapatıldı ve kaydedildi.",
     });
   };
 
@@ -75,27 +75,27 @@ export const ShiftManagement = () => {
       {/* Header with Create Button */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">Shift Management</h2>
-          <p className="text-muted-foreground">Manage daily shifts and track sales</p>
+          <h2 className="text-2xl font-bold">Vardiya Yönetimi</h2>
+          <p className="text-muted-foreground">Günlük vardiyaları yönet ve satışları takip et</p>
         </div>
         <Dialog open={newShiftOpen} onOpenChange={setNewShiftOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              Start New Shift
+              Yeni Vardiya Başlat
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Start New Shift</DialogTitle>
-              <DialogDescription>Create a new shift and assign an employee</DialogDescription>
+              <DialogTitle>Yeni Vardiya Başlat</DialogTitle>
+              <DialogDescription>Yeni vardiya oluştur ve personel ata</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="employee">Assign Employee</Label>
+                <Label htmlFor="employee">Personel Ata</Label>
                 <Select>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select employee" />
+                    <SelectValue placeholder="Personel seçin" />
                   </SelectTrigger>
                   <SelectContent>
                     {staff.map((employee) => (
@@ -105,11 +105,11 @@ export const ShiftManagement = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="startTime">Start Time</Label>
+                <Label htmlFor="startTime">Başlangıç Saati</Label>
                 <Input type="datetime-local" defaultValue={new Date().toISOString().slice(0, 16)} />
               </div>
               <Button onClick={handleCreateShift} className="w-full">
-                Create Shift
+                Vardiya Oluştur
               </Button>
             </div>
           </DialogContent>
@@ -129,12 +129,12 @@ export const ShiftManagement = () => {
                   <div>
                     <CardTitle className="text-lg">{shift.employee}</CardTitle>
                     <CardDescription>
-                      Started: {new Date(shift.startTime).toLocaleString()}
+                      Başlangıç: {new Date(shift.startTime).toLocaleString('tr-TR')}
                     </CardDescription>
                   </div>
                   <Badge variant="default">
                     <Clock className="h-3 w-3 mr-1" />
-                    Active
+                    Aktif
                   </Badge>
                 </div>
               </CardHeader>
@@ -142,34 +142,34 @@ export const ShiftManagement = () => {
                 {/* Sales Summary */}
                 <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
                   <div>
-                    <p className="text-sm text-muted-foreground">Cash Sales</p>
-                    <p className="font-semibold">${shift.cashSales.toFixed(2)}</p>
+                    <p className="text-sm text-muted-foreground">Nakit Satışlar</p>
+                    <p className="font-semibold">₺{shift.cashSales.toFixed(2)}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Bank Transfers</p>
-                    <p className="font-semibold">${shift.bankTransfers.toFixed(2)}</p>
+                    <p className="text-sm text-muted-foreground">Banka Transferleri</p>
+                    <p className="font-semibold">₺{shift.bankTransfers.toFixed(2)}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">POS Sales</p>
+                    <p className="text-sm text-muted-foreground">POS Satışları</p>
                     <p className="font-semibold">
-                      ${shift.posTransactions.reduce((sum, pos) => sum + pos.amount, 0).toFixed(2)}
+                      ₺{shift.posTransactions.reduce((sum, pos) => sum + pos.amount, 0).toFixed(2)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Total Sales</p>
-                    <p className="font-semibold">${totalSales.toFixed(2)}</p>
+                    <p className="text-sm text-muted-foreground">Toplam Satış</p>
+                    <p className="font-semibold">₺{totalSales.toFixed(2)}</p>
                   </div>
                 </div>
 
                 {/* POS Transactions */}
                 {shift.posTransactions.length > 0 && (
                   <div>
-                    <p className="text-sm font-medium mb-2">POS Transactions</p>
+                    <p className="text-sm font-medium mb-2">POS İşlemleri</p>
                     <div className="space-y-2">
                       {shift.posTransactions.map((pos, index) => (
                         <div key={index} className="flex justify-between text-sm p-2 bg-blue-50 rounded">
                           <span>{pos.bank}</span>
-                          <span className="font-medium">${pos.amount.toFixed(2)}</span>
+                          <span className="font-medium">₺{pos.amount.toFixed(2)}</span>
                         </div>
                       ))}
                     </div>
@@ -179,22 +179,22 @@ export const ShiftManagement = () => {
                 {/* Over/Short Calculation */}
                 <div className="p-4 border rounded-lg">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium">Over/Short Calculation</span>
+                    <span className="font-medium">Fazla/Eksik Hesaplama</span>
                     <Calculator className="h-4 w-4 text-muted-foreground" />
                   </div>
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
-                      <span>Paid Amount:</span>
-                      <span>${shift.paidAmount.toFixed(2)}</span>
+                      <span>Ödenen Tutar:</span>
+                      <span>₺{shift.paidAmount.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Total Sales:</span>
-                      <span>${totalSales.toFixed(2)}</span>
+                      <span>Toplam Satış:</span>
+                      <span>₺{totalSales.toFixed(2)}</span>
                     </div>
                     <hr className="my-2" />
                     <div className={`flex justify-between font-medium ${overShort >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      <span>{overShort >= 0 ? 'Over:' : 'Short:'}</span>
-                      <span>${Math.abs(overShort).toFixed(2)}</span>
+                      <span>{overShort >= 0 ? 'Fazla:' : 'Eksik:'}</span>
+                      <span>₺{Math.abs(overShort).toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
@@ -202,7 +202,7 @@ export const ShiftManagement = () => {
                 {/* Actions */}
                 <div className="flex space-x-2">
                   <Button variant="outline" size="sm" className="flex-1">
-                    Edit Sales
+                    Satışları Düzenle
                   </Button>
                   <Button 
                     variant="default" 
@@ -210,7 +210,7 @@ export const ShiftManagement = () => {
                     className="flex-1"
                     onClick={() => handleCloseShift(shift.id)}
                   >
-                    Close Shift
+                    Vardiyayı Kapat
                   </Button>
                 </div>
               </CardContent>
@@ -222,31 +222,31 @@ export const ShiftManagement = () => {
       {/* Recent Closed Shifts */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Closed Shifts</CardTitle>
-          <CardDescription>Last 10 completed shifts</CardDescription>
+          <CardTitle>Son Kapatılan Vardiyalar</CardTitle>
+          <CardDescription>Son 10 tamamlanmış vardiya</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
             {[
-              { employee: 'Ahmed Hassan', date: '2024-01-14', shift: 'Night', sales: 3200.00, overShort: 15.50 },
-              { employee: 'Sarah Wilson', date: '2024-01-14', shift: 'Evening', sales: 2800.00, overShort: -8.25 },
-              { employee: 'Mike Johnson', date: '2024-01-14', shift: 'Morning', sales: 4100.00, overShort: 0.00 }
+              { employee: 'Mehmet Kaya', date: '2024-01-14', shift: 'Gece', sales: 3200.00, overShort: 15.50 },
+              { employee: 'Ayşe Özkan', date: '2024-01-14', shift: 'Akşam', sales: 2800.00, overShort: -8.25 },
+              { employee: 'Mustafa Çelik', date: '2024-01-14', shift: 'Sabah', sales: 4100.00, overShort: 0.00 }
             ].map((shift, index) => (
               <div key={index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
                 <div className="flex items-center space-x-4">
                   <div>
                     <p className="font-medium">{shift.employee}</p>
-                    <p className="text-sm text-muted-foreground">{shift.date} - {shift.shift} Shift</p>
+                    <p className="text-sm text-muted-foreground">{shift.date} - {shift.shift} Vardiyası</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-4">
                   <div className="text-right">
-                    <p className="font-medium">${shift.sales.toFixed(2)}</p>
+                    <p className="font-medium">₺{shift.sales.toFixed(2)}</p>
                     <p className={`text-sm ${shift.overShort >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {shift.overShort >= 0 ? '+' : ''}${shift.overShort.toFixed(2)}
+                      {shift.overShort >= 0 ? '+' : ''}₺{shift.overShort.toFixed(2)}
                     </p>
                   </div>
-                  <Button variant="ghost" size="sm">View Details</Button>
+                  <Button variant="ghost" size="sm">Detayları Gör</Button>
                 </div>
               </div>
             ))}

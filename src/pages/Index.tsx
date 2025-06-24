@@ -22,15 +22,15 @@ const Index = () => {
                 <Fuel className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">FuelStation Pro</h1>
-                <p className="text-sm text-gray-600">Shift Management System</p>
+                <h1 className="text-2xl font-bold text-gray-900">Akaryakıt Pro</h1>
+                <p className="text-sm text-gray-600">Vardiya Yönetim Sistemi</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                Station Active
+                İstasyon Aktif
               </Badge>
-              <Button variant="outline">Settings</Button>
+              <Button variant="outline">Ayarlar</Button>
             </div>
           </div>
         </div>
@@ -42,19 +42,19 @@ const Index = () => {
           <TabsList className="grid w-full grid-cols-4 mb-8">
             <TabsTrigger value="dashboard" className="flex items-center space-x-2">
               <BarChart3 className="h-4 w-4" />
-              <span>Dashboard</span>
+              <span>Pano</span>
             </TabsTrigger>
             <TabsTrigger value="shifts" className="flex items-center space-x-2">
               <Clock className="h-4 w-4" />
-              <span>Shifts</span>
+              <span>Vardiyalar</span>
             </TabsTrigger>
             <TabsTrigger value="personnel" className="flex items-center space-x-2">
               <Users className="h-4 w-4" />
-              <span>Personnel</span>
+              <span>Personel</span>
             </TabsTrigger>
             <TabsTrigger value="reports" className="flex items-center space-x-2">
               <BarChart3 className="h-4 w-4" />
-              <span>Reports</span>
+              <span>Raporlar</span>
             </TabsTrigger>
           </TabsList>
 
