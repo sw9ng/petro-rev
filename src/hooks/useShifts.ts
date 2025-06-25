@@ -22,6 +22,7 @@ export interface Shift {
 export const useShifts = () => {
   const { user } = useAuth();
   const [shifts, setShifts] = useState<Shift[]>([]);
+  const [allShifts, setAllShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchShifts = async () => {
@@ -37,15 +38,37 @@ export const useShifts = () => {
         )
       `)
       .eq('station_id', user.id)
-      .eq('status', 'active')
       .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching shifts:', error);
     } else {
-      setShifts(data || []);
+      setAllShifts(data || []);
+      // Only active shifts for the main shifts view
+      setShifts((data || []).filter(shift => shift.status === 'active'));
     }
     setLoading(false);
+  };
+
+  const fetchAllShifts = async () => {
+    if (!user) return [];
+    
+    const { data, error } = await supabase
+      .from('shifts')
+      .select(`
+        *,
+        personnel:personnel_id (
+          name
+        )
+      `)
+      .eq('station_id', user.id)
+      .order('start_time', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching all shifts:', error);
+      return [];
+    }
+    return data || [];
   };
 
   const addShift = async (shiftData: any) => {
@@ -60,7 +83,8 @@ export const useShifts = () => {
         {
           ...shiftData,
           station_id: user.id,
-          over_short: overShort
+          over_short: overShort,
+          status: 'completed' // Changed from 'active' to 'completed' since shifts are permanent
         }
       ])
       .select(`
@@ -73,32 +97,17 @@ export const useShifts = () => {
 
     if (!error && data) {
       setShifts(prev => [data, ...prev]);
+      setAllShifts(prev => [data, ...prev]);
     }
 
     return { data, error };
-  };
-
-  const closeShift = async (shiftId: string) => {
-    const { error } = await supabase
-      .from('shifts')
-      .update({ 
-        status: 'closed',
-        end_time: new Date().toISOString()
-      })
-      .eq('id', shiftId);
-
-    if (!error) {
-      setShifts(prev => prev.filter(shift => shift.id !== shiftId));
-    }
-
-    return { error };
   };
 
   const getWeeklyStats = () => {
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-    const weeklyShifts = shifts.filter(shift => 
+    const weeklyShifts = allShifts.filter(shift => 
       new Date(shift.start_time) >= oneWeekAgo
     );
 
@@ -110,16 +119,22 @@ export const useShifts = () => {
     };
   };
 
+  const getLatestShift = () => {
+    return allShifts.length > 0 ? allShifts[0] : null;
+  };
+
   useEffect(() => {
     fetchShifts();
   }, [user]);
 
   return {
     shifts,
+    allShifts,
     loading,
     addShift,
-    closeShift,
     getWeeklyStats,
+    getLatestShift,
+    fetchAllShifts,
     refreshShifts: fetchShifts
   };
 };

@@ -57,6 +57,25 @@ export const usePersonnel = () => {
     return { data, error };
   };
 
+  const deletePersonnel = async (personnelId: string) => {
+    if (!user) return { error: 'User not authenticated' };
+
+    // Instead of deleting, we mark as inactive to preserve historical data
+    const { error } = await supabase
+      .from('personnel')
+      .update({ status: 'inactive' })
+      .eq('id', personnelId)
+      .eq('station_id', user.id);
+
+    if (!error) {
+      setPersonnel(prev => prev.map(p => 
+        p.id === personnelId ? { ...p, status: 'inactive' } : p
+      ));
+    }
+
+    return { error };
+  };
+
   useEffect(() => {
     fetchPersonnel();
   }, [user]);
@@ -65,6 +84,7 @@ export const usePersonnel = () => {
     personnel,
     loading,
     addPersonnel,
+    deletePersonnel,
     refreshPersonnel: fetchPersonnel
   };
 };

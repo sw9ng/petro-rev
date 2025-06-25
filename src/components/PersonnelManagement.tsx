@@ -7,13 +7,14 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Plus, User, Clock, DollarSign } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Plus, User, Clock, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { usePersonnel } from '@/hooks/usePersonnel';
 
 export const PersonnelManagement = () => {
   const { toast } = useToast();
-  const { personnel, loading, addPersonnel } = usePersonnel();
+  const { personnel, loading, addPersonnel, deletePersonnel } = usePersonnel();
   const [addStaffOpen, setAddStaffOpen] = useState(false);
   const [newPersonnelData, setNewPersonnelData] = useState({
     name: '',
@@ -55,6 +56,23 @@ export const PersonnelManagement = () => {
     }
   };
 
+  const handleDeletePersonnel = async (personnelId: string, name: string) => {
+    const { error } = await deletePersonnel(personnelId);
+
+    if (error) {
+      toast({
+        title: "Hata",
+        description: "Personel silinirken bir hata oluştu.",
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Başarılı",
+        description: `${name} personel listesinden kaldırıldı. Geçmiş vardiya kayıtları korundu.`,
+      });
+    }
+  };
+
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
@@ -66,6 +84,8 @@ export const PersonnelManagement = () => {
       </div>
     );
   }
+
+  const activePersonnel = personnel.filter(p => p.status === 'active');
 
   return (
     <div className="space-y-6">
@@ -136,7 +156,7 @@ export const PersonnelManagement = () => {
       </div>
 
       {/* Staff Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center space-x-2">
@@ -152,18 +172,7 @@ export const PersonnelManagement = () => {
               <Clock className="h-5 w-5 text-green-600" />
               <span className="text-sm font-medium">Aktif Personel</span>
             </div>
-            <p className="text-2xl font-bold mt-2">{personnel.filter(p => p.status === 'active').length}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <DollarSign className="h-5 w-5 text-purple-600" />
-              <span className="text-sm font-medium">Bu Ay Eklenen</span>
-            </div>
-            <p className="text-2xl font-bold mt-2">
-              {personnel.filter(p => new Date(p.join_date) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length}
-            </p>
+            <p className="text-2xl font-bold mt-2">{activePersonnel.length}</p>
           </CardContent>
         </Card>
         <Card>
@@ -178,16 +187,16 @@ export const PersonnelManagement = () => {
       </div>
 
       {/* Staff List */}
-      {personnel.length === 0 ? (
+      {activePersonnel.length === 0 ? (
         <Card>
           <CardContent className="text-center py-8">
-            <p className="text-muted-foreground">Henüz personel eklenmemiş.</p>
+            <p className="text-muted-foreground">Henüz aktif personel eklenmemiş.</p>
             <p className="text-sm text-muted-foreground mt-2">Yeni personel eklemek için yukarıdaki butonu kullanın.</p>
           </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {personnel.map((member) => (
+          {activePersonnel.map((member) => (
             <Card key={member.id}>
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -202,9 +211,7 @@ export const PersonnelManagement = () => {
                       <CardDescription>{member.role}</CardDescription>
                     </div>
                   </div>
-                  <Badge variant={member.status === 'active' ? 'default' : 'secondary'}>
-                    {member.status === 'active' ? 'aktif' : 'pasif'}
-                  </Badge>
+                  <Badge variant="default">aktif</Badge>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -233,11 +240,31 @@ export const PersonnelManagement = () => {
                   <Button variant="outline" size="sm" className="flex-1">
                     Bilgileri Düzenle
                   </Button>
-                  {member.status === 'active' && (
-                    <Button size="sm" className="flex-1">
-                      Vardiya Başlat
-                    </Button>
-                  )}
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="sm">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Personeli Sil</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {member.name} adlı personeli silmek istediğinizden emin misiniz? 
+                          Bu işlem personeli aktif listeden kaldıracak ancak geçmiş vardiya kayıtları korunacaktır.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>İptal</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={() => handleDeletePersonnel(member.id, member.name)}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Sil
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </CardContent>
             </Card>

@@ -1,33 +1,17 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { DollarSign, Clock, Users, TrendingUp, TrendingDown } from 'lucide-react';
+import { DollarSign, Clock, Users, TrendingUp, TrendingDown, Calendar } from 'lucide-react';
 import { useShifts } from '@/hooks/useShifts';
 import { usePersonnel } from '@/hooks/usePersonnel';
-import { useNavigate } from 'react-router-dom';
 
 export const DashboardOverview = () => {
-  const { shifts, getWeeklyStats } = useShifts();
+  const { getWeeklyStats, getLatestShift } = useShifts();
   const { personnel } = usePersonnel();
-  const navigate = useNavigate();
 
   const weeklyStats = getWeeklyStats();
-  const activeShifts = shifts.filter(shift => shift.status === 'active');
+  const latestShift = getLatestShift();
   const activePersonnel = personnel.filter(p => p.status === 'active');
-
-  const handleQuickAction = (action: string) => {
-    switch (action) {
-      case 'new-shift':
-        // Switch to shifts tab - this would need to be implemented with context or props
-        break;
-      case 'add-personnel':
-        // Switch to personnel tab
-        break;
-      default:
-        break;
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -46,26 +30,26 @@ export const DashboardOverview = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Aktif Vardiyalar</CardTitle>
+            <CardTitle className="text-sm font-medium">Haftalık Vardiya</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeShifts.length}</div>
+            <div className="text-2xl font-bold">{weeklyStats.shiftCount}</div>
             <p className="text-xs text-muted-foreground">
-              {activePersonnel.length} aktif personelden
+              Son 7 günde tamamlanan
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Toplam Personel</CardTitle>
+            <CardTitle className="text-sm font-medium">Aktif Personel</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{personnel.length}</div>
+            <div className="text-2xl font-bold">{activePersonnel.length}</div>
             <p className="text-xs text-muted-foreground">
-              {activePersonnel.length} aktif
+              {personnel.length} toplam personelden
             </p>
           </CardContent>
         </Card>
@@ -89,69 +73,39 @@ export const DashboardOverview = () => {
         </Card>
       </div>
 
-      {/* Aktif Vardiyalar */}
+      {/* Son Eklenen Vardiya */}
       <Card>
         <CardHeader>
-          <CardTitle>Aktif Vardiyalar</CardTitle>
-          <CardDescription>Şu anda açık olan vardiyalar</CardDescription>
+          <CardTitle>Son Eklenen Vardiya</CardTitle>
+          <CardDescription>En son kaydedilen vardiya bilgileri</CardDescription>
         </CardHeader>
         <CardContent>
-          {activeShifts.length === 0 ? (
+          {!latestShift ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">Şu anda aktif vardiya bulunmuyor.</p>
+              <p className="text-muted-foreground">Henüz vardiya kaydı bulunmuyor.</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {activeShifts.map((shift) => (
-                <div key={shift.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <Badge variant="default">aktif</Badge>
-                    <div>
-                      <p className="font-medium text-sm">{shift.personnel.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Başlangıç: {new Date(shift.start_time).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium text-sm">
-                      ₺{(shift.cash_sales + shift.card_sales + shift.bank_transfers).toLocaleString('tr-TR')}
-                    </p>
-                    <p className={`text-xs ${shift.over_short >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {shift.over_short >= 0 ? '+' : ''}₺{shift.over_short.toFixed(2)}
-                    </p>
-                  </div>
+            <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div className="flex items-center space-x-3">
+                <Badge variant="secondary">Tamamlandı</Badge>
+                <div>
+                  <p className="font-medium text-sm">{latestShift.personnel.name}</p>
+                  <p className="text-xs text-muted-foreground flex items-center">
+                    <Calendar className="h-3 w-3 mr-1" />
+                    {new Date(latestShift.start_time).toLocaleString('tr-TR')}
+                  </p>
                 </div>
-              ))}
+              </div>
+              <div className="text-right">
+                <p className="font-medium text-sm">
+                  ₺{(latestShift.cash_sales + latestShift.card_sales + latestShift.bank_transfers).toLocaleString('tr-TR')}
+                </p>
+                <p className={`text-xs ${latestShift.over_short >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {latestShift.over_short >= 0 ? '+' : ''}₺{latestShift.over_short.toFixed(2)}
+                </p>
+              </div>
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Hızlı İşlemler */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Hızlı İşlemler</CardTitle>
-          <CardDescription>Sık kullanılan işlemler için kısayollar</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Button 
-              onClick={() => handleQuickAction('new-shift')}
-              className="h-20 flex-col space-y-2"
-            >
-              <Clock className="h-6 w-6" />
-              <span>Yeni Vardiya Başlat</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => handleQuickAction('add-personnel')}
-              className="h-20 flex-col space-y-2"
-            >
-              <Users className="h-6 w-6" />
-              <span>Personel Ekle</span>
-            </Button>
-          </div>
         </CardContent>
       </Card>
     </div>

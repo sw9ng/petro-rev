@@ -10,7 +10,8 @@ import { DashboardOverview } from '@/components/DashboardOverview';
 import { ShiftManagement } from '@/components/ShiftManagement';
 import { PersonnelManagement } from '@/components/PersonnelManagement';
 import { ReportsView } from '@/components/ReportsView';
-import { Fuel, Users, BarChart3, Clock, LogOut } from 'lucide-react';
+import { ShiftList } from '@/components/ShiftList';
+import { Fuel, Users, BarChart3, Clock, LogOut, List } from 'lucide-react';
 
 const Index = () => {
   const { user, loading, signOut } = useAuth();
@@ -55,7 +56,7 @@ const Index = () => {
                 <Fuel className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Akaryakıt Pro</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Petrorev</h1>
                 <p className="text-sm text-gray-600">Vardiya Yönetim Sistemi</p>
               </div>
             </div>
@@ -75,7 +76,7 @@ const Index = () => {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8">
+          <TabsList className="grid w-full grid-cols-5 mb-8">
             <TabsTrigger value="dashboard" className="flex items-center space-x-2">
               <BarChart3 className="h-4 w-4" />
               <span>Pano</span>
@@ -87,6 +88,10 @@ const Index = () => {
             <TabsTrigger value="personnel" className="flex items-center space-x-2">
               <Users className="h-4 w-4" />
               <span>Personel</span>
+            </TabsTrigger>
+            <TabsTrigger value="shift-list" className="flex items-center space-x-2">
+              <List className="h-4 w-4" />
+              <span>Vardiya Listesi</span>
             </TabsTrigger>
             <TabsTrigger value="reports" className="flex items-center space-x-2">
               <BarChart3 className="h-4 w-4" />
@@ -104,6 +109,10 @@ const Index = () => {
 
           <TabsContent value="personnel">
             <PersonnelManagement />
+          </TabsContent>
+
+          <TabsContent value="shift-list">
+            <ShiftList />
           </TabsContent>
 
           <TabsContent value="reports">

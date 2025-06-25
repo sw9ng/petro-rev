@@ -7,14 +7,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Clock, Calculator } from 'lucide-react';
+import { Plus, Calculator, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useShifts } from '@/hooks/useShifts';
 import { usePersonnel } from '@/hooks/usePersonnel';
 
 export const ShiftManagement = () => {
   const { toast } = useToast();
-  const { shifts, loading: shiftsLoading, addShift, closeShift } = useShifts();
+  const { shifts, loading: shiftsLoading, addShift } = useShifts();
   const { personnel, loading: personnelLoading } = usePersonnel();
   const [newShiftOpen, setNewShiftOpen] = useState(false);
   const [newShiftData, setNewShiftData] = useState({
@@ -45,7 +45,7 @@ export const ShiftManagement = () => {
       card_sales: parseFloat(newShiftData.card_sales) || 0,
       bank_transfers: parseFloat(newShiftData.bank_transfers) || 0,
       actual_amount: parseFloat(newShiftData.actual_amount) || 0,
-      status: 'active'
+      status: 'completed'
     };
 
     const { error } = await addShift(shiftData);
@@ -58,8 +58,8 @@ export const ShiftManagement = () => {
       });
     } else {
       toast({
-        title: "Vardiya Oluşturuldu",
-        description: "Yeni vardiya başarıyla başlatıldı.",
+        title: "Vardiya Kaydedildi",
+        description: "Vardiya başarıyla kaydedildi.",
       });
       
       setNewShiftOpen(false);
@@ -74,23 +74,6 @@ export const ShiftManagement = () => {
     }
   };
 
-  const handleCloseShift = async (shiftId: string) => {
-    const { error } = await closeShift(shiftId);
-    
-    if (error) {
-      toast({
-        title: "Hata",
-        description: "Vardiya kapatılırken bir hata oluştu.",
-        variant: "destructive"
-      });
-    } else {
-      toast({
-        title: "Vardiya Kapatıldı",
-        description: "Vardiya başarıyla kapatıldı.",
-      });
-    }
-  };
-
   if (shiftsLoading || personnelLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -99,24 +82,26 @@ export const ShiftManagement = () => {
     );
   }
 
+  const activePersonnel = personnel.filter(p => p.status === 'active');
+
   return (
     <div className="space-y-6">
       {/* Başlık ve Yeni Vardiya Butonu */}
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Vardiya Yönetimi</h2>
-          <p className="text-muted-foreground">Vardiya bilgilerini girin ve yönetin</p>
+          <p className="text-muted-foreground">Vardiya bilgilerini kaydet ve yönet</p>
         </div>
         <Dialog open={newShiftOpen} onOpenChange={setNewShiftOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              Yeni Vardiya Başlat
+              Vardiya Kaydet
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Yeni Vardiya Oluştur</DialogTitle>
+              <DialogTitle>Yeni Vardiya Kaydet</DialogTitle>
               <DialogDescription>Vardiya bilgilerini girin</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreateShift} className="space-y-4 py-4">
@@ -127,7 +112,7 @@ export const ShiftManagement = () => {
                     <SelectValue placeholder="Personel seçin" />
                   </SelectTrigger>
                   <SelectContent>
-                    {personnel.filter(p => p.status === 'active').map((person) => (
+                    {activePersonnel.map((person) => (
                       <SelectItem key={person.id} value={person.id}>{person.name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -135,7 +120,7 @@ export const ShiftManagement = () => {
               </div>
               
               <div className="space-y-2">
-                <Label>Başlangıç Saati *</Label>
+                <Label>Vardiya Tarihi ve Saati *</Label>
                 <Input 
                   type="datetime-local" 
                   value={newShiftData.start_time}
@@ -189,104 +174,47 @@ export const ShiftManagement = () => {
                 />
               </div>
 
+              {/* Hesaplama Önizlemesi */}
+              {(newShiftData.cash_sales || newShiftData.card_sales || newShiftData.bank_transfers || newShiftData.actual_amount) && (
+                <div className="p-3 bg-gray-50 rounded-lg text-sm">
+                  <p className="font-medium mb-2">Hesaplama Önizlemesi:</p>
+                  <div className="space-y-1">
+                    <div className="flex justify-between">
+                      <span>Toplam Satış:</span>
+                      <span>₺{((parseFloat(newShiftData.cash_sales) || 0) + (parseFloat(newShiftData.card_sales) || 0) + (parseFloat(newShiftData.bank_transfers) || 0)).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Gerçek Tutar:</span>
+                      <span>₺{(parseFloat(newShiftData.actual_amount) || 0).toFixed(2)}</span>
+                    </div>
+                    <hr />
+                    <div className="flex justify-between font-medium">
+                      <span>Fazla/Eksik:</span>
+                      <span className={(parseFloat(newShiftData.actual_amount) || 0) - ((parseFloat(newShiftData.cash_sales) || 0) + (parseFloat(newShiftData.card_sales) || 0) + (parseFloat(newShiftData.bank_transfers) || 0)) >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        ₺{((parseFloat(newShiftData.actual_amount) || 0) - ((parseFloat(newShiftData.cash_sales) || 0) + (parseFloat(newShiftData.card_sales) || 0) + (parseFloat(newShiftData.bank_transfers) || 0))).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <Button type="submit" className="w-full">
-                Vardiya Oluştur
+                Vardiya Kaydet
               </Button>
             </form>
           </DialogContent>
         </Dialog>
       </div>
 
-      {/* Aktif Vardiyalar */}
-      {shifts.length === 0 ? (
-        <Card>
-          <CardContent className="text-center py-8">
-            <p className="text-muted-foreground">Henüz aktif vardiya bulunmuyor.</p>
-            <p className="text-sm text-muted-foreground mt-2">Yeni vardiya başlatmak için yukarıdaki butonu kullanın.</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {shifts.map((shift) => {
-            const totalSales = shift.cash_sales + shift.card_sales + shift.bank_transfers;
-            
-            return (
-              <Card key={shift.id} className="relative">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-lg">{shift.personnel.name}</CardTitle>
-                      <CardDescription>
-                        Başlangıç: {new Date(shift.start_time).toLocaleString('tr-TR')}
-                      </CardDescription>
-                    </div>
-                    <Badge variant="default">
-                      <Clock className="h-3 w-3 mr-1" />
-                      Aktif
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Satış Özeti */}
-                  <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Nakit</p>
-                      <p className="font-semibold">₺{shift.cash_sales.toFixed(2)}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Kart</p>
-                      <p className="font-semibold">₺{shift.card_sales.toFixed(2)}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Banka Transfer</p>
-                      <p className="font-semibold">₺{shift.bank_transfers.toFixed(2)}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Toplam Satış</p>
-                      <p className="font-semibold">₺{totalSales.toFixed(2)}</p>
-                    </div>
-                  </div>
-
-                  {/* Fazla/Eksik Hesaplama */}
-                  <div className="p-4 border rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium">Fazla/Eksik Hesaplama</span>
-                      <Calculator className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div className="space-y-1 text-sm">
-                      <div className="flex justify-between">
-                        <span>Gerçek Tutar:</span>
-                        <span>₺{shift.actual_amount.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Toplam Satış:</span>
-                        <span>₺{totalSales.toFixed(2)}</span>
-                      </div>
-                      <hr className="my-2" />
-                      <div className={`flex justify-between font-medium ${shift.over_short >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        <span>{shift.over_short >= 0 ? 'Fazla:' : 'Eksik:'}</span>
-                        <span>₺{Math.abs(shift.over_short).toFixed(2)}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* İşlemler */}
-                  <div className="flex space-x-2">
-                    <Button 
-                      variant="default" 
-                      size="sm" 
-                      className="flex-1"
-                      onClick={() => handleCloseShift(shift.id)}
-                    >
-                      Vardiyayı Kapat
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+      {/* Mesaj */}
+      <Card>
+        <CardContent className="text-center py-8">
+          <p className="text-muted-foreground">
+            Vardiyalar kaydedildikten sonra kalıcı olarak saklanır. 
+            Geçmiş vardiyaları görmek için <strong>Raporlar</strong> sekmesini kullanın.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 };
