@@ -24,9 +24,10 @@ export const ShiftManagement = () => {
     start_time: '',
     cash_sales: '',
     card_sales: '',
-    actual_amount: '', // personel ödenen
-    veresiye: '',
-    gercek_satis: ''
+    bank_transfers: '',
+    actual_amount: '',
+    sayac_satisi: '',
+    veresiye: ''
   });
 
   const handleCreateShift = async (e: React.FormEvent) => {
@@ -46,9 +47,10 @@ export const ShiftManagement = () => {
       start_time: newShiftData.start_time,
       cash_sales: parseFloat(newShiftData.cash_sales) || 0,
       card_sales: parseFloat(newShiftData.card_sales) || 0,
-      actual_amount: parseFloat(newShiftData.actual_amount) || 0, // personel ödenen
+      bank_transfers: parseFloat(newShiftData.bank_transfers) || 0,
+      actual_amount: parseFloat(newShiftData.actual_amount) || 0,
+      sayac_satisi: parseFloat(newShiftData.sayac_satisi) || 0,
       veresiye: parseFloat(newShiftData.veresiye) || 0,
-      gercek_satis: parseFloat(newShiftData.gercek_satis) || 0,
       status: 'completed'
     };
 
@@ -72,9 +74,10 @@ export const ShiftManagement = () => {
         start_time: '',
         cash_sales: '',
         card_sales: '',
+        bank_transfers: '',
         actual_amount: '',
-        veresiye: '',
-        gercek_satis: ''
+        sayac_satisi: '',
+        veresiye: ''
       });
       setBankAmounts({});
     }
@@ -177,15 +180,26 @@ export const ShiftManagement = () => {
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <Label>Banka Transfer (₺)</Label>
+                <Input 
+                  type="number" 
+                  step="0.01"
+                  placeholder="0.00"
+                  value={newShiftData.bank_transfers}
+                  onChange={(e) => setNewShiftData({...newShiftData, bank_transfers: e.target.value})}
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-2">
-                  <Label>Personel Ödenen (₺)</Label>
+                  <Label>Sayaç Satışı (₺)</Label>
                   <Input 
                     type="number" 
                     step="0.01"
                     placeholder="0.00"
-                    value={newShiftData.actual_amount}
-                    onChange={(e) => setNewShiftData({...newShiftData, actual_amount: e.target.value})}
+                    value={newShiftData.sayac_satisi}
+                    onChange={(e) => setNewShiftData({...newShiftData, sayac_satisi: e.target.value})}
                   />
                 </div>
                 <div className="space-y-2">
@@ -201,34 +215,34 @@ export const ShiftManagement = () => {
               </div>
 
               <div className="space-y-2">
-                <Label>Gerçek Satış (₺)</Label>
+                <Label>Gerçek Tutar (₺)</Label>
                 <Input 
                   type="number" 
                   step="0.01"
                   placeholder="0.00"
-                  value={newShiftData.gercek_satis}
-                  onChange={(e) => setNewShiftData({...newShiftData, gercek_satis: e.target.value})}
+                  value={newShiftData.actual_amount}
+                  onChange={(e) => setNewShiftData({...newShiftData, actual_amount: e.target.value})}
                 />
               </div>
 
-              {/* Calculation preview - revert to original logic */}
-              {(newShiftData.cash_sales || newShiftData.card_sales || newShiftData.actual_amount) && (
+              {/* Hesaplama Önizlemesi */}
+              {(newShiftData.cash_sales || newShiftData.card_sales || newShiftData.bank_transfers || newShiftData.actual_amount) && (
                 <div className="p-3 bg-gray-50 rounded-lg text-sm">
                   <p className="font-medium mb-2">Hesaplama Önizlemesi:</p>
                   <div className="space-y-1">
                     <div className="flex justify-between">
-                      <span>Toplam Satış (Nakit + Kart):</span>
-                      <span>₺{((parseFloat(newShiftData.cash_sales) || 0) + (parseFloat(newShiftData.card_sales) || 0)).toFixed(2)}</span>
+                      <span>Toplam Satış:</span>
+                      <span>₺{((parseFloat(newShiftData.cash_sales) || 0) + (parseFloat(newShiftData.card_sales) || 0) + (parseFloat(newShiftData.bank_transfers) || 0)).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Personel Ödenen:</span>
+                      <span>Gerçek Tutar:</span>
                       <span>₺{(parseFloat(newShiftData.actual_amount) || 0).toFixed(2)}</span>
                     </div>
                     <hr />
                     <div className="flex justify-between font-medium">
-                      <span>Açık/Fazla:</span>
-                      <span className={((parseFloat(newShiftData.cash_sales) || 0) + (parseFloat(newShiftData.card_sales) || 0)) - (parseFloat(newShiftData.actual_amount) || 0) >= 0 ? 'text-green-600' : 'text-red-600'}>
-                        ₺{(((parseFloat(newShiftData.cash_sales) || 0) + (parseFloat(newShiftData.card_sales) || 0)) - (parseFloat(newShiftData.actual_amount) || 0)).toFixed(2)}
+                      <span>Fazla/Eksik:</span>
+                      <span className={(parseFloat(newShiftData.actual_amount) || 0) - ((parseFloat(newShiftData.cash_sales) || 0) + (parseFloat(newShiftData.card_sales) || 0) + (parseFloat(newShiftData.bank_transfers) || 0)) >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        ₺{((parseFloat(newShiftData.actual_amount) || 0) - ((parseFloat(newShiftData.cash_sales) || 0) + (parseFloat(newShiftData.card_sales) || 0) + (parseFloat(newShiftData.bank_transfers) || 0))).toFixed(2)}
                       </span>
                     </div>
                   </div>
