@@ -1,93 +1,118 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Calendar, Search, TrendingUp, Users, DollarSign } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarIcon, Search, TrendingUp, Users, DollarSign } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 import { useShifts } from '@/hooks/useShifts';
 import { usePersonnel } from '@/hooks/usePersonnel';
 
 export const ReportsView = () => {
   const { findShiftsByDateAndPersonnel } = useShifts();
   const { personnel } = usePersonnel();
-  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedPersonnel, setSelectedPersonnel] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-
-  // Get unique dates from all shifts for dropdown
-  const [availableDates, setAvailableDates] = useState<string[]>([]);
-
-  useEffect(() => {
-    const loadAvailableDates = async () => {
-      const allShifts = await findShiftsByDateAndPersonnel('', '');
-      const dates = [...new Set(allShifts.map(shift => 
-        new Date(shift.start_time).toLocaleDateString('tr-TR')
-      ))].sort((a, b) => new Date(b.split('.').reverse().join('-')).getTime() - new Date(a.split('.').reverse().join('-')).getTime());
-      setAvailableDates(dates);
-    };
-
-    loadAvailableDates();
-  }, []);
+  const [monthlyStats, setMonthlyStats] = useState({
+    totalSales: 0,
+    totalShifts: 0,
+    averagePerShift: 0,
+    totalOverShort: 0
+  });
 
   const handleSearch = async () => {
     setLoading(true);
     
     let searchDate = '';
     if (selectedDate) {
-      // Convert Turkish date format to ISO format for search
-      const [day, month, year] = selectedDate.split('.');
-      searchDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      searchDate = format(selectedDate, 'yyyy-MM-dd');
     }
 
     const results = await findShiftsByDateAndPersonnel(searchDate, selectedPersonnel);
     setSearchResults(results);
+    
+    // Calculate stats from results
+    const totalSales = results.reduce((sum, shift) => 
+      sum + shift.cash_sales + shift.card_sales, 0);
+    const totalOverShort = results.reduce((sum, shift) => sum + shift.over_short, 0);
+    
+    setMonthlyStats({
+      totalSales,
+      totalShifts: results.length,
+      averagePerShift: results.length > 0 ? totalSales / results.length : 0,
+      totalOverShort
+    });
+    
     setLoading(false);
   };
 
   const clearSearch = () => {
-    setSelectedDate('');
+    setSelectedDate(undefined);
     setSelectedPersonnel('');
     setSearchResults([]);
+    setMonthlyStats({
+      totalSales: 0,
+      totalShifts: 0,
+      averagePerShift: 0,
+      totalOverShort: 0
+    });
   };
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold">Raporlar</h2>
-        <p className="text-muted-foreground">Vardiya ve personel raporlarını görüntüle</p>
+        <p className="text-muted-foreground">Vardiya ve personel raporlarını görüntüle ve analiz et</p>
       </div>
 
-      {/* Arama Bölümü */}
+      {/* Advanced Search Section */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center space-x-2">
             <Search className="h-5 w-5" />
-            <span>Vardiya Ara</span>
+            <span>Gelişmiş Arama</span>
           </CardTitle>
-          <CardDescription>Tarih ve personele göre vardiya arayın</CardDescription>
+          <CardDescription>Binlerce vardiya arasından kolayca arama yapın</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Tarih Seçin</label>
-              <Select value={selectedDate} onValueChange={setSelectedDate}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Tarih seçin" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableDates.map((date) => (
-                    <SelectItem key={date} value={date}>{date}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !selectedDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedDate ? format(selectedDate, "dd.MM.yyyy") : "Tarih seçin"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             
             <div className="space-y-2">
               <label className="text-sm font-medium">Personel Seçin</label>
               <Select value={selectedPersonnel} onValueChange={setSelectedPersonnel}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Personel seçin" />
+                  <SelectValue placeholder="Tüm personel" />
                 </SelectTrigger>
                 <SelectContent>
                   {personnel.map((person) => (
@@ -112,7 +137,62 @@ export const ReportsView = () => {
         </CardContent>
       </Card>
 
-      {/* Arama Sonuçları */}
+      {/* Statistics Overview */}
+      {searchResults.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Toplam Satış</p>
+                  <p className="text-2xl font-bold">₺{monthlyStats.totalSales.toFixed(2)}</p>
+                </div>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Toplam Vardiya</p>
+                  <p className="text-2xl font-bold">{monthlyStats.totalShifts}</p>
+                </div>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Vardiya Ortalaması</p>
+                  <p className="text-2xl font-bold">₺{monthlyStats.averagePerShift.toFixed(2)}</p>
+                </div>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Toplam Açık/Fazla</p>
+                  <p className={`text-2xl font-bold ${monthlyStats.totalOverShort >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    ₺{Math.abs(monthlyStats.totalOverShort).toFixed(2)}
+                  </p>
+                </div>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Search Results */}
       {searchResults.length > 0 && (
         <Card>
           <CardHeader>
@@ -122,7 +202,7 @@ export const ReportsView = () => {
           <CardContent>
             <div className="space-y-4">
               {searchResults.map((shift) => {
-                const totalSales = shift.cash_sales + shift.card_sales + shift.bank_transfers;
+                const totalSales = shift.cash_sales + shift.card_sales;
                 
                 return (
                   <div key={shift.id} className="p-4 border rounded-lg">
@@ -130,13 +210,17 @@ export const ReportsView = () => {
                       <div>
                         <h3 className="font-semibold">{shift.personnel.name}</h3>
                         <p className="text-sm text-muted-foreground flex items-center space-x-1">
-                          <Calendar className="h-3 w-3" />
+                          <CalendarIcon className="h-3 w-3" />
                           <span>{new Date(shift.start_time).toLocaleString('tr-TR')}</span>
                         </p>
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Sayaç Satışı</p>
+                        <p className="font-medium">₺{(shift.sayac_satisi || 0).toFixed(2)}</p>
+                      </div>
                       <div>
                         <p className="text-muted-foreground">Nakit</p>
                         <p className="font-medium">₺{shift.cash_sales.toFixed(2)}</p>
@@ -146,20 +230,14 @@ export const ReportsView = () => {
                         <p className="font-medium">₺{shift.card_sales.toFixed(2)}</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground">Transfer</p>
-                        <p className="font-medium">₺{shift.bank_transfers.toFixed(2)}</p>
+                        <p className="text-muted-foreground">Personel Ödenen</p>
+                        <p className="font-medium">₺{shift.actual_amount.toFixed(2)}</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground">Toplam</p>
-                        <p className="font-semibold">₺{totalSales.toFixed(2)}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-3 pt-3 border-t">
-                      <div className={`text-sm ${shift.over_short >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        <span className="font-medium">
-                          {shift.over_short >= 0 ? 'Fazla:' : 'Eksik:'} ₺{Math.abs(shift.over_short).toFixed(2)}
-                        </span>
+                        <p className="text-muted-foreground">Açık/Fazla</p>
+                        <p className={`font-semibold ${shift.over_short >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          ₺{Math.abs(shift.over_short).toFixed(2)}
+                        </p>
                       </div>
                     </div>
                   </div>

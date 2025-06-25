@@ -76,8 +76,9 @@ export const useShifts = () => {
   const addShift = async (shiftData: any) => {
     if (!user) return { error: 'User not authenticated' };
 
-    const totalSales = shiftData.cash_sales + shiftData.card_sales + shiftData.bank_transfers;
-    const overShort = shiftData.actual_amount - totalSales;
+    // Updated calculation without bank_transfers
+    const totalSales = shiftData.cash_sales + shiftData.card_sales;
+    const overShort = (shiftData.sayac_satisi || 0) - (shiftData.actual_amount || 0);
 
     const { data, error } = await supabase
       .from('shifts')
@@ -85,6 +86,7 @@ export const useShifts = () => {
         {
           ...shiftData,
           station_id: user.id,
+          bank_transfers: 0, // Set to 0 since we're removing bank transfers
           over_short: overShort,
           status: 'completed'
         }
@@ -105,6 +107,23 @@ export const useShifts = () => {
     return { data, error };
   };
 
+  const deleteShift = async (shiftId: string) => {
+    if (!user) return { error: 'User not authenticated' };
+
+    const { error } = await supabase
+      .from('shifts')
+      .delete()
+      .eq('id', shiftId)
+      .eq('station_id', user.id);
+
+    if (!error) {
+      setShifts(prev => prev.filter(shift => shift.id !== shiftId));
+      setAllShifts(prev => prev.filter(shift => shift.id !== shiftId));
+    }
+
+    return { error };
+  };
+
   const getWeeklyStats = () => {
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
@@ -115,7 +134,7 @@ export const useShifts = () => {
 
     return {
       totalSales: weeklyShifts.reduce((sum, shift) => 
-        sum + shift.cash_sales + shift.card_sales + shift.bank_transfers, 0),
+        sum + shift.cash_sales + shift.card_sales, 0), // Removed bank_transfers
       totalOverShort: weeklyShifts.reduce((sum, shift) => sum + shift.over_short, 0),
       shiftCount: weeklyShifts.length
     };
@@ -170,6 +189,7 @@ export const useShifts = () => {
     allShifts,
     loading,
     addShift,
+    deleteShift,
     getWeeklyStats,
     getLatestShift,
     fetchAllShifts,

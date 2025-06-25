@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +13,7 @@ interface ShiftDetailDialogProps {
 export const ShiftDetailDialog = ({ shift, isOpen, onOpenChange }: ShiftDetailDialogProps) => {
   if (!shift) return null;
 
-  const totalSales = shift.cash_sales + shift.card_sales + shift.bank_transfers;
+  const totalSales = shift.cash_sales + shift.card_sales;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -75,6 +74,10 @@ export const ShiftDetailDialog = ({ shift, isOpen, onOpenChange }: ShiftDetailDi
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <div className="flex justify-between">
+                    <span className="text-muted-foreground">Sayaç Satışı:</span>
+                    <span className="font-medium">₺{(shift.sayac_satisi || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
                     <span className="text-muted-foreground">Nakit Satış:</span>
                     <span className="font-medium">₺{shift.cash_sales.toFixed(2)}</span>
                   </div>
@@ -85,11 +88,15 @@ export const ShiftDetailDialog = ({ shift, isOpen, onOpenChange }: ShiftDetailDi
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Banka Transfer:</span>
-                    <span className="font-medium">₺{shift.bank_transfers.toFixed(2)}</span>
+                    <span className="text-muted-foreground">Veresiye:</span>
+                    <span className="font-medium">₺{(shift.veresiye || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Personel Ödenen:</span>
+                    <span className="font-medium">₺{shift.actual_amount.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between border-t pt-2">
-                    <span className="font-medium">Toplam Satış:</span>
+                    <span className="font-medium">Toplam Nakit+Kart:</span>
                     <span className="font-bold">₺{totalSales.toFixed(2)}</span>
                   </div>
                 </div>
@@ -102,21 +109,21 @@ export const ShiftDetailDialog = ({ shift, isOpen, onOpenChange }: ShiftDetailDi
             <CardHeader>
               <CardTitle className="text-lg flex items-center space-x-2">
                 <Calculator className="h-4 w-4" />
-                <span>Fazla/Eksik Hesaplama</span>
+                <span>Açık/Fazla Hesaplama</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="flex justify-between">
-                <span>Gerçek Tutar:</span>
-                <span className="font-medium">₺{shift.actual_amount.toFixed(2)}</span>
+                <span>Sayaç Satışı:</span>
+                <span className="font-medium">₺{(shift.sayac_satisi || 0).toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
-                <span>Toplam Satış:</span>
-                <span className="font-medium">₺{totalSales.toFixed(2)}</span>
+                <span>Personel Ödenen:</span>
+                <span className="font-medium">₺{shift.actual_amount.toFixed(2)}</span>
               </div>
               <hr className="my-2" />
               <div className={`flex justify-between font-bold text-lg ${shift.over_short >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                <span>{shift.over_short >= 0 ? 'Fazla:' : 'Eksik:'}</span>
+                <span>{shift.over_short >= 0 ? 'Fazla:' : 'Açık:'}</span>
                 <span>₺{Math.abs(shift.over_short).toFixed(2)}</span>
               </div>
             </CardContent>

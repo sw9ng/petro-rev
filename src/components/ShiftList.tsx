@@ -1,17 +1,18 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Calculator, Search, Eye } from 'lucide-react';
+import { Calendar, Calculator, Search, Eye, Trash2 } from 'lucide-react';
 import { useShifts } from '@/hooks/useShifts';
 import { usePersonnel } from '@/hooks/usePersonnel';
 import { ShiftDetailDialog } from './ShiftDetailDialog';
+import { useToast } from '@/hooks/use-toast';
 
 export const ShiftList = () => {
-  const { fetchAllShifts } = useShifts();
+  const { fetchAllShifts, deleteShift } = useShifts();
   const { personnel } = usePersonnel();
+  const { toast } = useToast();
   const [shifts, setShifts] = useState<any[]>([]);
   const [filteredShifts, setFilteredShifts] = useState<any[]>([]);
   const [selectedDate, setSelectedDate] = useState('');
@@ -62,6 +63,31 @@ export const ShiftList = () => {
   const handleShiftDetail = (shift: any) => {
     setSelectedShift(shift);
     setDetailDialogOpen(true);
+  };
+
+  const handleDeleteShift = async (shiftId: string) => {
+    const confirmed = window.confirm('Bu vardiyayı silmek istediğinizden emin misiniz?');
+    if (!confirmed) return;
+
+    const { error } = await deleteShift(shiftId);
+    
+    if (error) {
+      toast({
+        title: "Hata",
+        description: "Vardiya silinirken bir hata oluştu.",
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Vardiya Silindi",
+        description: "Vardiya başarıyla silindi.",
+      });
+      
+      // Refresh the shifts list
+      const allShifts = await fetchAllShifts();
+      setShifts(allShifts);
+      setFilteredShifts(allShifts);
+    }
   };
 
   if (loading) {
@@ -139,7 +165,7 @@ export const ShiftList = () => {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {filteredShifts.map((shift) => {
-            const totalSales = shift.cash_sales + shift.card_sales + shift.bank_transfers;
+            const totalSales = shift.cash_sales + shift.card_sales; // Removed bank_transfers
             
             return (
               <Card key={shift.id}>
@@ -156,21 +182,35 @@ export const ShiftList = () => {
                     </div>
                     <div className="flex flex-col space-y-2">
                       <Badge variant="secondary">Tamamlandı</Badge>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleShiftDetail(shift)}
-                        className="flex items-center space-x-1"
-                      >
-                        <Eye className="h-3 w-3" />
-                        <span>Detaylı</span>
-                      </Button>
+                      <div className="flex space-x-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleShiftDetail(shift)}
+                          className="flex items-center space-x-1"
+                        >
+                          <Eye className="h-3 w-3" />
+                          <span>Detaylı</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteShift(shift.id)}
+                          className="flex items-center space-x-1 text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Satış Özeti */}
+                  {/* Updated sales summary without bank transfers */}
                   <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Sayaç Satışı</p>
+                      <p className="font-semibold">₺{(shift.sayac_satisi || 0).toFixed(2)}</p>
+                    </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Nakit</p>
                       <p className="font-semibold">₺{shift.cash_sales.toFixed(2)}</p>
@@ -180,23 +220,19 @@ export const ShiftList = () => {
                       <p className="font-semibold">₺{shift.card_sales.toFixed(2)}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Banka Transfer</p>
-                      <p className="font-semibold">₺{shift.bank_transfers.toFixed(2)}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Toplam Satış</p>
-                      <p className="font-semibold">₺{totalSales.toFixed(2)}</p>
+                      <p className="text-sm text-muted-foreground">Personel Ödenen</p>
+                      <p className="font-semibold">₺{shift.actual_amount.toFixed(2)}</p>
                     </div>
                   </div>
 
-                  {/* Fazla/Eksik Hesaplama */}
+                  {/* Updated calculation display */}
                   <div className="p-4 border rounded-lg">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium">Fazla/Eksik Hesaplama</span>
+                      <span className="font-medium">Açık/Fazla Hesaplama</span>
                       <Calculator className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div className={`text-right font-medium ${shift.over_short >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      <span>{shift.over_short >= 0 ? 'Fazla:' : 'Eksik:'} ₺{Math.abs(shift.over_short).toFixed(2)}</span>
+                      <span>{shift.over_short >= 0 ? 'Fazla:' : 'Açık:'} ₺{Math.abs(shift.over_short).toFixed(2)}</span>
                     </div>
                   </div>
                 </CardContent>
