@@ -14,8 +14,8 @@ export interface Shift {
   actual_amount: number;
   over_short: number;
   status: string;
-  sayac_satisi?: number;
   veresiye?: number;
+  gercek_satis?: number;
   personnel: {
     name: string;
   };
@@ -76,9 +76,9 @@ export const useShifts = () => {
   const addShift = async (shiftData: any) => {
     if (!user) return { error: 'User not authenticated' };
 
-    // Updated calculation without bank_transfers
+    // Revert to original calculation: no sayaç satışı
     const totalSales = shiftData.cash_sales + shiftData.card_sales;
-    const overShort = (shiftData.sayac_satisi || 0) - (shiftData.actual_amount || 0);
+    const overShort = totalSales - (shiftData.actual_amount || 0);
 
     const { data, error } = await supabase
       .from('shifts')
@@ -86,7 +86,7 @@ export const useShifts = () => {
         {
           ...shiftData,
           station_id: user.id,
-          bank_transfers: 0, // Set to 0 since we're removing bank transfers
+          bank_transfers: 0,
           over_short: overShort,
           status: 'completed'
         }
@@ -134,7 +134,7 @@ export const useShifts = () => {
 
     return {
       totalSales: weeklyShifts.reduce((sum, shift) => 
-        sum + shift.cash_sales + shift.card_sales, 0), // Removed bank_transfers
+        sum + shift.cash_sales + shift.card_sales, 0),
       totalOverShort: weeklyShifts.reduce((sum, shift) => sum + shift.over_short, 0),
       shiftCount: weeklyShifts.length
     };

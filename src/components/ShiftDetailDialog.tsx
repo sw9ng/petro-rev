@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
@@ -74,16 +75,16 @@ export const ShiftDetailDialog = ({ shift, isOpen, onOpenChange }: ShiftDetailDi
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Sayaç Satışı:</span>
-                    <span className="font-medium">₺{(shift.sayac_satisi || 0).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
                     <span className="text-muted-foreground">Nakit Satış:</span>
                     <span className="font-medium">₺{shift.cash_sales.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Kart Satış:</span>
                     <span className="font-medium">₺{shift.card_sales.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Gerçek Satış:</span>
+                    <span className="font-medium">₺{(shift.gercek_satis || 0).toFixed(2)}</span>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -114,8 +115,8 @@ export const ShiftDetailDialog = ({ shift, isOpen, onOpenChange }: ShiftDetailDi
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="flex justify-between">
-                <span>Sayaç Satışı:</span>
-                <span className="font-medium">₺{(shift.sayac_satisi || 0).toFixed(2)}</span>
+                <span>Toplam Satış (Nakit + Kart):</span>
+                <span className="font-medium">₺{totalSales.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Personel Ödenen:</span>

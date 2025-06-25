@@ -7,6 +7,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarIcon, Search, TrendingUp, Users, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
+import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useShifts } from '@/hooks/useShifts';
 import { usePersonnel } from '@/hooks/usePersonnel';
@@ -93,7 +94,7 @@ export const ReportsView = () => {
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {selectedDate ? format(selectedDate, "dd.MM.yyyy") : "Tarih seçin"}
+                    {selectedDate ? format(selectedDate, "dd MMMM yyyy", { locale: tr }) : "Tarih seçin"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -102,6 +103,7 @@ export const ReportsView = () => {
                     selected={selectedDate}
                     onSelect={setSelectedDate}
                     initialFocus
+                    locale={tr}
                     className={cn("p-3 pointer-events-auto")}
                   />
                 </PopoverContent>
@@ -211,16 +213,12 @@ export const ReportsView = () => {
                         <h3 className="font-semibold">{shift.personnel.name}</h3>
                         <p className="text-sm text-muted-foreground flex items-center space-x-1">
                           <CalendarIcon className="h-3 w-3" />
-                          <span>{new Date(shift.start_time).toLocaleString('tr-TR')}</span>
+                          <span>{format(new Date(shift.start_time), "dd MMMM yyyy", { locale: tr })}</span>
                         </p>
                       </div>
                     </div>
                     
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Sayaç Satışı</p>
-                        <p className="font-medium">₺{(shift.sayac_satisi || 0).toFixed(2)}</p>
-                      </div>
                       <div>
                         <p className="text-muted-foreground">Nakit</p>
                         <p className="font-medium">₺{shift.cash_sales.toFixed(2)}</p>
@@ -232,6 +230,10 @@ export const ReportsView = () => {
                       <div>
                         <p className="text-muted-foreground">Personel Ödenen</p>
                         <p className="font-medium">₺{shift.actual_amount.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Gerçek Satış</p>
+                        <p className="font-medium">₺{(shift.gercek_satis || 0).toFixed(2)}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Açık/Fazla</p>

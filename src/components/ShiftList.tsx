@@ -1,9 +1,15 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Calculator, Search, Eye, Trash2 } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarIcon, Calculator, Search, Eye, Trash2 } from 'lucide-react';
+import { format } from 'date-fns';
+import { tr } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import { useShifts } from '@/hooks/useShifts';
 import { usePersonnel } from '@/hooks/usePersonnel';
 import { ShiftDetailDialog } from './ShiftDetailDialog';
@@ -15,7 +21,7 @@ export const ShiftList = () => {
   const { toast } = useToast();
   const [shifts, setShifts] = useState<any[]>([]);
   const [filteredShifts, setFilteredShifts] = useState<any[]>([]);
-  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedPersonnel, setSelectedPersonnel] = useState('');
   const [selectedShift, setSelectedShift] = useState<any>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
@@ -38,8 +44,9 @@ export const ShiftList = () => {
 
     if (selectedDate) {
       filtered = filtered.filter(shift => {
-        const shiftDate = new Date(shift.start_time).toLocaleDateString('tr-TR');
-        return shiftDate === selectedDate;
+        const shiftDate = new Date(shift.start_time);
+        const filterDate = new Date(selectedDate);
+        return shiftDate.toDateString() === filterDate.toDateString();
       });
     }
 
@@ -50,13 +57,8 @@ export const ShiftList = () => {
     setFilteredShifts(filtered);
   }, [selectedDate, selectedPersonnel, shifts]);
 
-  // Get unique dates from shifts
-  const uniqueDates = [...new Set(shifts.map(shift => 
-    new Date(shift.start_time).toLocaleDateString('tr-TR')
-  ))].sort((a, b) => new Date(b.split('.').reverse().join('-')).getTime() - new Date(a.split('.').reverse().join('-')).getTime());
-
   const clearFilters = () => {
-    setSelectedDate('');
+    setSelectedDate(undefined);
     setSelectedPersonnel('');
   };
 
@@ -86,7 +88,6 @@ export const ShiftList = () => {
       // Refresh the shifts list
       const allShifts = await fetchAllShifts();
       setShifts(allShifts);
-      setFilteredShifts(allShifts);
     }
   };
 
@@ -119,16 +120,30 @@ export const ShiftList = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Tarih Seçin</label>
-              <Select value={selectedDate} onValueChange={setSelectedDate}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Tarih seçin" />
-                </SelectTrigger>
-                <SelectContent>
-                  {uniqueDates.map((date) => (
-                    <SelectItem key={date} value={date}>{date}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !selectedDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedDate ? format(selectedDate, "dd MMMM yyyy", { locale: tr }) : "Tarih seçin"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    initialFocus
+                    locale={tr}
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             
             <div className="space-y-2">
@@ -165,7 +180,7 @@ export const ShiftList = () => {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {filteredShifts.map((shift) => {
-            const totalSales = shift.cash_sales + shift.card_sales; // Removed bank_transfers
+            const totalSales = shift.cash_sales + shift.card_sales;
             
             return (
               <Card key={shift.id}>
@@ -175,8 +190,8 @@ export const ShiftList = () => {
                       <CardTitle className="text-lg">{shift.personnel.name}</CardTitle>
                       <CardDescription>
                         <div className="flex items-center space-x-1">
-                          <Calendar className="h-3 w-3" />
-                          <span>{new Date(shift.start_time).toLocaleDateString('tr-TR')}</span>
+                          <CalendarIcon className="h-3 w-3" />
+                          <span>{format(new Date(shift.start_time), "dd MMMM yyyy", { locale: tr })}</span>
                         </div>
                       </CardDescription>
                     </div>
@@ -205,12 +220,8 @@ export const ShiftList = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Updated sales summary without bank transfers */}
+                  {/* Sales summary without sayaç satışı */}
                   <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Sayaç Satışı</p>
-                      <p className="font-semibold">₺{(shift.sayac_satisi || 0).toFixed(2)}</p>
-                    </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Nakit</p>
                       <p className="font-semibold">₺{shift.cash_sales.toFixed(2)}</p>
@@ -223,9 +234,13 @@ export const ShiftList = () => {
                       <p className="text-sm text-muted-foreground">Personel Ödenen</p>
                       <p className="font-semibold">₺{shift.actual_amount.toFixed(2)}</p>
                     </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Gerçek Satış</p>
+                      <p className="font-semibold">₺{(shift.gercek_satis || 0).toFixed(2)}</p>
+                    </div>
                   </div>
 
-                  {/* Updated calculation display */}
+                  {/* Calculation display */}
                   <div className="p-4 border rounded-lg">
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-medium">Açık/Fazla Hesaplama</span>
