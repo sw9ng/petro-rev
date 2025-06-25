@@ -14,6 +14,8 @@ export interface Shift {
   actual_amount: number;
   over_short: number;
   status: string;
+  sayac_satisi?: number;
+  veresiye?: number;
   personnel: {
     name: string;
   };
@@ -84,7 +86,7 @@ export const useShifts = () => {
           ...shiftData,
           station_id: user.id,
           over_short: overShort,
-          status: 'completed' // Changed from 'active' to 'completed' since shifts are permanent
+          status: 'completed'
         }
       ])
       .select(`
@@ -123,6 +125,42 @@ export const useShifts = () => {
     return allShifts.length > 0 ? allShifts[0] : null;
   };
 
+  const findShiftsByDateAndPersonnel = async (date: string, personnelId: string) => {
+    if (!user) return [];
+    
+    let query = supabase
+      .from('shifts')
+      .select(`
+        *,
+        personnel:personnel_id (
+          name
+        )
+      `)
+      .eq('station_id', user.id);
+
+    if (date) {
+      const startDate = new Date(date);
+      const endDate = new Date(date);
+      endDate.setDate(endDate.getDate() + 1);
+      
+      query = query
+        .gte('start_time', startDate.toISOString())
+        .lt('start_time', endDate.toISOString());
+    }
+
+    if (personnelId) {
+      query = query.eq('personnel_id', personnelId);
+    }
+
+    const { data, error } = await query.order('start_time', { ascending: false });
+
+    if (error) {
+      console.error('Error searching shifts:', error);
+      return [];
+    }
+    return data || [];
+  };
+
   useEffect(() => {
     fetchShifts();
   }, [user]);
@@ -135,6 +173,7 @@ export const useShifts = () => {
     getWeeklyStats,
     getLatestShift,
     fetchAllShifts,
+    findShiftsByDateAndPersonnel,
     refreshShifts: fetchShifts
   };
 };

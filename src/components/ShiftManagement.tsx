@@ -5,25 +5,29 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Calculator, Calendar } from 'lucide-react';
+import { Plus, Calculator, CreditCard } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useShifts } from '@/hooks/useShifts';
 import { usePersonnel } from '@/hooks/usePersonnel';
+import { BankSelectionDialog } from './BankSelectionDialog';
 
 export const ShiftManagement = () => {
   const { toast } = useToast();
   const { shifts, loading: shiftsLoading, addShift } = useShifts();
   const { personnel, loading: personnelLoading } = usePersonnel();
   const [newShiftOpen, setNewShiftOpen] = useState(false);
+  const [bankDialogOpen, setBankDialogOpen] = useState(false);
+  const [bankAmounts, setBankAmounts] = useState<Record<string, string>>({});
   const [newShiftData, setNewShiftData] = useState({
     personnel_id: '',
     start_time: '',
     cash_sales: '',
     card_sales: '',
     bank_transfers: '',
-    actual_amount: ''
+    actual_amount: '',
+    sayac_satisi: '',
+    veresiye: ''
   });
 
   const handleCreateShift = async (e: React.FormEvent) => {
@@ -45,6 +49,8 @@ export const ShiftManagement = () => {
       card_sales: parseFloat(newShiftData.card_sales) || 0,
       bank_transfers: parseFloat(newShiftData.bank_transfers) || 0,
       actual_amount: parseFloat(newShiftData.actual_amount) || 0,
+      sayac_satisi: parseFloat(newShiftData.sayac_satisi) || 0,
+      veresiye: parseFloat(newShiftData.veresiye) || 0,
       status: 'completed'
     };
 
@@ -69,9 +75,20 @@ export const ShiftManagement = () => {
         cash_sales: '',
         card_sales: '',
         bank_transfers: '',
-        actual_amount: ''
+        actual_amount: '',
+        sayac_satisi: '',
+        veresiye: ''
       });
+      setBankAmounts({});
     }
+  };
+
+  const handleBankAmountsChange = (amounts: Record<string, string>) => {
+    setBankAmounts(amounts);
+    const total = Object.values(amounts).reduce((sum, amount) => {
+      return sum + (parseFloat(amount) || 0);
+    }, 0);
+    setNewShiftData(prev => ({ ...prev, card_sales: total.toString() }));
   };
 
   if (shiftsLoading || personnelLoading) {
@@ -99,7 +116,7 @@ export const ShiftManagement = () => {
               Vardiya Kaydet
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Yeni Vardiya Kaydet</DialogTitle>
               <DialogDescription>Vardiya bilgilerini girin</DialogDescription>
@@ -142,13 +159,24 @@ export const ShiftManagement = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>Kart Satış (₺)</Label>
-                  <Input 
-                    type="number" 
-                    step="0.01"
-                    placeholder="0.00"
-                    value={newShiftData.card_sales}
-                    onChange={(e) => setNewShiftData({...newShiftData, card_sales: e.target.value})}
-                  />
+                  <div className="flex space-x-1">
+                    <Input 
+                      type="number" 
+                      step="0.01"
+                      placeholder="0.00"
+                      value={newShiftData.card_sales}
+                      onChange={(e) => setNewShiftData({...newShiftData, card_sales: e.target.value})}
+                      readOnly
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setBankDialogOpen(true)}
+                    >
+                      <CreditCard className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -161,6 +189,29 @@ export const ShiftManagement = () => {
                   value={newShiftData.bank_transfers}
                   onChange={(e) => setNewShiftData({...newShiftData, bank_transfers: e.target.value})}
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <Label>Sayaç Satışı (₺)</Label>
+                  <Input 
+                    type="number" 
+                    step="0.01"
+                    placeholder="0.00"
+                    value={newShiftData.sayac_satisi}
+                    onChange={(e) => setNewShiftData({...newShiftData, sayac_satisi: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Veresiye (₺)</Label>
+                  <Input 
+                    type="number" 
+                    step="0.01"
+                    placeholder="0.00"
+                    value={newShiftData.veresiye}
+                    onChange={(e) => setNewShiftData({...newShiftData, veresiye: e.target.value})}
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -211,10 +262,18 @@ export const ShiftManagement = () => {
         <CardContent className="text-center py-8">
           <p className="text-muted-foreground">
             Vardiyalar kaydedildikten sonra kalıcı olarak saklanır. 
-            Geçmiş vardiyaları görmek için <strong>Raporlar</strong> sekmesini kullanın.
+            Geçmiş vardiyaları görmek için <strong>Vardiya Listesi</strong> sekmesini kullanın.
           </p>
         </CardContent>
       </Card>
+
+      <BankSelectionDialog
+        isOpen={bankDialogOpen}
+        onOpenChange={setBankDialogOpen}
+        bankAmounts={bankAmounts}
+        onBankAmountsChange={handleBankAmountsChange}
+        totalAmount={parseFloat(newShiftData.card_sales) || 0}
+      />
     </div>
   );
 };

@@ -57,6 +57,26 @@ export const usePersonnel = () => {
     return { data, error };
   };
 
+  const updatePersonnel = async (personnelId: string, personnelData: Partial<Personnel>) => {
+    if (!user) return { error: 'User not authenticated' };
+
+    const { data, error } = await supabase
+      .from('personnel')
+      .update(personnelData)
+      .eq('id', personnelId)
+      .eq('station_id', user.id)
+      .select()
+      .single();
+
+    if (!error && data) {
+      setPersonnel(prev => prev.map(p => 
+        p.id === personnelId ? { ...p, ...personnelData } : p
+      ));
+    }
+
+    return { data, error };
+  };
+
   const deletePersonnel = async (personnelId: string) => {
     if (!user) return { error: 'User not authenticated' };
 
@@ -84,6 +104,7 @@ export const usePersonnel = () => {
     personnel,
     loading,
     addPersonnel,
+    updatePersonnel,
     deletePersonnel,
     refreshPersonnel: fetchPersonnel
   };

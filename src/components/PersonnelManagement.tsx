@@ -4,18 +4,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, User, Clock, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { usePersonnel } from '@/hooks/usePersonnel';
+import { usePersonnel, Personnel } from '@/hooks/usePersonnel';
+import { PersonnelEditDialog } from './PersonnelEditDialog';
 
 export const PersonnelManagement = () => {
   const { toast } = useToast();
-  const { personnel, loading, addPersonnel, deletePersonnel } = usePersonnel();
-  const [addStaffOpen, setAddStaffOpen] = useState(false);
+  const { personnel, loading, addPersonnel, updatePersonnel, deletePersonnel } = usePersonnel();
+  const [newPersonnelOpen, setNewPersonnelOpen] = useState(false);
+  const [editPersonnelOpen, setEditPersonnelOpen] = useState(false);
+  const [selectedPersonnel, setSelectedPersonnel] = useState<Personnel | null>(null);
   const [newPersonnelData, setNewPersonnelData] = useState({
     name: '',
     email: '',
@@ -23,13 +26,13 @@ export const PersonnelManagement = () => {
     role: ''
   });
 
-  const handleAddStaff = async (e: React.FormEvent) => {
+  const handleCreatePersonnel = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!newPersonnelData.name || !newPersonnelData.role) {
       toast({
         title: "Hata",
-        description: "Ad soyad ve görev alanları zorunludur.",
+        description: "Ad ve rol alanları zorunludur.",
         variant: "destructive"
       });
       return;
@@ -48,15 +51,31 @@ export const PersonnelManagement = () => {
       });
     } else {
       toast({
-        title: "Başarılı",
-        description: "Personel başarıyla eklendi.",
+        title: "Personel Eklendi",
+        description: "Yeni personel başarıyla eklendi.",
       });
-      setAddStaffOpen(false);
-      setNewPersonnelData({ name: '', email: '', phone: '', role: '' });
+      
+      setNewPersonnelOpen(false);
+      setNewPersonnelData({
+        name: '',
+        email: '',
+        phone: '',
+        role: ''
+      });
     }
   };
 
-  const handleDeletePersonnel = async (personnelId: string, name: string) => {
+  const handleEditPersonnel = (person: Personnel) => {
+    setSelectedPersonnel(person);
+    setEditPersonnelOpen(true);
+  };
+
+  const handleUpdatePersonnel = async (personnelData: Partial<Personnel>) => {
+    if (!selectedPersonnel) return { error: 'No personnel selected' };
+    return await updatePersonnel(selectedPersonnel.id, personnelData);
+  };
+
+  const handleDeletePersonnel = async (personnelId: string) => {
     const { error } = await deletePersonnel(personnelId);
 
     if (error) {
@@ -67,14 +86,10 @@ export const PersonnelManagement = () => {
       });
     } else {
       toast({
-        title: "Başarılı",
-        description: `${name} personel listesinden kaldırıldı. Geçmiş vardiya kayıtları korundu.`,
+        title: "Personel Silindi",
+        description: "Personel başarıyla silindi (geçmiş veriler korundu).",
       });
     }
-  };
-
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
   if (loading) {
@@ -89,64 +104,66 @@ export const PersonnelManagement = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Başlık ve Yeni Personel Butonu */}
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Personel Yönetimi</h2>
-          <p className="text-muted-foreground">Personeli yönet ve performansı takip et</p>
+          <p className="text-muted-foreground">Personel bilgilerini ekle ve yönet</p>
         </div>
-        <Dialog open={addStaffOpen} onOpenChange={setAddStaffOpen}>
+        <Dialog open={newPersonnelOpen} onOpenChange={setNewPersonnelOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              Personel Ekle
+              Yeni Personel
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Yeni Personel Ekle</DialogTitle>
-              <DialogDescription>Yeni çalışanın detaylarını girin</DialogDescription>
+              <DialogDescription>Personel bilgilerini girin</DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleAddStaff} className="space-y-4 py-4">
+            <form onSubmit={handleCreatePersonnel} className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Ad Soyad *</Label>
+                <Label>Ad Soyad *</Label>
                 <Input 
-                  id="name" 
-                  placeholder="Ad soyad girin"
                   value={newPersonnelData.name}
                   onChange={(e) => setNewPersonnelData({...newPersonnelData, name: e.target.value})}
                   required
                 />
               </div>
+              
               <div className="space-y-2">
-                <Label htmlFor="email">E-posta</Label>
+                <Label>E-posta</Label>
                 <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="E-posta adresini girin"
+                  type="email"
                   value={newPersonnelData.email}
                   onChange={(e) => setNewPersonnelData({...newPersonnelData, email: e.target.value})}
                 />
               </div>
+              
               <div className="space-y-2">
-                <Label htmlFor="phone">Telefon Numarası</Label>
+                <Label>Telefon</Label>
                 <Input 
-                  id="phone" 
-                  placeholder="Telefon numarasını girin"
                   value={newPersonnelData.phone}
                   onChange={(e) => setNewPersonnelData({...newPersonnelData, phone: e.target.value})}
                 />
               </div>
+              
               <div className="space-y-2">
-                <Label htmlFor="role">Görev *</Label>
-                <Input 
-                  id="role" 
-                  placeholder="örn. Pompa Görevlisi, Vardiya Amiri"
-                  value={newPersonnelData.role}
-                  onChange={(e) => setNewPersonnelData({...newPersonnelData, role: e.target.value})}
-                  required
-                />
+                <Label>Rol *</Label>
+                <Select value={newPersonnelData.role} onValueChange={(value) => setNewPersonnelData({...newPersonnelData, role: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Rol seçin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pompacı">Pompacı</SelectItem>
+                    <SelectItem value="kasiyer">Kasiyer</SelectItem>
+                    <SelectItem value="vardiya_amiri">Vardiya Amiri</SelectItem>
+                    <SelectItem value="teknisyen">Teknisyen</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+
               <Button type="submit" className="w-full">
                 Personel Ekle
               </Button>
@@ -155,122 +172,91 @@ export const PersonnelManagement = () => {
         </Dialog>
       </div>
 
-      {/* Staff Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <User className="h-5 w-5 text-blue-600" />
-              <span className="text-sm font-medium">Toplam Personel</span>
-            </div>
-            <p className="text-2xl font-bold mt-2">{personnel.length}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <Clock className="h-5 w-5 text-green-600" />
-              <span className="text-sm font-medium">Aktif Personel</span>
-            </div>
-            <p className="text-2xl font-bold mt-2">{activePersonnel.length}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <User className="h-5 w-5 text-orange-600" />
-              <span className="text-sm font-medium">Pasif Personel</span>
-            </div>
-            <p className="text-2xl font-bold mt-2">{personnel.filter(p => p.status !== 'active').length}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Staff List */}
+      {/* Personel Listesi */}
       {activePersonnel.length === 0 ? (
         <Card>
           <CardContent className="text-center py-8">
-            <p className="text-muted-foreground">Henüz aktif personel eklenmemiş.</p>
-            <p className="text-sm text-muted-foreground mt-2">Yeni personel eklemek için yukarıdaki butonu kullanın.</p>
+            <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+            <p className="text-muted-foreground">Henüz personel eklenmemiş.</p>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {activePersonnel.map((member) => (
-            <Card key={member.id}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {activePersonnel.map((person) => (
+            <Card key={person.id}>
               <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarFallback className="bg-blue-100 text-blue-700">
-                        {getInitials(member.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <CardTitle className="text-lg">{member.name}</CardTitle>
-                      <CardDescription>{member.role}</CardDescription>
-                    </div>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-lg">{person.name}</CardTitle>
+                    <CardDescription>
+                      <Badge variant="secondary" className="mt-1">
+                        {person.role}
+                      </Badge>
+                    </CardDescription>
                   </div>
-                  <Badge variant="default">aktif</Badge>
+                  <div className="flex space-x-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditPersonnel(person)}
+                    >
+                      <Edit2 className="h-3 w-3" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Personeli Sil</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Bu personeli silmek istediğinizden emin misiniz? Geçmiş vardiya kayıtları korunacak.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>İptal</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeletePersonnel(person.id)}>
+                            Sil
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Contact Info */}
-                <div className="space-y-2">
-                  {member.email && (
-                    <div className="flex justify-between text-sm">
+              <CardContent>
+                <div className="space-y-2 text-sm">
+                  {person.email && (
+                    <div>
                       <span className="text-muted-foreground">E-posta:</span>
-                      <span>{member.email}</span>
+                      <p>{person.email}</p>
                     </div>
                   )}
-                  {member.phone && (
-                    <div className="flex justify-between text-sm">
+                  {person.phone && (
+                    <div>
                       <span className="text-muted-foreground">Telefon:</span>
-                      <span>{member.phone}</span>
+                      <p>{person.phone}</p>
                     </div>
                   )}
-                  <div className="flex justify-between text-sm">
+                  <div>
                     <span className="text-muted-foreground">Başlangıç:</span>
-                    <span>{new Date(member.join_date).toLocaleDateString('tr-TR')}</span>
+                    <p>{new Date(person.join_date).toLocaleDateString('tr-TR')}</p>
                   </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex space-x-2">
-                  <Button variant="outline" size="sm" className="flex-1">
-                    Bilgileri Düzenle
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive" size="sm">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Personeli Sil</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {member.name} adlı personeli silmek istediğinizden emin misiniz? 
-                          Bu işlem personeli aktif listeden kaldıracak ancak geçmiş vardiya kayıtları korunacaktır.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>İptal</AlertDialogCancel>
-                        <AlertDialogAction 
-                          onClick={() => handleDeletePersonnel(member.id, member.name)}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          Sil
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+
+      <PersonnelEditDialog
+        personnel={selectedPersonnel}
+        isOpen={editPersonnelOpen}
+        onOpenChange={setEditPersonnelOpen}
+        onUpdate={handleUpdatePersonnel}
+      />
     </div>
   );
 };
