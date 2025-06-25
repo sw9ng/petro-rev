@@ -10,11 +10,9 @@ export interface Shift {
   end_time: string | null;
   cash_sales: number;
   card_sales: number;
-  bank_transfers: number;
-  actual_amount: number;
+  personel_odenen: number;
   over_short: number;
   status: string;
-  sayac_satisi?: number;
   veresiye?: number;
   personnel: {
     name: string;
@@ -74,10 +72,10 @@ export const useShifts = () => {
   };
 
   const addShift = async (shiftData: any) => {
-    if (!user) return { error: 'User not authenticated' };
+    if (!user) return { error: 'Kullanıcı doğrulanmadı' };
 
-    const totalSales = shiftData.cash_sales + shiftData.card_sales + shiftData.bank_transfers;
-    const overShort = shiftData.actual_amount - totalSales;
+    const totalSales = shiftData.cash_sales + shiftData.card_sales;
+    const overShort = totalSales - shiftData.personel_odenen;
 
     const { data, error } = await supabase
       .from('shifts')
@@ -105,6 +103,23 @@ export const useShifts = () => {
     return { data, error };
   };
 
+  const deleteShift = async (shiftId: string) => {
+    if (!user) return { error: 'Kullanıcı doğrulanmadı' };
+
+    const { error } = await supabase
+      .from('shifts')
+      .delete()
+      .eq('id', shiftId)
+      .eq('station_id', user.id);
+
+    if (!error) {
+      setShifts(prev => prev.filter(shift => shift.id !== shiftId));
+      setAllShifts(prev => prev.filter(shift => shift.id !== shiftId));
+    }
+
+    return { error };
+  };
+
   const getWeeklyStats = () => {
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
@@ -115,7 +130,7 @@ export const useShifts = () => {
 
     return {
       totalSales: weeklyShifts.reduce((sum, shift) => 
-        sum + shift.cash_sales + shift.card_sales + shift.bank_transfers, 0),
+        sum + shift.cash_sales + shift.card_sales, 0),
       totalOverShort: weeklyShifts.reduce((sum, shift) => sum + shift.over_short, 0),
       shiftCount: weeklyShifts.length
     };
@@ -170,6 +185,7 @@ export const useShifts = () => {
     allShifts,
     loading,
     addShift,
+    deleteShift,
     getWeeklyStats,
     getLatestShift,
     fetchAllShifts,

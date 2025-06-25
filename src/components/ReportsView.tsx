@@ -3,31 +3,31 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Calendar, Search, TrendingUp, Users, DollarSign } from 'lucide-react';
+import { Calendar, Search, TrendingUp, Users, DollarSign, BarChart3 } from 'lucide-react';
 import { useShifts } from '@/hooks/useShifts';
 import { usePersonnel } from '@/hooks/usePersonnel';
+import { format } from 'date-fns';
+import { tr } from 'date-fns/locale';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 export const ReportsView = () => {
-  const { findShiftsByDateAndPersonnel } = useShifts();
+  const { findShiftsByDateAndPersonnel, fetchAllShifts } = useShifts();
   const { personnel } = usePersonnel();
-  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedPersonnel, setSelectedPersonnel] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [allShifts, setAllShifts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-
-  // Get unique dates from all shifts for dropdown
-  const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [dateRange, setDateRange] = useState('today');
 
   useEffect(() => {
-    const loadAvailableDates = async () => {
-      const allShifts = await findShiftsByDateAndPersonnel('', '');
-      const dates = [...new Set(allShifts.map(shift => 
-        new Date(shift.start_time).toLocaleDateString('tr-TR')
-      ))].sort((a, b) => new Date(b.split('.').reverse().join('-')).getTime() - new Date(a.split('.').reverse().join('-')).getTime());
-      setAvailableDates(dates);
+    const loadAllShifts = async () => {
+      const shifts = await fetchAllShifts();
+      setAllShifts(shifts);
     };
-
-    loadAvailableDates();
+    loadAllShifts();
   }, []);
 
   const handleSearch = async () => {
@@ -35,9 +35,7 @@ export const ReportsView = () => {
     
     let searchDate = '';
     if (selectedDate) {
-      // Convert Turkish date format to ISO format for search
-      const [day, month, year] = selectedDate.split('.');
-      searchDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      searchDate = format(selectedDate, 'yyyy-MM-dd');
     }
 
     const results = await findShiftsByDateAndPersonnel(searchDate, selectedPersonnel);
@@ -46,10 +44,50 @@ export const ReportsView = () => {
   };
 
   const clearSearch = () => {
-    setSelectedDate('');
+    setSelectedDate(undefined);
     setSelectedPersonnel('');
     setSearchResults([]);
   };
+
+  // Calculate statistics
+  const getStatistics = () => {
+    let shiftsToAnalyze = allShifts;
+    const now = new Date();
+    
+    if (dateRange === 'today') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
+      shiftsToAnalyze = allShifts.filter(shift => {
+        const shiftDate = new Date(shift.start_time);
+        return shiftDate >= today && shiftDate < tomorrow;
+      });
+    } else if (dateRange === 'week') {
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      shiftsToAnalyze = allShifts.filter(shift => new Date(shift.start_time) >= weekAgo);
+    } else if (dateRange === 'month') {
+      const monthAgo = new Date();
+      monthAgo.setMonth(monthAgo.getMonth() - 1);
+      shiftsToAnalyze = allShifts.filter(shift => new Date(shift.start_time) >= monthAgo);
+    }
+
+    const totalSales = shiftsToAnalyze.reduce((sum, shift) => 
+      sum + shift.cash_sales + shift.card_sales, 0);
+    const totalOverShort = shiftsToAnalyze.reduce((sum, shift) => sum + (shift.over_short || 0), 0);
+    const averageShift = shiftsToAnalyze.length > 0 ? totalSales / shiftsToAnalyze.length : 0;
+    
+    return {
+      totalSales,
+      totalOverShort,
+      averageShift,
+      shiftCount: shiftsToAnalyze.length
+    };
+  };
+
+  const stats = getStatistics();
 
   return (
     <div className="space-y-6">
@@ -57,6 +95,83 @@ export const ReportsView = () => {
         <h2 className="text-2xl font-bold">Raporlar</h2>
         <p className="text-muted-foreground">Vardiya ve personel raporlarını görüntüle</p>
       </div>
+
+      {/* İstatistikler */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Toplam Satış</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₺{stats.totalSales.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">
+              {dateRange === 'today' ? 'Bugün' : 
+               dateRange === 'week' ? 'Son 7 gün' : 'Son 30 gün'}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Toplam Vardiya</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.shiftCount}</div>
+            <p className="text-xs text-muted-foreground">
+              {dateRange === 'today' ? 'Bugün' : 
+               dateRange === 'week' ? 'Son 7 gün' : 'Son 30 gün'}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Ortalama Vardiya</CardTitle>
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₺{stats.averageShift.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">Vardiya başına ortalama</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Açık/Fazla</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${stats.totalOverShort >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              ₺{Math.abs(stats.totalOverShort).toFixed(2)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {stats.totalOverShort >= 0 ? 'Fazla' : 'Açık'}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Zaman Aralığı Seçimi */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Zaman Aralığı</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Select value={dateRange} onValueChange={setDateRange}>
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="today">Bugün</SelectItem>
+              <SelectItem value="week">Son 7 Gün</SelectItem>
+              <SelectItem value="month">Son 30 Gün</SelectItem>
+              <SelectItem value="all">Tüm Zamanlar</SelectItem>
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
 
       {/* Arama Bölümü */}
       <Card>
@@ -71,16 +186,30 @@ export const ReportsView = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Tarih Seçin</label>
-              <Select value={selectedDate} onValueChange={setSelectedDate}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Tarih seçin" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableDates.map((date) => (
-                    <SelectItem key={date} value={date}>{date}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !selectedDate && "text-muted-foreground"
+                    )}
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {selectedDate ? format(selectedDate, "PPP", { locale: tr }) : "Tarih seçin"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    initialFocus
+                    locale={tr}
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             
             <div className="space-y-2">
@@ -122,7 +251,7 @@ export const ReportsView = () => {
           <CardContent>
             <div className="space-y-4">
               {searchResults.map((shift) => {
-                const totalSales = shift.cash_sales + shift.card_sales + shift.bank_transfers;
+                const totalSales = shift.cash_sales + shift.card_sales;
                 
                 return (
                   <div key={shift.id} className="p-4 border rounded-lg">
@@ -131,7 +260,7 @@ export const ReportsView = () => {
                         <h3 className="font-semibold">{shift.personnel.name}</h3>
                         <p className="text-sm text-muted-foreground flex items-center space-x-1">
                           <Calendar className="h-3 w-3" />
-                          <span>{new Date(shift.start_time).toLocaleString('tr-TR')}</span>
+                          <span>{format(new Date(shift.start_time), "PPPp", { locale: tr })}</span>
                         </p>
                       </div>
                     </div>
@@ -146,8 +275,8 @@ export const ReportsView = () => {
                         <p className="font-medium">₺{shift.card_sales.toFixed(2)}</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground">Transfer</p>
-                        <p className="font-medium">₺{shift.bank_transfers.toFixed(2)}</p>
+                        <p className="text-muted-foreground">Personel Ödenen</p>
+                        <p className="font-medium">₺{(shift.personel_odenen || 0).toFixed(2)}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Toplam</p>
@@ -156,9 +285,9 @@ export const ReportsView = () => {
                     </div>
                     
                     <div className="mt-3 pt-3 border-t">
-                      <div className={`text-sm ${shift.over_short >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      <div className={`text-sm ${(shift.over_short || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         <span className="font-medium">
-                          {shift.over_short >= 0 ? 'Fazla:' : 'Eksik:'} ₺{Math.abs(shift.over_short).toFixed(2)}
+                          {(shift.over_short || 0) >= 0 ? 'Fazla:' : 'Açık:'} ₺{Math.abs(shift.over_short || 0).toFixed(2)}
                         </span>
                       </div>
                     </div>
