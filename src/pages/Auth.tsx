@@ -6,16 +6,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Fuel } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Auth() {
   const { signIn, signUp, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
 
   const [loginData, setLoginData] = useState({
     email: '',
@@ -84,6 +88,40 @@ export default function Auth() {
     setLoading(false);
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail) {
+      toast({
+        title: "Hata",
+        description: "E-posta adresi gerekli",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+      redirectTo: `${window.location.origin}/auth`,
+    });
+
+    if (error) {
+      toast({
+        title: "Hata",
+        description: error.message,
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Başarılı",
+        description: "Şifre sıfırlama bağlantısı e-posta adresinize gönderildi."
+      });
+      setForgotPasswordOpen(false);
+      setResetEmail('');
+    }
+    
+    setLoading(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -93,7 +131,7 @@ export default function Auth() {
               <Fuel className="h-8 w-8 text-white" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Akaryakıt Pro</CardTitle>
+          <CardTitle className="text-2xl">Petrorev</CardTitle>
           <CardDescription>Vardiya Yönetim Sistemi</CardDescription>
         </CardHeader>
         <CardContent>
@@ -130,6 +168,40 @@ export default function Auth() {
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
                 </Button>
+                
+                <div className="text-center">
+                  <Dialog open={forgotPasswordOpen} onOpenChange={setForgotPasswordOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="link" className="text-sm">
+                        Şifremi Unuttum
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Şifre Sıfırlama</DialogTitle>
+                        <DialogDescription>
+                          E-posta adresinizi girin, size şifre sıfırlama bağlantısı gönderelim.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <form onSubmit={handleForgotPassword} className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="resetEmail">E-posta</Label>
+                          <Input
+                            id="resetEmail"
+                            type="email"
+                            placeholder="E-posta adresinizi girin"
+                            value={resetEmail}
+                            onChange={(e) => setResetEmail(e.target.value)}
+                            required
+                          />
+                        </div>
+                        <Button type="submit" className="w-full" disabled={loading}>
+                          {loading ? 'Gönderiliyor...' : 'Şifre Sıfırlama Bağlantısı Gönder'}
+                        </Button>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </form>
             </TabsContent>
             

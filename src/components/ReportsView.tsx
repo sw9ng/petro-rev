@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Calendar, Search, TrendingUp, Users, DollarSign, BarChart3 } from 'lucide-react';
+import { Calendar, Search, TrendingUp, Users, DollarSign, BarChart3, Trophy, Star } from 'lucide-react';
 import { useShifts } from '@/hooks/useShifts';
 import { usePersonnel } from '@/hooks/usePersonnel';
 import { format } from 'date-fns';
@@ -83,11 +83,43 @@ export const ReportsView = () => {
       totalSales,
       totalOverShort,
       averageShift,
-      shiftCount: shiftsToAnalyze.length
+      shiftCount: shiftsToAnalyze.length,
+      shiftsToAnalyze
     };
   };
 
+  const getPersonnelStats = () => {
+    const stats = getStatistics();
+    const personnelStats = personnel.map(person => {
+      const personShifts = stats.shiftsToAnalyze.filter(shift => 
+        shift.personnel_id === person.id
+      );
+      
+      const totalSales = personShifts.reduce((sum, shift) => 
+        sum + shift.cash_sales + shift.card_sales, 0);
+      
+      const totalOverShort = personShifts.reduce((sum, shift) => 
+        sum + (shift.over_short || 0), 0);
+        
+      const avgSales = personShifts.length > 0 ? totalSales / personShifts.length : 0;
+      
+      return {
+        ...person,
+        shiftCount: personShifts.length,
+        totalSales,
+        avgSales,
+        totalOverShort
+      };
+    }).filter(person => person.shiftCount > 0);
+    
+    // Sort by total sales
+    personnelStats.sort((a, b) => b.totalSales - a.totalSales);
+    
+    return personnelStats;
+  };
+
   const stats = getStatistics();
+  const personnelStats = getPersonnelStats();
 
   return (
     <div className="space-y-6">
@@ -107,7 +139,8 @@ export const ReportsView = () => {
             <div className="text-2xl font-bold">₺{stats.totalSales.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
               {dateRange === 'today' ? 'Bugün' : 
-               dateRange === 'week' ? 'Son 7 gün' : 'Son 30 gün'}
+               dateRange === 'week' ? 'Son 7 gün' : 
+               dateRange === 'month' ? 'Son 30 gün' : 'Tüm zamanlar'}
             </p>
           </CardContent>
         </Card>
@@ -121,7 +154,8 @@ export const ReportsView = () => {
             <div className="text-2xl font-bold">{stats.shiftCount}</div>
             <p className="text-xs text-muted-foreground">
               {dateRange === 'today' ? 'Bugün' : 
-               dateRange === 'week' ? 'Son 7 gün' : 'Son 30 gün'}
+               dateRange === 'week' ? 'Son 7 gün' : 
+               dateRange === 'month' ? 'Son 30 gün' : 'Tüm zamanlar'}
             </p>
           </CardContent>
         </Card>
@@ -173,6 +207,49 @@ export const ReportsView = () => {
         </CardContent>
       </Card>
 
+      {/* Personel Performans */}
+      {personnelStats.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center space-x-2">
+              <Trophy className="h-5 w-5" />
+              <span>Personel Performansı</span>
+            </CardTitle>
+            <CardDescription>
+              {dateRange === 'today' ? 'Bugünkü' : 
+               dateRange === 'week' ? 'Son 7 günün' : 
+               dateRange === 'month' ? 'Son 30 günün' : 'Tüm zamanların'} performans sıralaması
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {personnelStats.slice(0, 5).map((person, index) => (
+                <div key={person.id} className="flex items-center justify-between p-3 rounded-lg border">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100">
+                      {index === 0 ? <Trophy className="h-4 w-4 text-yellow-600" /> :
+                       index === 1 ? <Star className="h-4 w-4 text-gray-400" /> :
+                       index === 2 ? <Star className="h-4 w-4 text-amber-600" /> :
+                       <span className="text-sm font-medium">{index + 1}</span>}
+                    </div>
+                    <div>
+                      <p className="font-medium">{person.name}</p>
+                      <p className="text-sm text-muted-foreground">{person.shiftCount} vardiya</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold">₺{person.totalSales.toFixed(2)}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Ort: ₺{person.avgSales.toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Arama Bölümü */}
       <Card>
         <CardHeader>
@@ -196,7 +273,7 @@ export const ReportsView = () => {
                     )}
                   >
                     <Calendar className="mr-2 h-4 w-4" />
-                    {selectedDate ? format(selectedDate, "PPP", { locale: tr }) : "Tarih seçin"}
+                    {selectedDate ? format(selectedDate, "dd MMMM yyyy", { locale: tr }) : "Tarih seçin"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -260,7 +337,7 @@ export const ReportsView = () => {
                         <h3 className="font-semibold">{shift.personnel.name}</h3>
                         <p className="text-sm text-muted-foreground flex items-center space-x-1">
                           <Calendar className="h-3 w-3" />
-                          <span>{format(new Date(shift.start_time), "PPPp", { locale: tr })}</span>
+                          <span>{format(new Date(shift.start_time), "dd MMMM yyyy, HH:mm", { locale: tr })}</span>
                         </p>
                       </div>
                     </div>

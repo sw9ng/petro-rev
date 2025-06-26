@@ -40,22 +40,31 @@ export const ShiftManagement = () => {
       return;
     }
 
+    // Ensure numeric values
+    const cashSales = parseFloat(newShiftData.cash_sales) || 0;
+    const cardSales = parseFloat(newShiftData.card_sales) || 0;
+    const personelOdenen = parseFloat(newShiftData.personel_odenen) || 0;
+    const veresiye = parseFloat(newShiftData.veresiye) || 0;
+
     const shiftData = {
       personnel_id: newShiftData.personnel_id,
       start_time: newShiftData.start_time,
-      cash_sales: parseFloat(newShiftData.cash_sales) || 0,
-      card_sales: parseFloat(newShiftData.card_sales) || 0,
-      personel_odenen: parseFloat(newShiftData.personel_odenen) || 0,
-      veresiye: parseFloat(newShiftData.veresiye) || 0,
+      cash_sales: cashSales,
+      card_sales: cardSales,
+      personel_odenen: personelOdenen,
+      veresiye: veresiye,
       status: 'completed'
     };
+
+    console.log('Creating shift with data:', shiftData);
 
     const { error } = await addShift(shiftData);
 
     if (error) {
+      console.error('Error creating shift:', error);
       toast({
         title: "Hata",
-        description: "Vardiya oluşturulurken bir hata oluştu.",
+        description: "Vardiya oluşturulurken bir hata oluştu: " + error.message,
         variant: "destructive"
       });
     } else {
@@ -85,6 +94,21 @@ export const ShiftManagement = () => {
     setNewShiftData(prev => ({ ...prev, card_sales: total.toString() }));
   };
 
+  // Calculate preview values
+  const calculatePreview = () => {
+    const cashSales = parseFloat(newShiftData.cash_sales) || 0;
+    const cardSales = parseFloat(newShiftData.card_sales) || 0;
+    const personelOdenen = parseFloat(newShiftData.personel_odenen) || 0;
+    
+    const totalSales = cashSales + cardSales;
+    const overShort = totalSales - personelOdenen;
+    
+    return {
+      totalSales,
+      overShort
+    };
+  };
+
   if (shiftsLoading || personnelLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -94,6 +118,7 @@ export const ShiftManagement = () => {
   }
 
   const activePersonnel = personnel.filter(p => p.status === 'active');
+  const preview = calculatePreview();
 
   return (
     <div className="space-y-6">
@@ -200,11 +225,14 @@ export const ShiftManagement = () => {
               {/* Hesaplama Önizlemesi */}
               {(newShiftData.cash_sales || newShiftData.card_sales || newShiftData.personel_odenen) && (
                 <div className="p-3 bg-gray-50 rounded-lg text-sm">
-                  <p className="font-medium mb-2">Hesaplama Önizlemesi:</p>
+                  <p className="font-medium mb-2 flex items-center space-x-2">
+                    <Calculator className="h-4 w-4" />
+                    <span>Hesaplama Önizlemesi:</span>
+                  </p>
                   <div className="space-y-1">
                     <div className="flex justify-between">
                       <span>Toplam Satış:</span>
-                      <span>₺{((parseFloat(newShiftData.cash_sales) || 0) + (parseFloat(newShiftData.card_sales) || 0)).toFixed(2)}</span>
+                      <span>₺{preview.totalSales.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Personel Ödenen:</span>
@@ -213,8 +241,8 @@ export const ShiftManagement = () => {
                     <hr />
                     <div className="flex justify-between font-medium">
                       <span>Açık/Fazla:</span>
-                      <span className={((parseFloat(newShiftData.cash_sales) || 0) + (parseFloat(newShiftData.card_sales) || 0)) - (parseFloat(newShiftData.personel_odenen) || 0) >= 0 ? 'text-green-600' : 'text-red-600'}>
-                        ₺{(((parseFloat(newShiftData.cash_sales) || 0) + (parseFloat(newShiftData.card_sales) || 0)) - (parseFloat(newShiftData.personel_odenen) || 0)).toFixed(2)}
+                      <span className={preview.overShort >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        ₺{Math.abs(preview.overShort).toFixed(2)} {preview.overShort >= 0 ? '(Fazla)' : '(Açık)'}
                       </span>
                     </div>
                   </div>

@@ -43,9 +43,24 @@ export const useShifts = () => {
     if (error) {
       console.error('Error fetching shifts:', error);
     } else {
-      setAllShifts(data || []);
+      // Map the data to ensure we have all required fields
+      const mappedData = (data || []).map(shift => ({
+        id: shift.id,
+        personnel_id: shift.personnel_id,
+        start_time: shift.start_time,
+        end_time: shift.end_time,
+        cash_sales: shift.cash_sales || 0,
+        card_sales: shift.card_sales || 0,
+        personel_odenen: shift.actual_amount || 0, // Map actual_amount to personel_odenen
+        over_short: shift.over_short || 0,
+        status: shift.status,
+        veresiye: shift.veresiye || 0,
+        personnel: shift.personnel
+      }));
+      
+      setAllShifts(mappedData);
       // Only active shifts for the main shifts view
-      setShifts((data || []).filter(shift => shift.status === 'active'));
+      setShifts(mappedData.filter(shift => shift.status === 'active'));
     }
     setLoading(false);
   };
@@ -68,7 +83,23 @@ export const useShifts = () => {
       console.error('Error fetching all shifts:', error);
       return [];
     }
-    return data || [];
+    
+    // Map the data to ensure we have all required fields
+    const mappedData = (data || []).map(shift => ({
+      id: shift.id,
+      personnel_id: shift.personnel_id,
+      start_time: shift.start_time,
+      end_time: shift.end_time,
+      cash_sales: shift.cash_sales || 0,
+      card_sales: shift.card_sales || 0,
+      personel_odenen: shift.actual_amount || 0, // Map actual_amount to personel_odenen
+      over_short: shift.over_short || 0,
+      status: shift.status,
+      veresiye: shift.veresiye || 0,
+      personnel: shift.personnel
+    }));
+    
+    return mappedData;
   };
 
   const addShift = async (shiftData: any) => {
@@ -81,10 +112,15 @@ export const useShifts = () => {
       .from('shifts')
       .insert([
         {
-          ...shiftData,
-          station_id: user.id,
+          personnel_id: shiftData.personnel_id,
+          start_time: shiftData.start_time,
+          cash_sales: shiftData.cash_sales,
+          card_sales: shiftData.card_sales,
+          actual_amount: shiftData.personel_odenen, // Store as actual_amount in DB
           over_short: overShort,
-          status: 'completed'
+          station_id: user.id,
+          status: 'completed',
+          veresiye: shiftData.veresiye || 0
         }
       ])
       .select(`
@@ -96,8 +132,22 @@ export const useShifts = () => {
       .single();
 
     if (!error && data) {
-      setShifts(prev => [data, ...prev]);
-      setAllShifts(prev => [data, ...prev]);
+      const mappedShift = {
+        id: data.id,
+        personnel_id: data.personnel_id,
+        start_time: data.start_time,
+        end_time: data.end_time,
+        cash_sales: data.cash_sales || 0,
+        card_sales: data.card_sales || 0,
+        personel_odenen: data.actual_amount || 0,
+        over_short: data.over_short || 0,
+        status: data.status,
+        veresiye: data.veresiye || 0,
+        personnel: data.personnel
+      };
+      
+      setShifts(prev => [mappedShift, ...prev]);
+      setAllShifts(prev => [mappedShift, ...prev]);
     }
 
     return { data, error };
@@ -173,7 +223,23 @@ export const useShifts = () => {
       console.error('Error searching shifts:', error);
       return [];
     }
-    return data || [];
+    
+    // Map the data to ensure we have all required fields
+    const mappedData = (data || []).map(shift => ({
+      id: shift.id,
+      personnel_id: shift.personnel_id,
+      start_time: shift.start_time,
+      end_time: shift.end_time,
+      cash_sales: shift.cash_sales || 0,
+      card_sales: shift.card_sales || 0,
+      personel_odenen: shift.actual_amount || 0,
+      over_short: shift.over_short || 0,
+      status: shift.status,
+      veresiye: shift.veresiye || 0,
+      personnel: shift.personnel
+    }));
+    
+    return mappedData;
   };
 
   useEffect(() => {
