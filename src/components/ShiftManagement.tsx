@@ -105,6 +105,7 @@ export const ShiftManagement = () => {
     const { data, error } = await addShift(shiftData);
 
     if (error) {
+      console.error('Error adding shift:', error);
       toast({
         title: "Hata",
         description: "Vardiya kaydedilirken bir hata oluştu.",
@@ -122,11 +123,20 @@ export const ShiftManagement = () => {
           }));
 
         if (bankDetailsToSave.length > 0) {
-          const { error: bankError } = await supabase
-            .from('shift_bank_details')
-            .insert(bankDetailsToSave);
+          try {
+            const { error: bankError } = await supabase
+              .from('shift_bank_details')
+              .insert(bankDetailsToSave);
 
-          if (bankError) {
+            if (bankError) {
+              console.error('Error saving bank details:', bankError);
+              toast({
+                title: "Uyarı",
+                description: "Vardiya kaydedildi ancak banka detayları kaydedilemedi.",
+                variant: "destructive"
+              });
+            }
+          } catch (bankError) {
             console.error('Error saving bank details:', bankError);
           }
         }

@@ -108,6 +108,38 @@ export type Database = {
         }
         Relationships: []
       }
+      shift_bank_details: {
+        Row: {
+          amount: number
+          bank_name: string
+          created_at: string
+          id: string
+          shift_id: string
+        }
+        Insert: {
+          amount?: number
+          bank_name: string
+          created_at?: string
+          id?: string
+          shift_id: string
+        }
+        Update: {
+          amount?: number
+          bank_name?: string
+          created_at?: string
+          id?: string
+          shift_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_bank_details_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shifts: {
         Row: {
           actual_amount: number | null

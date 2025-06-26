@@ -32,16 +32,21 @@ export const ShiftDetailDialog = ({ shift, isOpen, onOpenChange }: ShiftDetailDi
   const fetchBankDetails = async () => {
     if (!shift) return;
 
-    const { data, error } = await supabase
-      .from('shift_bank_details')
-      .select('bank_name, amount')
-      .eq('shift_id', shift.id);
+    try {
+      const { data, error } = await supabase
+        .from('shift_bank_details')
+        .select('bank_name, amount')
+        .eq('shift_id', shift.id);
 
-    if (error) {
+      if (error) {
+        console.error('Error fetching bank details:', error);
+        setBankDetails([]);
+      } else {
+        setBankDetails(data || []);
+      }
+    } catch (error) {
       console.error('Error fetching bank details:', error);
       setBankDetails([]);
-    } else {
-      setBankDetails(data || []);
     }
   };
 
