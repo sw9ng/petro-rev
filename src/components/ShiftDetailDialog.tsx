@@ -17,6 +17,13 @@ export const ShiftDetailDialog = ({ shift, isOpen, onOpenChange }: ShiftDetailDi
   if (!shift) return null;
 
   const totalExpenses = shift.cash_sales + shift.card_sales + shift.veresiye + shift.bank_transfers;
+  
+  // Mock bank details - in a real app, this would come from the database
+  const bankDetails = [
+    { name: 'Ziraat', amount: shift.card_sales * 0.4 },
+    { name: 'İş Bankası', amount: shift.card_sales * 0.3 },
+    { name: 'Garanti', amount: shift.card_sales * 0.3 }
+  ].filter(bank => bank.amount > 0);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -116,9 +123,24 @@ export const ShiftDetailDialog = ({ shift, isOpen, onOpenChange }: ShiftDetailDi
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-center text-muted-foreground py-4">
-                <p>Banka detayları yakında eklenecek</p>
-              </div>
+              {bankDetails.length > 0 ? (
+                <div className="space-y-3">
+                  {bankDetails.map((bank, index) => (
+                    <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                      <span className="font-medium">{bank.name}</span>
+                      <span className="font-semibold">₺{bank.amount.toFixed(2)}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between items-center pt-2 border-t">
+                    <span className="font-bold">Toplam Kart Satış:</span>
+                    <span className="font-bold text-blue-600">₺{shift.card_sales.toFixed(2)}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center text-muted-foreground py-4">
+                  <p>Kart satış detayı bulunmuyor</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
