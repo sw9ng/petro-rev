@@ -49,42 +49,43 @@ export const BankSelectionDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto bg-white">
         <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
-            <CreditCard className="h-5 w-5" />
+          <DialogTitle className="flex items-center space-x-2 text-gray-900">
+            <CreditCard className="h-5 w-5 text-gray-700" />
             <span>Banka Bazında Kart Satışları</span>
           </DialogTitle>
-          <DialogDescription>Her banka için ayrı tutarları girin</DialogDescription>
+          <DialogDescription className="text-gray-600">Her banka için ayrı tutarları girin</DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4 py-4">
           {BANKS.map((bank) => (
             <div key={bank} className="space-y-2">
-              <Label>{bank}</Label>
+              <Label className="text-gray-700">{bank}</Label>
               <Input
                 type="number"
                 step="0.01"
                 placeholder="0.00"
                 value={bankAmounts[bank] || ''}
                 onChange={(e) => handleBankAmountChange(bank, e.target.value)}
+                className="border-gray-300"
               />
             </div>
           ))}
           
-          <div className="p-3 bg-gray-50 rounded-lg space-y-2">
+          <div className="p-3 bg-gray-50 rounded-lg space-y-2 border">
             <div className="flex justify-between items-center">
-              <span className="font-medium">Toplam:</span>
-              <span className="font-bold">₺{calculateTotal().toFixed(2)}</span>
+              <span className="font-medium text-gray-900">Toplam:</span>
+              <span className="font-bold text-gray-900">₺{calculateTotal().toFixed(2)}</span>
             </div>
             
             {getActiveBanks().length > 0 && (
               <div className="border-t pt-2">
-                <p className="text-sm font-medium mb-2">Aktif Bankalar:</p>
+                <p className="text-sm font-medium mb-2 text-gray-900">Aktif Bankalar:</p>
                 {getActiveBanks().map(([bank, amount]) => (
                   <div key={bank} className="flex justify-between text-sm">
-                    <span>{bank}:</span>
-                    <span>₺{parseFloat(amount).toFixed(2)}</span>
+                    <span className="text-gray-700">{bank}:</span>
+                    <span className="text-gray-900">₺{parseFloat(amount).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
@@ -92,7 +93,7 @@ export const BankSelectionDialog = ({
           </div>
         </div>
 
-        <Button onClick={() => onOpenChange(false)} className="w-full">
+        <Button onClick={() => onOpenChange(false)} className="w-full bg-gray-900 hover:bg-gray-800 text-white">
           Tamam
         </Button>
       </DialogContent>
