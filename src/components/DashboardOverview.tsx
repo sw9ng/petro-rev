@@ -99,14 +99,14 @@ export const DashboardOverview = () => {
         <Card className="border-l-4 border-l-orange-500 shadow-lg hover:shadow-xl transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">
-              Haftalık Toplam
+              Haftalık Toplam Vardiya
             </CardTitle>
             <TrendingUp className="h-5 w-5 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-gray-900">₺{(weeklyStats.totalSales + totalFuelSales).toFixed(2)}</div>
+            <div className="text-3xl font-bold text-gray-900">₺{weeklyStats.totalSales.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              vardiya + akaryakıt
+              vardiya satışları
             </p>
           </CardContent>
         </Card>
