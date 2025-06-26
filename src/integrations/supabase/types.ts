@@ -81,6 +81,7 @@ export type Database = {
           start_time: string
           station_id: string
           status: string
+          veresiye: number | null
         }
         Insert: {
           actual_amount?: number | null
@@ -96,6 +97,7 @@ export type Database = {
           start_time: string
           station_id: string
           status?: string
+          veresiye?: number | null
         }
         Update: {
           actual_amount?: number | null
@@ -111,6 +113,7 @@ export type Database = {
           start_time?: string
           station_id?: string
           status?: string
+          veresiye?: number | null
         }
         Relationships: [
           {

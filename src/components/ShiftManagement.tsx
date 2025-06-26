@@ -62,9 +62,10 @@ export const ShiftManagement = () => {
 
     if (error) {
       console.error('Error creating shift:', error);
+      const errorMessage = typeof error === 'string' ? error : error?.message || 'Bilinmeyen hata';
       toast({
         title: "Hata",
-        description: "Vardiya oluşturulurken bir hata oluştu: " + error.message,
+        description: "Vardiya oluşturulurken bir hata oluştu: " + errorMessage,
         variant: "destructive"
       });
     } else {
@@ -94,14 +95,14 @@ export const ShiftManagement = () => {
     setNewShiftData(prev => ({ ...prev, card_sales: total.toString() }));
   };
 
-  // Calculate preview values
+  // Calculate preview values with the new formula: personel_odenen - (cash_sales + card_sales)
   const calculatePreview = () => {
     const cashSales = parseFloat(newShiftData.cash_sales) || 0;
     const cardSales = parseFloat(newShiftData.card_sales) || 0;
     const personelOdenen = parseFloat(newShiftData.personel_odenen) || 0;
     
     const totalSales = cashSales + cardSales;
-    const overShort = totalSales - personelOdenen;
+    const overShort = personelOdenen - totalSales; // Updated formula
     
     return {
       totalSales,

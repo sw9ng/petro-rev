@@ -13,7 +13,7 @@ export interface Shift {
   personel_odenen: number;
   over_short: number;
   status: string;
-  veresiye?: number;
+  veresiye: number;
   personnel: {
     name: string;
   };
@@ -105,8 +105,9 @@ export const useShifts = () => {
   const addShift = async (shiftData: any) => {
     if (!user) return { error: 'Kullanıcı doğrulanmadı' };
 
+    // Updated calculation: personel_odenen - (cash_sales + card_sales)
     const totalSales = shiftData.cash_sales + shiftData.card_sales;
-    const overShort = totalSales - shiftData.personel_odenen;
+    const overShort = shiftData.personel_odenen - totalSales;
 
     const { data, error } = await supabase
       .from('shifts')
