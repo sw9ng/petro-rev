@@ -26,6 +26,7 @@ export const usePersonnel = () => {
       .from('personnel')
       .select('*')
       .eq('station_id', user.id)
+      .eq('status', 'active') // Only fetch active personnel
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -88,9 +89,8 @@ export const usePersonnel = () => {
       .eq('station_id', user.id);
 
     if (!error) {
-      setPersonnel(prev => prev.map(p => 
-        p.id === personnelId ? { ...p, status: 'inactive' } : p
-      ));
+      // Remove from the local state since we only show active personnel
+      setPersonnel(prev => prev.filter(p => p.id !== personnelId));
     }
 
     return { error };

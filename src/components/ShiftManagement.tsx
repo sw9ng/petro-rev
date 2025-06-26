@@ -53,6 +53,17 @@ export const ShiftManagement = () => {
     }, 0);
   };
 
+  // Auto-fill card sales when bank amounts change
+  const handleBankAmountsChange = (amounts: Record<string, string>) => {
+    setBankAmounts(amounts);
+    const total = Object.values(amounts).reduce((sum, amount) => {
+      return sum + (parseFloat(amount) || 0);
+    }, 0);
+    if (total > 0) {
+      setCardSales(total.toString());
+    }
+  };
+
   const resetForm = () => {
     setSelectedPersonnel('');
     setStartDateTime('');
@@ -162,21 +173,21 @@ export const ShiftManagement = () => {
   const overShort = totalExpenses - otomasyonValue;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">Vardiya Kaydet</h2>
-          <p className="text-muted-foreground">Yeni vardiya bilgilerini kaydedin</p>
+          <h2 className="text-xl md:text-2xl font-bold">Vardiya Kaydet</h2>
+          <p className="text-sm md:text-base text-muted-foreground">Yeni vardiya bilgilerini kaydedin</p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
           {/* Sol Kolon - Temel Bilgiler */}
-          <Card>
+          <Card className="shadow-sm border-0 bg-gradient-to-br from-blue-50 to-white">
             <CardHeader>
               <CardTitle className="text-lg flex items-center space-x-2">
-                <User className="h-5 w-5" />
+                <User className="h-5 w-5 text-blue-600" />
                 <span>Vardiya Bilgileri</span>
               </CardTitle>
               <CardDescription>Personel ve zaman bilgileri</CardDescription>
@@ -185,7 +196,7 @@ export const ShiftManagement = () => {
               <div className="space-y-2">
                 <Label htmlFor="personnel">Personel Seçin</Label>
                 <Select value={selectedPersonnel} onValueChange={setSelectedPersonnel}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-11">
                     <SelectValue placeholder="Personel seçin" />
                   </SelectTrigger>
                   <SelectContent>
@@ -204,6 +215,7 @@ export const ShiftManagement = () => {
                   value={startDateTime}
                   onChange={(e) => setStartDateTime(e.target.value)}
                   required
+                  className="h-11"
                 />
               </div>
 
@@ -215,16 +227,17 @@ export const ShiftManagement = () => {
                   value={endDateTime}
                   onChange={(e) => setEndDateTime(e.target.value)}
                   required
+                  className="h-11"
                 />
               </div>
             </CardContent>
           </Card>
 
           {/* Sağ Kolon - Satış Bilgileri */}
-          <Card>
+          <Card className="shadow-sm border-0 bg-gradient-to-br from-green-50 to-white">
             <CardHeader>
               <CardTitle className="text-lg flex items-center space-x-2">
-                <DollarSign className="h-5 w-5" />
+                <DollarSign className="h-5 w-5 text-green-600" />
                 <span>Satış Bilgileri</span>
               </CardTitle>
               <CardDescription>Satış tutarları ve ödeme yöntemleri</CardDescription>
@@ -239,6 +252,7 @@ export const ShiftManagement = () => {
                   placeholder="0.00"
                   value={otomasyonSatis}
                   onChange={(e) => setOtomasyonSatis(e.target.value)}
+                  className="h-11"
                 />
               </div>
 
@@ -251,12 +265,13 @@ export const ShiftManagement = () => {
                   placeholder="0.00"
                   value={cashSales}
                   onChange={(e) => setCashSales(e.target.value)}
+                  className="h-11"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="card">Kart Satış (₺)</Label>
-                <div className="flex space-x-2">
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                   <Input
                     id="card"
                     type="number"
@@ -264,21 +279,22 @@ export const ShiftManagement = () => {
                     placeholder="0.00"
                     value={cardSales}
                     onChange={(e) => handleCardSalesChange(e.target.value)}
+                    className="h-11 flex-1"
                   />
                   <Button
                     type="button"
                     variant="outline"
                     onClick={openBankDialog}
-                    className="whitespace-nowrap"
+                    className="whitespace-nowrap h-11 px-4"
                   >
                     <CreditCard className="h-4 w-4 mr-1" />
                     Banka
                   </Button>
                 </div>
                 {getBankTotal() > 0 && (
-                  <p className="text-sm text-muted-foreground">
+                  <div className="text-sm text-muted-foreground bg-blue-50 p-2 rounded">
                     Banka toplamı: ₺{getBankTotal().toFixed(2)}
-                  </p>
+                  </div>
                 )}
               </div>
 
@@ -291,6 +307,7 @@ export const ShiftManagement = () => {
                   placeholder="0.00"
                   value={veresiye}
                   onChange={(e) => setVeresiye(e.target.value)}
+                  className="h-11"
                 />
               </div>
 
@@ -303,6 +320,7 @@ export const ShiftManagement = () => {
                   placeholder="0.00"
                   value={bankTransfers}
                   onChange={(e) => setBankTransfers(e.target.value)}
+                  className="h-11"
                 />
               </div>
             </CardContent>
@@ -310,22 +328,22 @@ export const ShiftManagement = () => {
         </div>
 
         {/* Alt Kısım - Hesaplama ve Kaydet */}
-        <Card>
+        <Card className="shadow-md border-0 bg-gradient-to-r from-purple-50 to-pink-50">
           <CardHeader>
             <CardTitle className="text-lg flex items-center space-x-2">
-              <Calculator className="h-5 w-5" />
+              <Calculator className="h-5 w-5 text-purple-600" />
               <span>Açık/Fazla Hesaplama</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-white/70 rounded-xl shadow-sm">
               <div className="text-center">
                 <p className="text-sm text-muted-foreground">Otomasyon Satış</p>
-                <p className="text-lg font-semibold">₺{otomasyonValue.toFixed(2)}</p>
+                <p className="text-lg font-semibold text-blue-600">₺{otomasyonValue.toFixed(2)}</p>
               </div>
               <div className="text-center">
                 <p className="text-sm text-muted-foreground">Toplam Giderler</p>
-                <p className="text-lg font-semibold">₺{totalExpenses.toFixed(2)}</p>
+                <p className="text-lg font-semibold text-green-600">₺{totalExpenses.toFixed(2)}</p>
               </div>
               <div className="text-center">
                 <p className="text-sm text-muted-foreground">Açık/Fazla</p>
@@ -335,11 +353,11 @@ export const ShiftManagement = () => {
               </div>
             </div>
 
-            <div className="flex justify-end space-x-3">
-              <Button type="button" variant="outline" onClick={resetForm}>
+            <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
+              <Button type="button" variant="outline" onClick={resetForm} className="h-11">
                 Temizle
               </Button>
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" disabled={loading} className="h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
                 {loading ? 'Kaydediliyor...' : 'Vardiya Kaydet'}
               </Button>
             </div>
@@ -351,7 +369,7 @@ export const ShiftManagement = () => {
         isOpen={bankDialogOpen}
         onOpenChange={setBankDialogOpen}
         bankAmounts={bankAmounts}
-        onBankAmountsChange={setBankAmounts}
+        onBankAmountsChange={handleBankAmountsChange}
         totalAmount={parseFloat(cardSales) || 0}
       />
     </div>

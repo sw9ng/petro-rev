@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Calculator, Search, Eye, Trash2 } from 'lucide-react';
+import { Calendar, Calculator, Search, Eye, Trash2, Clock } from 'lucide-react';
 import { useShifts } from '@/hooks/useShifts';
 import { usePersonnel } from '@/hooks/usePersonnel';
 import { ShiftDetailDialog } from './ShiftDetailDialog';
@@ -93,6 +93,18 @@ export const ShiftList = () => {
     }
   };
 
+  const calculateDuration = (startTime: string, endTime: string | null) => {
+    if (!endTime) return 'Devam ediyor';
+    
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const diffMs = end.getTime() - start.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    
+    return `${diffHours}s ${diffMinutes}dk`;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -102,24 +114,24 @@ export const ShiftList = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">Vardiya Geçmişi</h2>
-          <p className="text-muted-foreground">Geçmiş vardiyaları görüntüle ve filtrele</p>
+          <h2 className="text-xl md:text-2xl font-bold">Vardiya Geçmişi</h2>
+          <p className="text-sm md:text-base text-muted-foreground">Geçmiş vardiyaları görüntüle ve filtrele</p>
         </div>
       </div>
 
       {/* Filters */}
-      <Card>
+      <Card className="shadow-sm border-0 bg-gradient-to-r from-blue-50 to-purple-50">
         <CardHeader>
           <CardTitle className="text-lg flex items-center space-x-2">
-            <Search className="h-5 w-5" />
+            <Search className="h-5 w-5 text-blue-600" />
             <span>Filtreleme</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Tarih Seçin</label>
               <Popover>
@@ -127,7 +139,7 @@ export const ShiftList = () => {
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal",
+                      "w-full justify-start text-left font-normal h-11",
                       !selectedDate && "text-muted-foreground"
                     )}
                   >
@@ -151,7 +163,7 @@ export const ShiftList = () => {
             <div className="space-y-2">
               <label className="text-sm font-medium">Personel Seçin</label>
               <Select value={selectedPersonnel} onValueChange={setSelectedPersonnel}>
-                <SelectTrigger>
+                <SelectTrigger className="h-11">
                   <SelectValue placeholder="Personel seçin" />
                 </SelectTrigger>
                 <SelectContent>
@@ -163,7 +175,7 @@ export const ShiftList = () => {
             </div>
 
             <div className="flex items-end">
-              <Button variant="outline" onClick={clearFilters} className="w-full">
+              <Button variant="outline" onClick={clearFilters} className="w-full h-11">
                 Filtreleri Temizle
               </Button>
             </div>
@@ -180,45 +192,55 @@ export const ShiftList = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
           {filteredShifts.map((shift) => {
             const totalExpenses = shift.cash_sales + shift.card_sales + shift.veresiye + shift.bank_transfers;
             
             return (
-              <Card key={shift.id}>
+              <Card key={shift.id} className="shadow-md border-0 bg-gradient-to-br from-white to-gray-50 hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
                       <CardTitle className="text-lg">{shift.personnel.name}</CardTitle>
                       <CardDescription>
-                        <div className="flex items-center space-x-1">
+                        <div className="flex items-center space-x-1 mb-1">
                           <Calendar className="h-3 w-3" />
                           <span>{format(new Date(shift.start_time), "PPP", { locale: tr })}</span>
                         </div>
-                        {shift.end_time && (
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {format(new Date(shift.start_time), "HH:mm")} - {format(new Date(shift.end_time), "HH:mm")}
+                        <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+                          <div className="flex items-center space-x-1">
+                            <Clock className="h-3 w-3" />
+                            <span>{format(new Date(shift.start_time), "HH:mm")}</span>
+                            {shift.end_time && (
+                              <>
+                                <span>-</span>
+                                <span>{format(new Date(shift.end_time), "HH:mm")}</span>
+                              </>
+                            )}
                           </div>
-                        )}
+                          <div className="text-blue-600 font-medium">
+                            {calculateDuration(shift.start_time, shift.end_time)}
+                          </div>
+                        </div>
                       </CardDescription>
                     </div>
                     <div className="flex flex-col space-y-2">
-                      <Badge variant="secondary">Tamamlandı</Badge>
+                      <Badge variant="secondary" className="bg-green-100 text-green-700">Tamamlandı</Badge>
                       <div className="flex space-x-1">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleShiftDetail(shift)}
-                          className="flex items-center space-x-1"
+                          className="flex items-center space-x-1 h-8"
                         >
                           <Eye className="h-3 w-3" />
-                          <span>Detaylı</span>
+                          <span className="hidden sm:inline">Detay</span>
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleDeleteShift(shift.id)}
-                          className="flex items-center space-x-1 text-red-600 hover:text-red-700"
+                          className="flex items-center space-x-1 text-red-600 hover:text-red-700 h-8"
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
@@ -228,40 +250,40 @@ export const ShiftList = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Satış Özeti */}
-                  <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="grid grid-cols-2 gap-2 md:gap-4 p-3 md:p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg">
                     <div>
-                      <p className="text-sm text-muted-foreground">Otomasyon Satış</p>
-                      <p className="font-semibold">₺{shift.otomasyon_satis.toFixed(2)}</p>
+                      <p className="text-xs md:text-sm text-muted-foreground">Otomasyon</p>
+                      <p className="text-sm md:text-base font-semibold text-blue-600">₺{shift.otomasyon_satis.toFixed(2)}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Nakit</p>
-                      <p className="font-semibold">₺{shift.cash_sales.toFixed(2)}</p>
+                      <p className="text-xs md:text-sm text-muted-foreground">Nakit</p>
+                      <p className="text-sm md:text-base font-semibold text-green-600">₺{shift.cash_sales.toFixed(2)}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Kart</p>
-                      <p className="font-semibold">₺{shift.card_sales.toFixed(2)}</p>
+                      <p className="text-xs md:text-sm text-muted-foreground">Kart</p>
+                      <p className="text-sm md:text-base font-semibold text-purple-600">₺{shift.card_sales.toFixed(2)}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Veresiye</p>
-                      <p className="font-semibold">₺{shift.veresiye.toFixed(2)}</p>
+                      <p className="text-xs md:text-sm text-muted-foreground">Veresiye</p>
+                      <p className="text-sm md:text-base font-semibold text-orange-600">₺{shift.veresiye.toFixed(2)}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Banka Havale</p>
-                      <p className="font-semibold">₺{shift.bank_transfers.toFixed(2)}</p>
+                      <p className="text-xs md:text-sm text-muted-foreground">Havale</p>
+                      <p className="text-sm md:text-base font-semibold text-indigo-600">₺{shift.bank_transfers.toFixed(2)}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Toplam Giderler</p>
-                      <p className="font-semibold">₺{totalExpenses.toFixed(2)}</p>
+                      <p className="text-xs md:text-sm text-muted-foreground">Toplam</p>
+                      <p className="text-sm md:text-base font-bold text-gray-800">₺{totalExpenses.toFixed(2)}</p>
                     </div>
                   </div>
 
                   {/* Açık/Fazla Hesaplama */}
-                  <div className="p-4 border rounded-lg">
+                  <div className="p-3 md:p-4 border rounded-lg bg-gradient-to-r from-purple-50 to-pink-50">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium">Açık/Fazla Hesaplama</span>
+                      <span className="text-sm md:text-base font-medium">Açık/Fazla</span>
                       <Calculator className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <div className={`text-right font-medium ${shift.over_short >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <div className={`text-right font-bold text-base md:text-lg ${shift.over_short >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       <span>{shift.over_short >= 0 ? 'Fazla:' : 'Açık:'} ₺{Math.abs(shift.over_short).toFixed(2)}</span>
                     </div>
                   </div>
