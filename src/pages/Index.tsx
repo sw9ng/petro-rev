@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DashboardOverview } from '@/components/DashboardOverview';
@@ -9,23 +8,19 @@ import { ReportsView } from '@/components/ReportsView';
 import { FuelSalesManagement } from '@/components/FuelSalesManagement';
 import { useAuth } from '@/contexts/AuthContext';
 import Auth from './Auth';
-
 const Index = () => {
-  const { user } = useAuth();
+  const {
+    user
+  } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
-
   if (!user) {
     return <Auth />;
   }
-
-  return (
-    <div className="min-h-screen bg-gray-50">
+  return <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto p-6">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Akaryakıt İstasyonu Yönetim Paneli
-          </h1>
-          <p className="text-gray-600 mt-2">Hoş geldiniz, {user.email}</p>
+          <h1 className="text-3xl font-bold text-gray-900">PetroRev</h1>
+          <p className="text-gray-600 mt-2 font-normal text-base mx-0">Hoş geldiniz, {user.email}</p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -63,8 +58,6 @@ const Index = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
