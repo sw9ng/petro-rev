@@ -8,10 +8,10 @@ import { ShiftList } from '@/components/ShiftList';
 import { ReportsView } from '@/components/ReportsView';
 import { FuelSalesManagement } from '@/components/FuelSalesManagement';
 import { useAuth } from '@/contexts/AuthContext';
-import { Auth } from './Auth';
+import Auth from './Auth';
 
 const Index = () => {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
 
   if (!user) {
@@ -23,9 +23,9 @@ const Index = () => {
       <div className="container mx-auto p-6">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
-            {profile?.station_name || 'Akaryakıt İstasyonu'} Yönetim Paneli
+            Akaryakıt İstasyonu Yönetim Paneli
           </h1>
-          <p className="text-gray-600 mt-2">Hoş geldiniz, {profile?.full_name}</p>
+          <p className="text-gray-600 mt-2">Hoş geldiniz, {user.email}</p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
