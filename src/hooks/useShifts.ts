@@ -108,9 +108,9 @@ export const useShifts = () => {
   const addShift = async (shiftData: any) => {
     if (!user) return { error: 'Kullanıcı doğrulanmadı' };
 
-    // New calculation: otomasyon_satis - (cash_sales + card_sales + veresiye + bank_transfers)
-    const totalExpenses = shiftData.cash_sales + shiftData.card_sales + shiftData.veresiye + shiftData.bank_transfers;
-    const overShort = shiftData.otomasyon_satis - totalExpenses;
+    // CORRECTED calculation: (nakit + kart + veresiye + havale) - otomasyon
+    const totalCollected = shiftData.cash_sales + shiftData.card_sales + shiftData.veresiye + shiftData.bank_transfers;
+    const overShort = totalCollected - shiftData.otomasyon_satis; // CORRECTED: collected - automation
 
     const { data, error } = await supabase
       .from('shifts')
