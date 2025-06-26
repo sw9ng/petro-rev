@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Calculator, User, DollarSign } from 'lucide-react';
+import { Calendar, Calculator, User, DollarSign, CreditCard } from 'lucide-react';
 import { Shift } from '@/hooks/useShifts';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -16,7 +16,7 @@ interface ShiftDetailDialogProps {
 export const ShiftDetailDialog = ({ shift, isOpen, onOpenChange }: ShiftDetailDialogProps) => {
   if (!shift) return null;
 
-  const totalSales = shift.cash_sales + shift.card_sales;
+  const totalExpenses = shift.cash_sales + shift.card_sales + shift.veresiye + shift.bank_transfers;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -49,12 +49,12 @@ export const ShiftDetailDialog = ({ shift, isOpen, onOpenChange }: ShiftDetailDi
                 <span className="font-medium">{shift.personnel.name}</span>
               </div>
               <div className="flex justify-between">
-                <span>Başlangıç Zamanı:</span>
+                <span>Giriş Zamanı:</span>
                 <span>{format(new Date(shift.start_time), "PPPp", { locale: tr })}</span>
               </div>
               {shift.end_time && (
                 <div className="flex justify-between">
-                  <span>Bitiş Zamanı:</span>
+                  <span>Çıkış Zamanı:</span>
                   <span>{format(new Date(shift.end_time), "PPPp", { locale: tr })}</span>
                 </div>
               )}
@@ -77,6 +77,10 @@ export const ShiftDetailDialog = ({ shift, isOpen, onOpenChange }: ShiftDetailDi
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <div className="flex justify-between">
+                    <span className="text-muted-foreground">Otomasyon Satış:</span>
+                    <span className="font-medium">₺{shift.otomasyon_satis.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
                     <span className="text-muted-foreground">Nakit Satış:</span>
                     <span className="font-medium">₺{shift.cash_sales.toFixed(2)}</span>
                   </div>
@@ -84,23 +88,36 @@ export const ShiftDetailDialog = ({ shift, isOpen, onOpenChange }: ShiftDetailDi
                     <span className="text-muted-foreground">Kart Satış:</span>
                     <span className="font-medium">₺{shift.card_sales.toFixed(2)}</span>
                   </div>
-                  {shift.veresiye && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Veresiye:</span>
-                      <span className="font-medium">₺{shift.veresiye.toFixed(2)}</span>
-                    </div>
-                  )}
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Personel Ödenen:</span>
-                    <span className="font-medium">₺{(shift.personel_odenen || 0).toFixed(2)}</span>
+                    <span className="text-muted-foreground">Veresiye:</span>
+                    <span className="font-medium">₺{shift.veresiye.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Banka Havale:</span>
+                    <span className="font-medium">₺{shift.bank_transfers.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between border-t pt-2">
-                    <span className="font-medium">Toplam Satış:</span>
-                    <span className="font-bold">₺{totalSales.toFixed(2)}</span>
+                    <span className="font-medium">Toplam Giderler:</span>
+                    <span className="font-bold">₺{totalExpenses.toFixed(2)}</span>
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Kart Satış Banka Detayları */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center space-x-2">
+                <CreditCard className="h-4 w-4" />
+                <span>Kart Satış Banka Detayları</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center text-muted-foreground py-4">
+                <p>Banka detayları yakında eklenecek</p>
               </div>
             </CardContent>
           </Card>
@@ -115,12 +132,12 @@ export const ShiftDetailDialog = ({ shift, isOpen, onOpenChange }: ShiftDetailDi
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="flex justify-between">
-                <span>Toplam Satış:</span>
-                <span className="font-medium">₺{totalSales.toFixed(2)}</span>
+                <span>Otomasyon Satış:</span>
+                <span className="font-medium">₺{shift.otomasyon_satis.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
-                <span>Personel Ödenen:</span>
-                <span className="font-medium">₺{(shift.personel_odenen || 0).toFixed(2)}</span>
+                <span>Toplam Giderler:</span>
+                <span className="font-medium">₺{totalExpenses.toFixed(2)}</span>
               </div>
               <hr className="my-2" />
               <div className={`flex justify-between font-bold text-lg ${shift.over_short >= 0 ? 'text-green-600' : 'text-red-600'}`}>

@@ -10,10 +10,11 @@ export interface Shift {
   end_time: string | null;
   cash_sales: number;
   card_sales: number;
-  personel_odenen: number;
+  otomasyon_satis: number; // Changed from personel_odenen
   over_short: number;
   status: string;
   veresiye: number;
+  bank_transfers: number;
   personnel: {
     name: string;
   };
@@ -51,10 +52,11 @@ export const useShifts = () => {
         end_time: shift.end_time,
         cash_sales: shift.cash_sales || 0,
         card_sales: shift.card_sales || 0,
-        personel_odenen: shift.actual_amount || 0, // Map actual_amount to personel_odenen
+        otomasyon_satis: shift.actual_amount || 0, // Map actual_amount to otomasyon_satis
         over_short: shift.over_short || 0,
         status: shift.status,
         veresiye: shift.veresiye || 0,
+        bank_transfers: shift.bank_transfers || 0,
         personnel: shift.personnel
       }));
       
@@ -92,10 +94,11 @@ export const useShifts = () => {
       end_time: shift.end_time,
       cash_sales: shift.cash_sales || 0,
       card_sales: shift.card_sales || 0,
-      personel_odenen: shift.actual_amount || 0, // Map actual_amount to personel_odenen
+      otomasyon_satis: shift.actual_amount || 0, // Map actual_amount to otomasyon_satis
       over_short: shift.over_short || 0,
       status: shift.status,
       veresiye: shift.veresiye || 0,
+      bank_transfers: shift.bank_transfers || 0,
       personnel: shift.personnel
     }));
     
@@ -105,9 +108,9 @@ export const useShifts = () => {
   const addShift = async (shiftData: any) => {
     if (!user) return { error: 'Kullanıcı doğrulanmadı' };
 
-    // Updated calculation: personel_odenen - (cash_sales + card_sales)
-    const totalSales = shiftData.cash_sales + shiftData.card_sales;
-    const overShort = shiftData.personel_odenen - totalSales;
+    // New calculation: otomasyon_satis - (cash_sales + card_sales + veresiye + bank_transfers)
+    const totalExpenses = shiftData.cash_sales + shiftData.card_sales + shiftData.veresiye + shiftData.bank_transfers;
+    const overShort = shiftData.otomasyon_satis - totalExpenses;
 
     const { data, error } = await supabase
       .from('shifts')
@@ -115,13 +118,15 @@ export const useShifts = () => {
         {
           personnel_id: shiftData.personnel_id,
           start_time: shiftData.start_time,
+          end_time: shiftData.end_time,
           cash_sales: shiftData.cash_sales,
           card_sales: shiftData.card_sales,
-          actual_amount: shiftData.personel_odenen, // Store as actual_amount in DB
+          actual_amount: shiftData.otomasyon_satis, // Store as actual_amount in DB
           over_short: overShort,
           station_id: user.id,
           status: 'completed',
-          veresiye: shiftData.veresiye || 0
+          veresiye: shiftData.veresiye || 0,
+          bank_transfers: shiftData.bank_transfers || 0
         }
       ])
       .select(`
@@ -140,10 +145,11 @@ export const useShifts = () => {
         end_time: data.end_time,
         cash_sales: data.cash_sales || 0,
         card_sales: data.card_sales || 0,
-        personel_odenen: data.actual_amount || 0,
+        otomasyon_satis: data.actual_amount || 0,
         over_short: data.over_short || 0,
         status: data.status,
         veresiye: data.veresiye || 0,
+        bank_transfers: data.bank_transfers || 0,
         personnel: data.personnel
       };
       
@@ -233,10 +239,11 @@ export const useShifts = () => {
       end_time: shift.end_time,
       cash_sales: shift.cash_sales || 0,
       card_sales: shift.card_sales || 0,
-      personel_odenen: shift.actual_amount || 0,
+      otomasyon_satis: shift.actual_amount || 0,
       over_short: shift.over_short || 0,
       status: shift.status,
       veresiye: shift.veresiye || 0,
+      bank_transfers: shift.bank_transfers || 0,
       personnel: shift.personnel
     }));
     

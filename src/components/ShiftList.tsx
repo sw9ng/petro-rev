@@ -182,7 +182,7 @@ export const ShiftList = () => {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {filteredShifts.map((shift) => {
-            const totalSales = shift.cash_sales + shift.card_sales;
+            const totalExpenses = shift.cash_sales + shift.card_sales + shift.veresiye + shift.bank_transfers;
             
             return (
               <Card key={shift.id}>
@@ -195,6 +195,11 @@ export const ShiftList = () => {
                           <Calendar className="h-3 w-3" />
                           <span>{format(new Date(shift.start_time), "PPP", { locale: tr })}</span>
                         </div>
+                        {shift.end_time && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {format(new Date(shift.start_time), "HH:mm")} - {format(new Date(shift.end_time), "HH:mm")}
+                          </div>
+                        )}
                       </CardDescription>
                     </div>
                     <div className="flex flex-col space-y-2">
@@ -225,6 +230,10 @@ export const ShiftList = () => {
                   {/* Satış Özeti */}
                   <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
                     <div>
+                      <p className="text-sm text-muted-foreground">Otomasyon Satış</p>
+                      <p className="font-semibold">₺{shift.otomasyon_satis.toFixed(2)}</p>
+                    </div>
+                    <div>
                       <p className="text-sm text-muted-foreground">Nakit</p>
                       <p className="font-semibold">₺{shift.cash_sales.toFixed(2)}</p>
                     </div>
@@ -233,12 +242,16 @@ export const ShiftList = () => {
                       <p className="font-semibold">₺{shift.card_sales.toFixed(2)}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Personel Ödenen</p>
-                      <p className="font-semibold">₺{(shift.personel_odenen || 0).toFixed(2)}</p>
+                      <p className="text-sm text-muted-foreground">Veresiye</p>
+                      <p className="font-semibold">₺{shift.veresiye.toFixed(2)}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Toplam Satış</p>
-                      <p className="font-semibold">₺{totalSales.toFixed(2)}</p>
+                      <p className="text-sm text-muted-foreground">Banka Havale</p>
+                      <p className="font-semibold">₺{shift.bank_transfers.toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Toplam Giderler</p>
+                      <p className="font-semibold">₺{totalExpenses.toFixed(2)}</p>
                     </div>
                   </div>
 

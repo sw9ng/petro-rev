@@ -22,19 +22,21 @@ export const ShiftManagement = () => {
   const [newShiftData, setNewShiftData] = useState({
     personnel_id: '',
     start_time: '',
+    end_time: '',
     cash_sales: '',
     card_sales: '',
-    personel_odenen: '',
-    veresiye: ''
+    otomasyon_satis: '',
+    veresiye: '',
+    bank_transfers: ''
   });
 
   const handleCreateShift = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!newShiftData.personnel_id || !newShiftData.start_time) {
+    if (!newShiftData.personnel_id || !newShiftData.start_time || !newShiftData.end_time) {
       toast({
         title: "Hata",
-        description: "Personel ve başlangıç saati zorunludur.",
+        description: "Personel, giriş saati ve çıkış saati zorunludur.",
         variant: "destructive"
       });
       return;
@@ -43,16 +45,19 @@ export const ShiftManagement = () => {
     // Ensure numeric values
     const cashSales = parseFloat(newShiftData.cash_sales) || 0;
     const cardSales = parseFloat(newShiftData.card_sales) || 0;
-    const personelOdenen = parseFloat(newShiftData.personel_odenen) || 0;
+    const otomasyonSatis = parseFloat(newShiftData.otomasyon_satis) || 0;
     const veresiye = parseFloat(newShiftData.veresiye) || 0;
+    const bankTransfers = parseFloat(newShiftData.bank_transfers) || 0;
 
     const shiftData = {
       personnel_id: newShiftData.personnel_id,
       start_time: newShiftData.start_time,
+      end_time: newShiftData.end_time,
       cash_sales: cashSales,
       card_sales: cardSales,
-      personel_odenen: personelOdenen,
+      otomasyon_satis: otomasyonSatis,
       veresiye: veresiye,
+      bank_transfers: bankTransfers,
       status: 'completed'
     };
 
@@ -78,10 +83,12 @@ export const ShiftManagement = () => {
       setNewShiftData({
         personnel_id: '',
         start_time: '',
+        end_time: '',
         cash_sales: '',
         card_sales: '',
-        personel_odenen: '',
-        veresiye: ''
+        otomasyon_satis: '',
+        veresiye: '',
+        bank_transfers: ''
       });
       setBankAmounts({});
     }
@@ -95,17 +102,19 @@ export const ShiftManagement = () => {
     setNewShiftData(prev => ({ ...prev, card_sales: total.toString() }));
   };
 
-  // Calculate preview values with the new formula: personel_odenen - (cash_sales + card_sales)
+  // Calculate preview values with the new formula: otomasyon_satis - (cash_sales + card_sales + veresiye + bank_transfers)
   const calculatePreview = () => {
     const cashSales = parseFloat(newShiftData.cash_sales) || 0;
     const cardSales = parseFloat(newShiftData.card_sales) || 0;
-    const personelOdenen = parseFloat(newShiftData.personel_odenen) || 0;
+    const otomasyonSatis = parseFloat(newShiftData.otomasyon_satis) || 0;
+    const veresiye = parseFloat(newShiftData.veresiye) || 0;
+    const bankTransfers = parseFloat(newShiftData.bank_transfers) || 0;
     
-    const totalSales = cashSales + cardSales;
-    const overShort = personelOdenen - totalSales; // Updated formula
+    const totalExpenses = cashSales + cardSales + veresiye + bankTransfers;
+    const overShort = otomasyonSatis - totalExpenses; // Updated formula
     
     return {
-      totalSales,
+      totalExpenses,
       overShort
     };
   };
@@ -156,13 +165,35 @@ export const ShiftManagement = () => {
                 </Select>
               </div>
               
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <Label>Giriş Saati *</Label>
+                  <Input 
+                    type="datetime-local" 
+                    value={newShiftData.start_time}
+                    onChange={(e) => setNewShiftData({...newShiftData, start_time: e.target.value})}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Çıkış Saati *</Label>
+                  <Input 
+                    type="datetime-local" 
+                    value={newShiftData.end_time}
+                    onChange={(e) => setNewShiftData({...newShiftData, end_time: e.target.value})}
+                    required
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label>Vardiya Tarihi ve Saati *</Label>
+                <Label>Otomasyon Satış (₺)</Label>
                 <Input 
-                  type="datetime-local" 
-                  value={newShiftData.start_time}
-                  onChange={(e) => setNewShiftData({...newShiftData, start_time: e.target.value})}
-                  required
+                  type="number" 
+                  step="0.01"
+                  placeholder="0.00"
+                  value={newShiftData.otomasyon_satis}
+                  onChange={(e) => setNewShiftData({...newShiftData, otomasyon_satis: e.target.value})}
                 />
               </div>
 
@@ -202,16 +233,6 @@ export const ShiftManagement = () => {
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-2">
-                  <Label>Personel Ödenen (₺)</Label>
-                  <Input 
-                    type="number" 
-                    step="0.01"
-                    placeholder="0.00"
-                    value={newShiftData.personel_odenen}
-                    onChange={(e) => setNewShiftData({...newShiftData, personel_odenen: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label>Veresiye (₺)</Label>
                   <Input 
                     type="number" 
@@ -221,10 +242,20 @@ export const ShiftManagement = () => {
                     onChange={(e) => setNewShiftData({...newShiftData, veresiye: e.target.value})}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label>Banka Havale (₺)</Label>
+                  <Input 
+                    type="number" 
+                    step="0.01"
+                    placeholder="0.00"
+                    value={newShiftData.bank_transfers}
+                    onChange={(e) => setNewShiftData({...newShiftData, bank_transfers: e.target.value})}
+                  />
+                </div>
               </div>
 
               {/* Hesaplama Önizlemesi */}
-              {(newShiftData.cash_sales || newShiftData.card_sales || newShiftData.personel_odenen) && (
+              {(newShiftData.cash_sales || newShiftData.card_sales || newShiftData.otomasyon_satis || newShiftData.veresiye || newShiftData.bank_transfers) && (
                 <div className="p-3 bg-gray-50 rounded-lg text-sm">
                   <p className="font-medium mb-2 flex items-center space-x-2">
                     <Calculator className="h-4 w-4" />
@@ -232,12 +263,12 @@ export const ShiftManagement = () => {
                   </p>
                   <div className="space-y-1">
                     <div className="flex justify-between">
-                      <span>Toplam Satış:</span>
-                      <span>₺{preview.totalSales.toFixed(2)}</span>
+                      <span>Otomasyon Satış:</span>
+                      <span>₺{(parseFloat(newShiftData.otomasyon_satis) || 0).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Personel Ödenen:</span>
-                      <span>₺{(parseFloat(newShiftData.personel_odenen) || 0).toFixed(2)}</span>
+                      <span>Toplam Giderler:</span>
+                      <span>₺{preview.totalExpenses.toFixed(2)}</span>
                     </div>
                     <hr />
                     <div className="flex justify-between font-medium">
