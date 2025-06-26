@@ -41,7 +41,14 @@ export const useFuelSales = () => {
     if (error) {
       console.error('Error fetching fuel sales:', error);
     } else {
-      setFuelSales(data || []);
+      // Type cast the data to match our interface
+      const typedData = (data || []).map(sale => ({
+        ...sale,
+        fuel_type: sale.fuel_type as 'MOTORİN' | 'LPG' | 'BENZİN' | 'MOTORİN(DİĞER)',
+        personnel: Array.isArray(sale.personnel) ? sale.personnel[0] : sale.personnel
+      })) as FuelSale[];
+      
+      setFuelSales(typedData);
     }
     setLoading(false);
   };
@@ -73,7 +80,14 @@ export const useFuelSales = () => {
       .single();
 
     if (!error && data) {
-      setFuelSales(prev => [data, ...prev]);
+      // Type cast the new sale data
+      const typedSale = {
+        ...data,
+        fuel_type: data.fuel_type as 'MOTORİN' | 'LPG' | 'BENZİN' | 'MOTORİN(DİĞER)',
+        personnel: Array.isArray(data.personnel) ? data.personnel[0] : data.personnel
+      } as FuelSale;
+      
+      setFuelSales(prev => [typedSale, ...prev]);
     }
 
     return { data, error };
