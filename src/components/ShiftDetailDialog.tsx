@@ -6,6 +6,8 @@ import { Calendar, Calculator, User, DollarSign, CreditCard } from 'lucide-react
 import { Shift } from '@/hooks/useShifts';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ShiftDetailDialogProps {
   shift: Shift | null;
@@ -13,17 +15,39 @@ interface ShiftDetailDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+interface BankDetail {
+  bank_name: string;
+  amount: number;
+}
+
 export const ShiftDetailDialog = ({ shift, isOpen, onOpenChange }: ShiftDetailDialogProps) => {
+  const [bankDetails, setBankDetails] = useState<BankDetail[]>([]);
+
+  useEffect(() => {
+    if (shift && isOpen) {
+      fetchBankDetails();
+    }
+  }, [shift, isOpen]);
+
+  const fetchBankDetails = async () => {
+    if (!shift) return;
+
+    const { data, error } = await supabase
+      .from('shift_bank_details')
+      .select('bank_name, amount')
+      .eq('shift_id', shift.id);
+
+    if (error) {
+      console.error('Error fetching bank details:', error);
+      setBankDetails([]);
+    } else {
+      setBankDetails(data || []);
+    }
+  };
+
   if (!shift) return null;
 
   const totalExpenses = shift.cash_sales + shift.card_sales + shift.veresiye + shift.bank_transfers;
-  
-  // Mock bank details - in a real app, this would come from the database
-  const bankDetails = [
-    { name: 'Ziraat', amount: shift.card_sales * 0.4 },
-    { name: 'İş Bankası', amount: shift.card_sales * 0.3 },
-    { name: 'Garanti', amount: shift.card_sales * 0.3 }
-  ].filter(bank => bank.amount > 0);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -127,7 +151,7 @@ export const ShiftDetailDialog = ({ shift, isOpen, onOpenChange }: ShiftDetailDi
                 <div className="space-y-3">
                   {bankDetails.map((bank, index) => (
                     <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                      <span className="font-medium">{bank.name}</span>
+                      <span className="font-medium">{bank.bank_name}</span>
                       <span className="font-semibold">₺{bank.amount.toFixed(2)}</span>
                     </div>
                   ))}
