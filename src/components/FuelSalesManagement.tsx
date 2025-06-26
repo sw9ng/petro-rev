@@ -4,14 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Plus, Fuel, Trash2, Calculator, Calendar as CalendarIcon } from 'lucide-react';
+import { Plus, Fuel, Trash2, Calculator, Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFuelSales } from '@/hooks/useFuelSales';
-import { useShifts } from '@/hooks/useShifts';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -21,11 +19,10 @@ const FUEL_TYPES = ['MOTORİN', 'LPG', 'BENZİN', 'MOTORİN(DİĞER)'] as const;
 export const FuelSalesManagement = () => {
   const { toast } = useToast();
   const { fuelSales, loading: fuelLoading, addFuelSale, deleteFuelSale } = useFuelSales();
-  const { findShiftsByDateAndPersonnel } = useShifts();
   const [newSaleOpen, setNewSaleOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [selectedShift, setSelectedShift] = useState('');
-  const [availableShifts, setAvailableShifts] = useState<any[]>([]);
+  const [startHour, setStartHour] = useState('');
+  const [endHour, setEndHour] = useState('');
   const [fuelData, setFuelData] = useState({
     'MOTORİN': { liters: '', price_per_liter: '' },
     'LPG': { liters: '', price_per_liter: '' },
@@ -33,36 +30,13 @@ export const FuelSalesManagement = () => {
     'MOTORİN(DİĞER)': { liters: '', price_per_liter: '' }
   });
 
-  const handleDateChange = async (date: Date | undefined) => {
-    if (!date) return;
-    
-    setSelectedDate(date);
-    setSelectedShift('');
-    
-    // Fetch shifts for the selected date
-    const dateString = format(date, 'yyyy-MM-dd');
-    const shifts = await findShiftsByDateAndPersonnel(dateString, '');
-    setAvailableShifts(shifts);
-  };
-
   const handleCreateSales = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedShift || !selectedDate) {
+    if (!selectedDate || !startHour || !endHour) {
       toast({
         title: "Hata",
-        description: "Vardiya seçimi zorunludur.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Get the selected shift details
-    const shift = availableShifts.find(s => s.id === selectedShift);
-    if (!shift) {
-      toast({
-        title: "Hata",
-        description: "Seçilen vardiya bulunamadı.",
+        description: "Tarih, başlangıç saati ve bitiş saati zorunludur.",
         variant: "destructive"
       });
       return;
@@ -83,6 +57,11 @@ export const FuelSalesManagement = () => {
       return;
     }
 
+    // Create sale time from date and start hour
+    const [hour, minute] = startHour.split(':');
+    const saleDateTime = new Date(selectedDate);
+    saleDateTime.setHours(parseInt(hour), parseInt(minute), 0, 0);
+
     let hasError = false;
 
     for (const fuelType of salesToCreate) {
@@ -92,14 +71,14 @@ export const FuelSalesManagement = () => {
       const totalAmount = liters * pricePerLiter;
 
       const saleData = {
-        personnel_id: shift.personnel_id,
         fuel_type: fuelType,
         liters: liters,
         price_per_liter: pricePerLiter,
         total_amount: totalAmount,
         amount: totalAmount,
-        sale_time: selectedDate.toISOString(),
-        shift_id: selectedShift
+        sale_time: saleDateTime.toISOString(),
+        start_hour: startHour,
+        end_hour: endHour
       };
 
       const { error } = await addFuelSale(saleData);
@@ -123,8 +102,8 @@ export const FuelSalesManagement = () => {
       });
       
       setNewSaleOpen(false);
-      setSelectedShift('');
-      setAvailableShifts([]);
+      setStartHour('');
+      setEndHour('');
       setFuelData({
         'MOTORİN': { liters: '', price_per_liter: '' },
         'LPG': { liters: '', price_per_liter: '' },
@@ -185,166 +164,183 @@ export const FuelSalesManagement = () => {
 
   const totalAmount = calculateTotalAmount();
 
-  // Group sales by date and shift
+  // Group sales by date
   const groupedSales = fuelSales.reduce((acc, sale) => {
     const dateKey = format(new Date(sale.sale_time), 'yyyy-MM-dd');
-    const key = `${dateKey}-${sale.shift_id || 'no-shift'}`;
     
-    if (!acc[key]) {
-      acc[key] = {
+    if (!acc[dateKey]) {
+      acc[dateKey] = {
         date: dateKey,
-        personnel: sale.personnel,
-        shiftId: sale.shift_id,
         sales: [],
         totalAmount: 0
       };
     }
     
-    acc[key].sales.push(sale);
-    acc[key].totalAmount += sale.total_amount;
+    acc[dateKey].sales.push(sale);
+    acc[dateKey].totalAmount += sale.total_amount;
     
     return acc;
   }, {} as Record<string, any>);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">Akaryakıt Satışları</h2>
-          <p className="text-muted-foreground mt-1">Vardiya bazlı akaryakıt satışlarını kaydet ve yönet</p>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+            Akaryakıt Satışları
+          </h2>
+          <p className="text-gray-600 mt-2">Günlük akaryakıt satış verilerini kaydet ve yönet</p>
         </div>
         <Dialog open={newSaleOpen} onOpenChange={setNewSaleOpen}>
           <DialogTrigger asChild>
-            <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
+            <Button size="lg" className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-200">
               <Plus className="h-5 w-5 mr-2" />
-              Vardiya Satışı Ekle
+              Satış Ekle
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-xl">Vardiya Akaryakıt Satışları</DialogTitle>
-              <DialogDescription>Seçilen vardiya için tüm akaryakıt türlerinin satış verilerini girin</DialogDescription>
+              <DialogTitle className="text-2xl font-bold text-gray-900">Günlük Akaryakıt Satışları</DialogTitle>
+              <DialogDescription className="text-gray-600">
+                Seçilen tarih ve saat aralığı için tüm akaryakıt türlerinin satış verilerini girin
+              </DialogDescription>
             </DialogHeader>
             
             <form onSubmit={handleCreateSales} className="space-y-6 py-4">
-              {/* Date Selection */}
-              <div className="space-y-2">
-                <Label>Vardiya Tarihi *</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !selectedDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {selectedDate ? format(selectedDate, "PPP", { locale: tr }) : "Tarih seçin"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={handleDateChange}
-                      initialFocus
-                      className="pointer-events-auto"
+              {/* Date and Time Selection */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Satış Tarihi *</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !selectedDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {selectedDate ? format(selectedDate, "PPP", { locale: tr }) : "Tarih seçin"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={(date) => date && setSelectedDate(date)}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Başlangıç Saati *</Label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      type="time"
+                      value={startHour}
+                      onChange={(e) => setStartHour(e.target.value)}
+                      className="pl-10"
+                      required
                     />
-                  </PopoverContent>
-                </Popover>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Bitiş Saati *</Label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      type="time"
+                      value={endHour}
+                      onChange={(e) => setEndHour(e.target.value)}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                </div>
               </div>
 
-              {/* Shift Selection */}
-              {availableShifts.length > 0 && (
-                <div className="space-y-2">
-                  <Label>Vardiya Seçin *</Label>
-                  <Select value={selectedShift} onValueChange={setSelectedShift}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Vardiya seçin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableShifts.map((shift) => (
-                        <SelectItem key={shift.id} value={shift.id}>
-                          {shift.personnel.name} - {format(new Date(shift.start_time), 'HH:mm')} 
-                          {shift.end_time && ` - ${format(new Date(shift.end_time), 'HH:mm')}`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {availableShifts.length === 0 && selectedDate && (
-                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-yellow-800 text-sm">
-                    Seçilen tarih için herhangi bir vardiya bulunamadı. Önce vardiya oluşturun.
-                  </p>
-                </div>
-              )}
-
               {/* Fuel Types Data Entry */}
-              {selectedShift && (
-                <>
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-gray-900">Akaryakıt Türleri</h3>
-                    {FUEL_TYPES.map((fuelType) => (
-                      <Card key={fuelType} className="p-4">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                  <Fuel className="h-5 w-5 mr-2 text-blue-600" />
+                  Akaryakıt Türleri
+                </h3>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {FUEL_TYPES.map((fuelType) => (
+                    <Card key={fuelType} className="border-gray-200 hover:border-blue-300 transition-colors">
+                      <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-3">
-                          <h4 className="font-medium text-gray-900">{fuelType}</h4>
-                          <Fuel className="h-4 w-4 text-gray-500" />
+                          <h4 className="font-semibold text-gray-900">{fuelType}</h4>
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                         </div>
                         <div className="grid grid-cols-3 gap-3">
                           <div className="space-y-1">
-                            <Label className="text-sm">Litre</Label>
+                            <Label className="text-xs text-gray-600">Litre</Label>
                             <Input 
                               type="number" 
                               step="0.001"
                               placeholder="0.000"
                               value={fuelData[fuelType].liters}
                               onChange={(e) => updateFuelData(fuelType, 'liters', e.target.value)}
+                              className="text-sm"
                             />
                           </div>
                           <div className="space-y-1">
-                            <Label className="text-sm">Litre Fiyatı (₺)</Label>
+                            <Label className="text-xs text-gray-600">Litre Fiyatı (₺)</Label>
                             <Input 
                               type="number" 
                               step="0.001"
                               placeholder="0.000"
                               value={fuelData[fuelType].price_per_liter}
                               onChange={(e) => updateFuelData(fuelType, 'price_per_liter', e.target.value)}
+                              className="text-sm"
                             />
                           </div>
                           <div className="space-y-1">
-                            <Label className="text-sm">Toplam (₺)</Label>
-                            <div className="h-9 px-3 py-2 bg-gray-50 border rounded-md text-sm">
+                            <Label className="text-xs text-gray-600">Toplam (₺)</Label>
+                            <div className="h-9 px-3 py-2 bg-gray-50 border rounded-md text-sm flex items-center">
                               ₺{((parseFloat(fuelData[fuelType].liters) || 0) * (parseFloat(fuelData[fuelType].price_per_liter) || 0)).toFixed(2)}
                             </div>
                           </div>
                         </div>
-                      </Card>
-                    ))}
-                  </div>
-
-                  {/* Total Calculation */}
-                  {totalAmount > 0 && (
-                    <Card className="p-4 bg-green-50 border-green-200">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <Calculator className="h-5 w-5 text-green-600" />
-                          <span className="font-medium text-green-800">Genel Toplam:</span>
-                        </div>
-                        <span className="font-bold text-2xl text-green-600">₺{totalAmount.toFixed(2)}</span>
-                      </div>
+                      </CardContent>
                     </Card>
-                  )}
+                  ))}
+                </div>
+              </div>
 
-                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" size="lg">
-                    Satışları Kaydet
-                  </Button>
-                </>
+              {/* Total Calculation */}
+              {totalAmount > 0 && (
+                <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-green-100 rounded-lg">
+                          <Calculator className="h-6 w-6 text-green-600" />
+                        </div>
+                        <span className="font-semibold text-green-800 text-lg">Genel Toplam:</span>
+                      </div>
+                      <span className="font-bold text-3xl text-green-600">₺{totalAmount.toFixed(2)}</span>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
+
+              <Button 
+                type="submit" 
+                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-200" 
+                size="lg"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Satışları Kaydet
+              </Button>
             </form>
           </DialogContent>
         </Dialog>
@@ -352,11 +348,15 @@ export const FuelSalesManagement = () => {
 
       {/* Sales List */}
       {Object.keys(groupedSales).length === 0 ? (
-        <Card className="p-8">
-          <CardContent className="text-center">
-            <Fuel className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Henüz akaryakıt satışı bulunmuyor</h3>
-            <p className="text-muted-foreground mb-4">İlk vardiya satışınızı eklemek için yukarıdaki butonu kullanın.</p>
+        <Card className="border-dashed border-2 border-gray-300">
+          <CardContent className="text-center py-12">
+            <div className="max-w-sm mx-auto">
+              <div className="p-4 bg-gray-50 rounded-full w-fit mx-auto mb-4">
+                <Fuel className="h-12 w-12 text-gray-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Henüz satış kaydı yok</h3>
+              <p className="text-gray-600 mb-6">İlk akaryakıt satışınızı kaydetmek için yukarıdaki butonu kullanın.</p>
+            </div>
           </CardContent>
         </Card>
       ) : (
@@ -364,47 +364,51 @@ export const FuelSalesManagement = () => {
           {Object.values(groupedSales)
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
             .map((group: any) => (
-              <Card key={`${group.date}-${group.shiftId}`} className="overflow-hidden">
-                <CardHeader className="bg-gray-50 border-b">
+              <Card key={group.date} className="overflow-hidden shadow-md hover:shadow-lg transition-shadow">
+                <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 border-b">
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-lg text-gray-900">
+                      <CardTitle className="text-xl text-gray-900 flex items-center">
+                        <CalendarIcon className="h-5 w-5 mr-2 text-blue-600" />
                         {format(new Date(group.date), "PPP", { locale: tr })}
                       </CardTitle>
-                      <CardDescription className="mt-1">
-                        Personel: {group.personnel.name}
+                      <CardDescription className="mt-1 text-gray-600">
+                        {group.sales.length} akaryakıt türü satışı
                       </CardDescription>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm text-muted-foreground">Toplam Satış</p>
-                      <p className="font-bold text-xl text-green-600">₺{group.totalAmount.toFixed(2)}</p>
+                      <p className="text-sm text-gray-600">Günlük Toplam</p>
+                      <p className="font-bold text-2xl text-green-600">₺{group.totalAmount.toFixed(2)}</p>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {group.sales.map((sale: any) => (
-                      <div key={sale.id} className="relative p-4 bg-white border rounded-lg hover:shadow-md transition-shadow">
+                      <div key={sale.id} className="relative p-4 bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-xl hover:shadow-md transition-all duration-200">
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDeleteSale(sale.id)}
-                          className="absolute top-2 right-2 h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          className="absolute top-2 right-2 h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full"
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
-                        <div className="space-y-2">
-                          <h4 className="font-semibold text-gray-900">{sale.fuel_type}</h4>
-                          <div className="space-y-1 text-sm">
+                        <div className="space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                            <h4 className="font-semibold text-gray-900">{sale.fuel_type}</h4>
+                          </div>
+                          <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
-                              <span className="text-muted-foreground">Litre:</span>
-                              <span>{sale.liters.toFixed(3)} L</span>
+                              <span className="text-gray-600">Litre:</span>
+                              <span className="font-medium">{sale.liters.toFixed(3)} L</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-muted-foreground">Fiyat:</span>
-                              <span>₺{sale.price_per_liter.toFixed(3)}</span>
+                              <span className="text-gray-600">Birim Fiyat:</span>
+                              <span className="font-medium">₺{sale.price_per_liter.toFixed(3)}</span>
                             </div>
-                            <div className="flex justify-between font-semibold border-t pt-1">
+                            <div className="flex justify-between font-semibold border-t pt-2">
                               <span>Toplam:</span>
                               <span className="text-green-600">₺{sale.total_amount.toFixed(2)}</span>
                             </div>
