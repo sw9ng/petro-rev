@@ -31,8 +31,12 @@ const Index = () => {
         <div className="mb-6 bg-white rounded-xl shadow-sm border p-4 lg:p-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gray-900 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">P</span>
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
+                <img 
+                  src="/lovable-uploads/6b443a64-706a-401f-bdc5-fd18b2bcb790.png" 
+                  alt="PetroRev Logo" 
+                  className="w-full h-full object-contain"
+                />
               </div>
               <div>
                 <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
