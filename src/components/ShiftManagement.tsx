@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, User, DollarSign, Clock, Calculator, CreditCard } from 'lucide-react';
+import { Calendar, User, DollarSign, Calculator, CreditCard } from 'lucide-react';
 import { usePersonnel } from '@/hooks/usePersonnel';
 import { useShifts } from '@/hooks/useShifts';
 import { useToast } from '@/hooks/use-toast';
@@ -38,7 +38,6 @@ export const ShiftManagement = () => {
     }, 0);
   };
 
-  // Auto-fill card sales when bank amounts change
   const handleBankAmountsChange = (amounts: Record<string, string>) => {
     setBankAmounts(amounts);
   };
@@ -91,7 +90,6 @@ export const ShiftManagement = () => {
         variant: "destructive"
       });
     } else if (data) {
-      // Save bank details if card sales exist
       if (cardSalesValue > 0 && Object.keys(bankAmounts).length > 0) {
         const bankDetailsToSave = Object.entries(bankAmounts)
           .filter(([_, amount]) => parseFloat(amount) > 0)
@@ -131,7 +129,6 @@ export const ShiftManagement = () => {
     setLoading(false);
   };
 
-  // Calculate total expenses and over/short
   const totalExpenses = (parseFloat(cashSales) || 0) + 
                        getBankTotal() + 
                        (parseFloat(veresiye) || 0) + 
@@ -141,19 +138,17 @@ export const ShiftManagement = () => {
   const overShort = totalExpenses - otomasyonValue;
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-xl md:text-2xl font-bold text-gray-900">Vardiya Kaydet</h2>
-          <p className="text-sm md:text-base text-gray-600">Yeni vardiya bilgilerini kaydedin</p>
-        </div>
+    <div className="space-y-6">
+      <div className="flex flex-col space-y-2">
+        <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Vardiya Kaydet</h2>
+        <p className="text-sm lg:text-base text-gray-600">Yeni vardiya bilgilerini kaydedin</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
-          {/* Sol Kolon - Temel Bilgiler */}
-          <Card className="shadow-md border bg-white">
-            <CardHeader>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          {/* Vardiya Bilgileri */}
+          <Card className="shadow-sm border">
+            <CardHeader className="pb-4">
               <CardTitle className="text-lg flex items-center space-x-2 text-gray-900">
                 <User className="h-5 w-5 text-gray-700" />
                 <span>Vardiya Bilgileri</span>
@@ -162,12 +157,12 @@ export const ShiftManagement = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="personnel" className="text-gray-700">Personel Seçin</Label>
+                <Label htmlFor="personnel" className="text-gray-700 font-medium">Personel Seçin</Label>
                 <Select value={selectedPersonnel} onValueChange={setSelectedPersonnel}>
                   <SelectTrigger className="h-11 border-gray-300">
                     <SelectValue placeholder="Personel seçin" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white border shadow-lg">
                     {personnel.map((person) => (
                       <SelectItem key={person.id} value={person.id}>{person.name}</SelectItem>
                     ))}
@@ -176,7 +171,7 @@ export const ShiftManagement = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="start-time" className="text-gray-700">Başlangıç Zamanı</Label>
+                <Label htmlFor="start-time" className="text-gray-700 font-medium">Başlangıç Zamanı</Label>
                 <Input
                   id="start-time"
                   type="datetime-local"
@@ -188,7 +183,7 @@ export const ShiftManagement = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="end-time" className="text-gray-700">Bitiş Zamanı</Label>
+                <Label htmlFor="end-time" className="text-gray-700 font-medium">Bitiş Zamanı</Label>
                 <Input
                   id="end-time"
                   type="datetime-local"
@@ -201,9 +196,9 @@ export const ShiftManagement = () => {
             </CardContent>
           </Card>
 
-          {/* Sağ Kolon - Satış Bilgileri */}
-          <Card className="shadow-md border bg-white">
-            <CardHeader>
+          {/* Satış Bilgileri */}
+          <Card className="shadow-sm border">
+            <CardHeader className="pb-4">
               <CardTitle className="text-lg flex items-center space-x-2 text-gray-900">
                 <DollarSign className="h-5 w-5 text-gray-700" />
                 <span>Satış Bilgileri</span>
@@ -212,7 +207,7 @@ export const ShiftManagement = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="otomasyon" className="text-gray-700">Otomasyon Satış (₺)</Label>
+                <Label htmlFor="otomasyon" className="text-gray-700 font-medium">Otomasyon Satış (₺)</Label>
                 <Input
                   id="otomasyon"
                   type="number"
@@ -225,7 +220,7 @@ export const ShiftManagement = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="cash" className="text-gray-700">Nakit Satış (₺)</Label>
+                <Label htmlFor="cash" className="text-gray-700 font-medium">Nakit Satış (₺)</Label>
                 <Input
                   id="cash"
                   type="number"
@@ -238,8 +233,8 @@ export const ShiftManagement = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="card" className="text-gray-700">Kart Satış (₺)</Label>
-                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                <Label htmlFor="card" className="text-gray-700 font-medium">Kart Satış (₺)</Label>
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Input
                     id="card"
                     type="number"
@@ -253,21 +248,21 @@ export const ShiftManagement = () => {
                     type="button"
                     variant="outline"
                     onClick={openBankDialog}
-                    className="whitespace-nowrap h-11 px-4 border-gray-300 hover:bg-gray-50"
+                    className="h-11 px-4 border-gray-300 hover:bg-gray-50 whitespace-nowrap"
                   >
-                    <CreditCard className="h-4 w-4 mr-1" />
-                    Banka
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Banka Detayları
                   </Button>
                 </div>
                 {getBankTotal() > 0 && (
-                  <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded border">
-                    Banka toplamı: ₺{getBankTotal().toFixed(2)}
+                  <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border">
+                    <span className="font-medium">Toplam banka tutarı: ₺{getBankTotal().toFixed(2)}</span>
                   </div>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="veresiye" className="text-gray-700">Veresiye (₺)</Label>
+                <Label htmlFor="veresiye" className="text-gray-700 font-medium">Veresiye (₺)</Label>
                 <Input
                   id="veresiye"
                   type="number"
@@ -280,7 +275,7 @@ export const ShiftManagement = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="bank-transfer" className="text-gray-700">Banka Havale (₺)</Label>
+                <Label htmlFor="bank-transfer" className="text-gray-700 font-medium">Banka Havale (₺)</Label>
                 <Input
                   id="bank-transfer"
                   type="number"
@@ -295,37 +290,46 @@ export const ShiftManagement = () => {
           </Card>
         </div>
 
-        {/* Alt Kısım - Hesaplama ve Kaydet */}
-        <Card className="shadow-md border bg-white">
-          <CardHeader>
+        {/* Hesaplama ve Kaydet */}
+        <Card className="shadow-sm border">
+          <CardHeader className="pb-4">
             <CardTitle className="text-lg flex items-center space-x-2 text-gray-900">
               <Calculator className="h-5 w-5 text-gray-700" />
               <span>Açık/Fazla Hesaplama</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-xl border">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg border">
               <div className="text-center">
-                <p className="text-sm text-gray-600">Otomasyon Satış</p>
+                <p className="text-sm text-gray-600 font-medium">Otomasyon Satış</p>
                 <p className="text-lg font-semibold text-gray-900">₺{otomasyonValue.toFixed(2)}</p>
               </div>
               <div className="text-center">
-                <p className="text-sm text-gray-600">Toplam Giderler</p>
+                <p className="text-sm text-gray-600 font-medium">Toplam Giderler</p>
                 <p className="text-lg font-semibold text-gray-900">₺{totalExpenses.toFixed(2)}</p>
               </div>
               <div className="text-center">
-                <p className="text-sm text-gray-600">Açık/Fazla</p>
+                <p className="text-sm text-gray-600 font-medium">Açık/Fazla</p>
                 <p className={`text-lg font-bold ${overShort >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {overShort >= 0 ? '+' : ''}₺{overShort.toFixed(2)}
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
-              <Button type="button" variant="outline" onClick={resetForm} className="h-11 border-gray-300 hover:bg-gray-50">
+            <div className="flex flex-col sm:flex-row justify-end gap-3">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={resetForm} 
+                className="h-11 border-gray-300 hover:bg-gray-50 order-2 sm:order-1"
+              >
                 Temizle
               </Button>
-              <Button type="submit" disabled={loading} className="h-11 bg-gray-900 hover:bg-gray-800 text-white">
+              <Button 
+                type="submit" 
+                disabled={loading} 
+                className="h-11 bg-gray-900 hover:bg-gray-800 text-white order-1 sm:order-2"
+              >
                 {loading ? 'Kaydediliyor...' : 'Vardiya Kaydet'}
               </Button>
             </div>

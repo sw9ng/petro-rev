@@ -25,68 +25,89 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
-      <div className="container mx-auto p-6">
-        {/* Elegant Header */}
-        <div className="mb-8 bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md">
-                <span className="text-white font-bold text-xl">P</span>
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-4 max-w-7xl">
+        {/* Header */}
+        <div className="mb-6 bg-white rounded-xl shadow-sm border p-4 lg:p-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gray-900 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-lg">P</span>
               </div>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
                   PetroRev
                 </h1>
-                <p className="text-gray-500 text-sm mt-1">Akaryakıt İstasyonu Yönetim Sistemi</p>
+                <p className="text-gray-600 text-sm">Akaryakıt İstasyonu Yönetim Sistemi</p>
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 px-4 py-2 bg-gray-50 rounded-lg">
+            <div className="flex items-center space-x-3 w-full sm:w-auto">
+              <div className="flex items-center space-x-2 px-3 py-2 bg-gray-100 rounded-lg flex-1 sm:flex-none">
                 <User className="h-4 w-4 text-gray-600" />
-                <span className="text-gray-700 font-medium">{user.email}</span>
+                <span className="text-gray-700 text-sm font-medium truncate">{user.email}</span>
               </div>
               <Button 
                 onClick={handleLogout}
                 variant="outline" 
                 size="sm"
-                className="flex items-center space-x-2 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors"
+                className="flex items-center space-x-2 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors whitespace-nowrap"
               >
                 <LogOut className="h-4 w-4" />
-                <span>Çıkış</span>
+                <span className="hidden sm:inline">Çıkış</span>
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Main Content with Enhanced Tabs */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+        {/* Main Content */}
+        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-0">
-            <div className="bg-gray-50 border-b border-gray-200 px-6 pt-6">
-              <TabsList className="grid w-full grid-cols-6 bg-white shadow-sm border border-gray-200 rounded-lg p-1">
-                <TabsTrigger value="dashboard" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-md transition-all">
+            <div className="bg-white border-b px-4 lg:px-6 pt-4">
+              <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 bg-gray-100 p-1 rounded-lg">
+                <TabsTrigger 
+                  value="dashboard" 
+                  className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-xs lg:text-sm px-2 lg:px-4"
+                >
                   Pano
                 </TabsTrigger>
-                <TabsTrigger value="personnel" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-md transition-all">
+                <TabsTrigger 
+                  value="personnel" 
+                  className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-xs lg:text-sm px-2 lg:px-4"
+                >
                   Personel
                 </TabsTrigger>
-                <TabsTrigger value="shifts" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-md transition-all">
-                  Vardiya Kaydet
+                <TabsTrigger 
+                  value="shifts" 
+                  className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-xs lg:text-sm px-2 lg:px-4"
+                >
+                  <span className="hidden sm:inline">Vardiya Kaydet</span>
+                  <span className="sm:hidden">Kaydet</span>
                 </TabsTrigger>
-                <TabsTrigger value="shift-list" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-md transition-all">
-                  Vardiya Listesi
+                <TabsTrigger 
+                  value="shift-list" 
+                  className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-xs lg:text-sm px-2 lg:px-4"
+                >
+                  <span className="hidden sm:inline">Vardiya Listesi</span>
+                  <span className="sm:hidden">Liste</span>
                 </TabsTrigger>
-                <TabsTrigger value="fuel-sales" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-md transition-all">
-                  Akaryakıt Satışı
+                <TabsTrigger 
+                  value="fuel-sales" 
+                  className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-xs lg:text-sm px-2 lg:px-4"
+                >
+                  <span className="hidden sm:inline">Akaryakıt</span>
+                  <span className="sm:hidden">Yakıt</span>
                 </TabsTrigger>
-                <TabsTrigger value="reports" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-md transition-all">
+                <TabsTrigger 
+                  value="reports" 
+                  className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-xs lg:text-sm px-2 lg:px-4"
+                >
                   Raporlar
                 </TabsTrigger>
               </TabsList>
             </div>
 
-            <div className="p-6">
+            <div className="p-4 lg:p-6">
               <TabsContent value="dashboard" className="mt-0">
                 <DashboardOverview />
               </TabsContent>
