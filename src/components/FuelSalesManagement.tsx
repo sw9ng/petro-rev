@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,10 +42,10 @@ export const FuelSalesManagement = () => {
   const [startTime, setStartTime] = useState(formatTimeForInput(new Date()));
   const [endTime, setEndTime] = useState(formatTimeForInput(new Date()));
   const [fuelData, setFuelData] = useState({
-    'MOTORİN': { liters: '', price_per_liter: '' },
-    'LPG': { liters: '', price_per_liter: '' },
-    'BENZİN': { liters: '', price_per_liter: '' },
-    'MOTORİN(DİĞER)': { liters: '', price_per_liter: '' }
+    'MOTORİN': { liters: '', total_amount: '', price_per_liter: '' },
+    'LPG': { liters: '', total_amount: '', price_per_liter: '' },
+    'BENZİN': { liters: '', total_amount: '', price_per_liter: '' },
+    'MOTORİN(DİĞER)': { liters: '', total_amount: '', price_per_liter: '' }
   });
 
   const handleCreateSales = async (e: React.FormEvent) => {
@@ -64,13 +63,13 @@ export const FuelSalesManagement = () => {
     // Create sales for each fuel type that has data
     const salesToCreate = FUEL_TYPES.filter(fuelType => {
       const data = fuelData[fuelType];
-      return data.liters && data.price_per_liter && parseFloat(data.liters) > 0;
+      return data.liters && data.total_amount && parseFloat(data.liters) > 0 && parseFloat(data.total_amount) > 0;
     });
 
     if (salesToCreate.length === 0) {
       toast({
         title: "Hata",
-        description: "En az bir akaryakıt türü için veri girmelisiniz.",
+        description: "En az bir akaryakıt türü için litre ve toplam tutar girmelisiniz.",
         variant: "destructive"
       });
       return;
@@ -86,8 +85,8 @@ export const FuelSalesManagement = () => {
     for (const fuelType of salesToCreate) {
       const data = fuelData[fuelType];
       const liters = parseFloat(data.liters);
-      const pricePerLiter = parseFloat(data.price_per_liter);
-      const totalAmount = liters * pricePerLiter;
+      const totalAmount = parseFloat(data.total_amount);
+      const pricePerLiter = totalAmount / liters; // Calculate price per liter automatically
 
       const saleData = {
         fuel_type: fuelType,
@@ -124,10 +123,10 @@ export const FuelSalesManagement = () => {
       setStartTime(formatTimeForInput(new Date()));
       setEndTime(formatTimeForInput(new Date()));
       setFuelData({
-        'MOTORİN': { liters: '', price_per_liter: '' },
-        'LPG': { liters: '', price_per_liter: '' },
-        'BENZİN': { liters: '', price_per_liter: '' },
-        'MOTORİN(DİĞER)': { liters: '', price_per_liter: '' }
+        'MOTORİN': { liters: '', total_amount: '', price_per_liter: '' },
+        'LPG': { liters: '', total_amount: '', price_per_liter: '' },
+        'BENZİN': { liters: '', total_amount: '', price_per_liter: '' },
+        'MOTORİN(DİĞER)': { liters: '', total_amount: '', price_per_liter: '' }
       });
     }
   };
@@ -152,21 +151,38 @@ export const FuelSalesManagement = () => {
   };
 
   const updateFuelData = (fuelType: string, field: string, value: string) => {
-    setFuelData(prev => ({
-      ...prev,
-      [fuelType]: {
-        ...prev[fuelType as keyof typeof prev],
-        [field]: value
+    setFuelData(prev => {
+      const newData = {
+        ...prev,
+        [fuelType]: {
+          ...prev[fuelType as keyof typeof prev],
+          [field]: value
+        }
+      };
+      
+      // Auto-calculate price per liter when liters or total_amount changes
+      if (field === 'liters' || field === 'total_amount') {
+        const currentFuelData = newData[fuelType as keyof typeof newData];
+        const liters = parseFloat(currentFuelData.liters) || 0;
+        const totalAmount = parseFloat(currentFuelData.total_amount) || 0;
+        
+        if (liters > 0 && totalAmount > 0) {
+          const pricePerLiter = totalAmount / liters;
+          newData[fuelType as keyof typeof newData].price_per_liter = pricePerLiter.toFixed(3);
+        } else {
+          newData[fuelType as keyof typeof newData].price_per_liter = '';
+        }
       }
-    }));
+      
+      return newData;
+    });
   };
 
-  const calculateTotalAmount = () => {
+  const calculateGrandTotal = () => {
     return FUEL_TYPES.reduce((total, fuelType) => {
       const data = fuelData[fuelType];
-      const liters = parseFloat(data.liters) || 0;
-      const price = parseFloat(data.price_per_liter) || 0;
-      return total + (liters * price);
+      const totalAmount = parseFloat(data.total_amount) || 0;
+      return total + totalAmount;
     }, 0);
   };
 
@@ -181,7 +197,7 @@ export const FuelSalesManagement = () => {
     );
   }
 
-  const totalAmount = calculateTotalAmount();
+  const grandTotal = calculateGrandTotal();
 
   // Group sales by date (using Istanbul time)
   const groupedSales = fuelSales.reduce((acc, sale) => {
@@ -340,20 +356,20 @@ export const FuelSalesManagement = () => {
                             />
                           </div>
                           <div className="space-y-1">
-                            <Label className="text-xs text-gray-600">Litre Fiyatı (₺)</Label>
+                            <Label className="text-xs text-gray-600">Toplam (₺)</Label>
                             <Input 
                               type="number" 
-                              step="0.001"
-                              placeholder="0.000"
-                              value={fuelData[fuelType].price_per_liter}
-                              onChange={(e) => updateFuelData(fuelType, 'price_per_liter', e.target.value)}
+                              step="0.01"
+                              placeholder="0.00"
+                              value={fuelData[fuelType].total_amount}
+                              onChange={(e) => updateFuelData(fuelType, 'total_amount', e.target.value)}
                               className="text-sm"
                             />
                           </div>
                           <div className="space-y-1">
-                            <Label className="text-xs text-gray-600">Toplam (₺)</Label>
+                            <Label className="text-xs text-gray-600">Litre Fiyatı (₺)</Label>
                             <div className="h-9 px-3 py-2 bg-gray-50 border rounded-md text-sm flex items-center">
-                              ₺{((parseFloat(fuelData[fuelType].liters) || 0) * (parseFloat(fuelData[fuelType].price_per_liter) || 0)).toFixed(3)}
+                              ₺{fuelData[fuelType].price_per_liter || '0.000'}
                             </div>
                           </div>
                         </div>
@@ -363,8 +379,8 @@ export const FuelSalesManagement = () => {
                 </div>
               </div>
 
-              {/* Total Calculation */}
-              {totalAmount > 0 && (
+              {/* Grand Total Calculation */}
+              {grandTotal > 0 && (
                 <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
@@ -374,7 +390,7 @@ export const FuelSalesManagement = () => {
                         </div>
                         <span className="font-semibold text-green-800 text-lg">Genel Toplam:</span>
                       </div>
-                      <span className="font-bold text-3xl text-green-600">₺{totalAmount.toFixed(3)}</span>
+                      <span className="font-bold text-3xl text-green-600">₺{grandTotal.toFixed(2)}</span>
                     </div>
                   </CardContent>
                 </Card>
