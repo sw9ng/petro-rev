@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -70,10 +69,14 @@ export const ShiftManagement = () => {
 
     const cardSalesValue = getBankTotal();
 
+    // Create ISO strings from datetime-local inputs to avoid timezone conversion
+    const startISOString = new Date(startDateTime).toISOString();
+    const endISOString = new Date(endDateTime).toISOString();
+
     const shiftData = {
       personnel_id: selectedPersonnel,
-      start_time: startDateTime,
-      end_time: endDateTime,
+      start_time: startISOString,
+      end_time: endISOString,
       cash_sales: parseFloat(cashSales) || 0,
       card_sales: cardSalesValue,
       veresiye: parseFloat(veresiye) || 0,
