@@ -72,14 +72,14 @@ export const ShiftManagement = () => {
       return;
     }
 
-    // Create dates without timezone conversion by using the exact local time
-    const startDateTime = new Date(`${shiftData.start_date}T${shiftData.start_time}:00`);
-    const endDateTime = new Date(`${shiftData.end_date}T${shiftData.end_time}:00`);
+    // Create datetime strings without timezone conversion - store exactly as entered
+    const startDateTime = `${shiftData.start_date}T${shiftData.start_time}:00`;
+    const endDateTime = `${shiftData.end_date}T${shiftData.end_time}:00`;
 
     const shiftPayload = {
       personnel_id: shiftData.personnel_id,
-      start_time: startDateTime.toISOString(),
-      end_time: endDateTime.toISOString(),
+      start_time: startDateTime,
+      end_time: endDateTime,
       cash_sales: shiftData.cash_sales,
       card_sales: shiftData.card_sales,
       otomasyon_satis: shiftData.otomasyon_satis,

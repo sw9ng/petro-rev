@@ -35,17 +35,14 @@ export const getIstanbulTime = (date?: Date): Date => {
   return istanbul;
 };
 
-// Parse datetime string without timezone offset issues
+// Parse datetime string without timezone offset issues - show exact input
 export const parseDateTime = (dateTimeString: string): Date => {
   // Create date directly from the ISO string without timezone conversion
   return new Date(dateTimeString);
 };
 
-// Format date and time for display without timezone conversion
+// Format date and time for display - show exact stored time without timezone conversion
 export const formatDateTimeForDisplay = (dateTimeString: string): Date => {
-  // Parse the datetime string and create a date object
-  const date = new Date(dateTimeString);
-  // Adjust for timezone offset to show the original local time
-  const offset = date.getTimezoneOffset() * 60000;
-  return new Date(date.getTime() + offset);
+  // Parse the datetime string and return it as-is without timezone adjustments
+  return new Date(dateTimeString);
 };

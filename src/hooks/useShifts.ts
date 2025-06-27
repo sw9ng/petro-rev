@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,6 +14,7 @@ export interface Shift {
   status: string;
   veresiye: number;
   bank_transfers: number;
+  bank_transfer_description?: string;
   personnel: {
     name: string;
   };
@@ -57,6 +57,7 @@ export const useShifts = () => {
         status: shift.status,
         veresiye: shift.veresiye || 0,
         bank_transfers: shift.bank_transfers || 0,
+        bank_transfer_description: shift.bank_transfer_description || '',
         personnel: shift.personnel
       }));
       
@@ -99,6 +100,7 @@ export const useShifts = () => {
       status: shift.status,
       veresiye: shift.veresiye || 0,
       bank_transfers: shift.bank_transfers || 0,
+      bank_transfer_description: shift.bank_transfer_description || '',
       personnel: shift.personnel
     }));
     
@@ -117,8 +119,8 @@ export const useShifts = () => {
       .insert([
         {
           personnel_id: shiftData.personnel_id,
-          start_time: shiftData.start_time,
-          end_time: shiftData.end_time,
+          start_time: shiftData.start_time, // Store as-is without timezone conversion
+          end_time: shiftData.end_time, // Store as-is without timezone conversion
           cash_sales: shiftData.cash_sales,
           card_sales: shiftData.card_sales,
           actual_amount: shiftData.otomasyon_satis, // Store as actual_amount in DB
@@ -126,7 +128,8 @@ export const useShifts = () => {
           station_id: user.id,
           status: 'completed',
           veresiye: shiftData.veresiye || 0,
-          bank_transfers: shiftData.bank_transfers || 0
+          bank_transfers: shiftData.bank_transfers || 0,
+          bank_transfer_description: shiftData.bank_transfer_description || ''
         }
       ])
       .select(`
@@ -150,11 +153,25 @@ export const useShifts = () => {
         status: data.status,
         veresiye: data.veresiye || 0,
         bank_transfers: data.bank_transfers || 0,
+        bank_transfer_description: data.bank_transfer_description || '',
         personnel: data.personnel
       };
       
       setShifts(prev => [mappedShift, ...prev]);
       setAllShifts(prev => [mappedShift, ...prev]);
+
+      // Save bank details if provided
+      if (shiftData.bank_details && shiftData.bank_details.length > 0) {
+        const bankDetailsPayload = shiftData.bank_details.map((detail: any) => ({
+          shift_id: data.id,
+          bank_name: detail.bank_name,
+          amount: detail.amount
+        }));
+
+        await supabase
+          .from('shift_bank_details')
+          .insert(bankDetailsPayload);
+      }
     }
 
     return { data, error };
@@ -244,6 +261,7 @@ export const useShifts = () => {
       status: shift.status,
       veresiye: shift.veresiye || 0,
       bank_transfers: shift.bank_transfers || 0,
+      bank_transfer_description: shift.bank_transfer_description || '',
       personnel: shift.personnel
     }));
     
