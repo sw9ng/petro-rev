@@ -1,168 +1,150 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, User, DollarSign, Calculator, CreditCard } from 'lucide-react';
-import { usePersonnel } from '@/hooks/usePersonnel';
+import { Calendar, Clock, DollarSign, Users, AlertCircle } from 'lucide-react';
 import { useShifts } from '@/hooks/useShifts';
-import { useToast } from '@/hooks/use-toast';
+import { usePersonnel } from '@/hooks/usePersonnel';
 import { BankSelectionDialog } from './BankSelectionDialog';
-import { supabase } from '@/integrations/supabase/client';
-import { formatCurrency, formatNumber } from '@/lib/numberUtils';
+import { useToast } from '@/hooks/use-toast';
+import { formatCurrency } from '@/lib/numberUtils';
+import { Textarea } from '@/components/ui/textarea';
 
 export const ShiftManagement = () => {
   const { toast } = useToast();
-  const { personnel } = usePersonnel();
   const { addShift } = useShifts();
+  const { personnel } = usePersonnel();
+  const [showBankDialog, setShowBankDialog] = useState(false);
+  const [bankDetails, setBankDetails] = useState<Array<{bank_name: string, amount: number}>>([]);
   
-  const [selectedPersonnel, setSelectedPersonnel] = useState('');
-  const [startDateTime, setStartDateTime] = useState('');
-  const [endDateTime, setEndDateTime] = useState('');
-  const [cashSales, setCashSales] = useState('');
-  const [veresiye, setVeresiye] = useState('');
-  const [bankTransfers, setBankTransfers] = useState('');
-  const [otomasyonSatis, setOtomasyonSatis] = useState('');
-  const [bankAmounts, setBankAmounts] = useState<Record<string, string>>({});
-  const [bankDialogOpen, setBankDialogOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [shiftData, setShiftData] = useState({
+    personnel_id: '',
+    start_date: '',
+    start_time: '',
+    end_date: '',
+    end_time: '',
+    cash_sales: 0,
+    card_sales: 0,
+    otomasyon_satis: 0,
+    veresiye: 0,
+    bank_transfers: 0,
+    bank_transfer_description: ''
+  });
 
-  const openBankDialog = () => {
-    setBankDialogOpen(true);
+  // Set default date to today
+  useEffect(() => {
+    const today = new Date();
+    const dateStr = today.toISOString().split('T')[0]; // Get YYYY-MM-DD format
+    setShiftData(prev => ({
+      ...prev,
+      start_date: dateStr,
+      end_date: dateStr
+    }));
+  }, []);
+
+  const handleInputChange = (field: string, value: any) => {
+    setShiftData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
-  const getBankTotal = () => {
-    return Object.values(bankAmounts).reduce((sum, amount) => {
-      return sum + (parseFloat(amount) || 0);
-    }, 0);
-  };
-
-  const handleBankAmountsChange = (amounts: Record<string, string>) => {
-    setBankAmounts(amounts);
-  };
-
-  const resetForm = () => {
-    setSelectedPersonnel('');
-    setStartDateTime('');
-    setEndDateTime('');
-    setCashSales('');
-    setVeresiye('');
-    setBankTransfers('');
-    setOtomasyonSatis('');
-    setBankAmounts({});
+  const handleBankDetailsUpdate = (details: Array<{bank_name: string, amount: number}>) => {
+    setBankDetails(details);
+    const totalCardSales = details.reduce((sum, detail) => sum + detail.amount, 0);
+    setShiftData(prev => ({
+      ...prev,
+      card_sales: totalCardSales
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedPersonnel || !startDateTime || !endDateTime) {
+    if (!shiftData.personnel_id || !shiftData.start_date || !shiftData.start_time || !shiftData.end_date || !shiftData.end_time) {
       toast({
-        title: "Eksik Bilgi",
+        title: "Hata",
         description: "Lütfen tüm zorunlu alanları doldurun.",
         variant: "destructive"
       });
       return;
     }
 
-    setLoading(true);
+    // Create dates without timezone conversion by using the exact local time
+    const startDateTime = new Date(`${shiftData.start_date}T${shiftData.start_time}:00`);
+    const endDateTime = new Date(`${shiftData.end_date}T${shiftData.end_time}:00`);
 
-    const cardSalesValue = getBankTotal();
-
-    // Create ISO strings from datetime-local inputs to avoid timezone conversion
-    const startISOString = new Date(startDateTime).toISOString();
-    const endISOString = new Date(endDateTime).toISOString();
-
-    const shiftData = {
-      personnel_id: selectedPersonnel,
-      start_time: startISOString,
-      end_time: endISOString,
-      cash_sales: parseFloat(cashSales) || 0,
-      card_sales: cardSalesValue,
-      veresiye: parseFloat(veresiye) || 0,
-      bank_transfers: parseFloat(bankTransfers) || 0,
-      otomasyon_satis: parseFloat(otomasyonSatis) || 0
+    const shiftPayload = {
+      personnel_id: shiftData.personnel_id,
+      start_time: startDateTime.toISOString(),
+      end_time: endDateTime.toISOString(),
+      cash_sales: shiftData.cash_sales,
+      card_sales: shiftData.card_sales,
+      otomasyon_satis: shiftData.otomasyon_satis,
+      veresiye: shiftData.veresiye,
+      bank_transfers: shiftData.bank_transfers,
+      bank_transfer_description: shiftData.bank_transfer_description,
+      bank_details: bankDetails
     };
 
-    const { data, error } = await addShift(shiftData);
+    const { error } = await addShift(shiftPayload);
 
     if (error) {
-      console.error('Error adding shift:', error);
       toast({
         title: "Hata",
         description: "Vardiya kaydedilirken bir hata oluştu.",
         variant: "destructive"
       });
-    } else if (data) {
-      if (cardSalesValue > 0 && Object.keys(bankAmounts).length > 0) {
-        const bankDetailsToSave = Object.entries(bankAmounts)
-          .filter(([_, amount]) => parseFloat(amount) > 0)
-          .map(([bank, amount]) => ({
-            shift_id: data.id,
-            bank_name: bank,
-            amount: parseFloat(amount)
-          }));
-
-        if (bankDetailsToSave.length > 0) {
-          try {
-            const { error: bankError } = await supabase
-              .from('shift_bank_details')
-              .insert(bankDetailsToSave);
-
-            if (bankError) {
-              console.error('Error saving bank details:', bankError);
-              toast({
-                title: "Uyarı",
-                description: "Vardiya kaydedildi ancak banka detayları kaydedilemedi.",
-                variant: "destructive"
-              });
-            }
-          } catch (bankError) {
-            console.error('Error saving bank details:', bankError);
-          }
-        }
-      }
-
+    } else {
       toast({
         title: "Vardiya Kaydedildi",
         description: "Vardiya başarıyla kaydedildi.",
       });
-      resetForm();
+      
+      // Reset form
+      setShiftData({
+        personnel_id: '',
+        start_date: new Date().toISOString().split('T')[0],
+        start_time: '',
+        end_date: new Date().toISOString().split('T')[0],
+        end_time: '',
+        cash_sales: 0,
+        card_sales: 0,
+        otomasyon_satis: 0,
+        veresiye: 0,
+        bank_transfers: 0,
+        bank_transfer_description: ''
+      });
+      setBankDetails([]);
     }
-
-    setLoading(false);
   };
 
-  const totalExpenses = (parseFloat(cashSales) || 0) + 
-                       getBankTotal() + 
-                       (parseFloat(veresiye) || 0) + 
-                       (parseFloat(bankTransfers) || 0);
-  
-  const otomasyonValue = parseFloat(otomasyonSatis) || 0;
-  const overShort = totalExpenses - otomasyonValue;
+  const totalExpenses = shiftData.cash_sales + shiftData.card_sales + shiftData.veresiye + shiftData.bank_transfers;
+  const overShort = totalExpenses - shiftData.otomasyon_satis;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col space-y-2">
         <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Vardiya Kaydet</h2>
-        <p className="text-sm lg:text-base text-gray-600">Yeni vardiya bilgilerini kaydedin</p>
+        <p className="text-sm lg:text-base text-gray-600">Yeni vardiya bilgilerini girin</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {/* Vardiya Bilgileri */}
-          <Card className="shadow-sm border">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-lg flex items-center space-x-2 text-gray-900">
-                <User className="h-5 w-5 text-gray-700" />
-                <span>Vardiya Bilgileri</span>
-              </CardTitle>
-              <CardDescription className="text-gray-600">Personel ve zaman bilgileri</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+      <Card className="shadow-sm border">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg flex items-center space-x-2 text-gray-900">
+            <Users className="h-5 w-5 text-gray-700" />
+            <span>Vardiya Bilgileri</span>
+          </CardTitle>
+          <CardDescription>Personel ve zaman bilgilerini girin</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="personnel" className="text-gray-700 font-medium">Personel Seçin</Label>
-                <Select value={selectedPersonnel} onValueChange={setSelectedPersonnel}>
+                <Label>Personel Seçin *</Label>
+                <Select value={shiftData.personnel_id} onValueChange={(value) => handleInputChange('personnel_id', value)}>
                   <SelectTrigger className="h-11 border-gray-300">
                     <SelectValue placeholder="Personel seçin" />
                   </SelectTrigger>
@@ -173,180 +155,193 @@ export const ShiftManagement = () => {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="start-time" className="text-gray-700 font-medium">Başlangıç Zamanı</Label>
-                <Input
-                  id="start-time"
-                  type="datetime-local"
-                  value={startDateTime}
-                  onChange={(e) => setStartDateTime(e.target.value)}
-                  required
-                  className="h-11 border-gray-300"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="end-time" className="text-gray-700 font-medium">Bitiş Zamanı</Label>
-                <Input
-                  id="end-time"
-                  type="datetime-local"
-                  value={endDateTime}
-                  onChange={(e) => setEndDateTime(e.target.value)}
-                  required
-                  className="h-11 border-gray-300"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Satış Bilgileri */}
-          <Card className="shadow-sm border">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-lg flex items-center space-x-2 text-gray-900">
-                <DollarSign className="h-5 w-5 text-gray-700" />
-                <span>Satış Bilgileri</span>
-              </CardTitle>
-              <CardDescription className="text-gray-600">Satış tutarları ve ödeme yöntemleri</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="otomasyon" className="text-gray-700 font-medium">Otomasyon Satış (₺)</Label>
-                <Input
-                  id="otomasyon"
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={otomasyonSatis}
-                  onChange={(e) => setOtomasyonSatis(e.target.value)}
-                  className="h-11 border-gray-300"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="cash" className="text-gray-700 font-medium">Nakit Satış (₺)</Label>
-                <Input
-                  id="cash"
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={cashSales}
-                  onChange={(e) => setCashSales(e.target.value)}
-                  className="h-11 border-gray-300"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="card" className="text-gray-700 font-medium">Kart Satış (₺)</Label>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Input
-                    id="card"
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={getBankTotal().toFixed(2)}
-                    readOnly
-                    className="h-11 flex-1 border-gray-300 bg-gray-50"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={openBankDialog}
-                    className="h-11 px-4 border-gray-300 hover:bg-gray-50 whitespace-nowrap"
-                  >
-                    <CreditCard className="h-4 w-4 mr-2" />
-                    Banka Detayları
-                  </Button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card className="p-4 bg-gray-50 border">
+                <div className="flex items-center space-x-2 mb-4">
+                  <Calendar className="h-4 w-4 text-gray-600" />
+                  <h3 className="font-medium text-gray-900">Giriş Zamanı</h3>
                 </div>
-                {getBankTotal() > 0 && (
-                  <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border">
-                    <span className="font-medium">Toplam banka tutarı: ₺{getBankTotal().toFixed(2)}</span>
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label>Tarih *</Label>
+                    <Input 
+                      type="date" 
+                      value={shiftData.start_date}
+                      onChange={(e) => handleInputChange('start_date', e.target.value)}
+                      className="h-11 border-gray-300"
+                      required
+                    />
                   </div>
-                )}
-              </div>
+                  <div className="space-y-2">
+                    <Label>Saat *</Label>
+                    <Input 
+                      type="time" 
+                      value={shiftData.start_time}
+                      onChange={(e) => handleInputChange('start_time', e.target.value)}
+                      className="h-11 border-gray-300"
+                      required
+                    />
+                  </div>
+                </div>
+              </Card>
 
-              <div className="space-y-2">
-                <Label htmlFor="veresiye" className="text-gray-700 font-medium">Veresiye (₺)</Label>
-                <Input
-                  id="veresiye"
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={veresiye}
-                  onChange={(e) => setVeresiye(e.target.value)}
-                  className="h-11 border-gray-300"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="bank-transfer" className="text-gray-700 font-medium">Banka Havale (₺)</Label>
-                <Input
-                  id="bank-transfer"
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={bankTransfers}
-                  onChange={(e) => setBankTransfers(e.target.value)}
-                  className="h-11 border-gray-300"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Hesaplama ve Kaydet */}
-        <Card className="shadow-sm border">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg flex items-center space-x-2 text-gray-900">
-              <Calculator className="h-5 w-5 text-gray-700" />
-              <span>Açık/Fazla Hesaplama</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg border">
-              <div className="text-center">
-                <p className="text-sm text-gray-600 font-medium">Otomasyon Satış</p>
-                <p className="text-lg font-semibold text-gray-900">{formatCurrency(otomasyonValue)}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-gray-600 font-medium">Toplam Giderler</p>
-                <p className="text-lg font-semibold text-gray-900">{formatCurrency(totalExpenses)}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-gray-600 font-medium">Açık/Fazla</p>
-                <p className={`text-lg font-bold ${overShort >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {overShort >= 0 ? '+' : ''}{formatCurrency(overShort)}
-                </p>
-              </div>
+              <Card className="p-4 bg-gray-50 border">
+                <div className="flex items-center space-x-2 mb-4">
+                  <Clock className="h-4 w-4 text-gray-600" />
+                  <h3 className="font-medium text-gray-900">Çıkış Zamanı</h3>
+                </div>
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label>Tarih *</Label>
+                    <Input 
+                      type="date" 
+                      value={shiftData.end_date}
+                      onChange={(e) => handleInputChange('end_date', e.target.value)}
+                      className="h-11 border-gray-300"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Saat *</Label>
+                    <Input 
+                      type="time" 
+                      value={shiftData.end_time}
+                      onChange={(e) => handleInputChange('end_time', e.target.value)}
+                      className="h-11 border-gray-300"
+                      required
+                    />
+                  </div>
+                </div>
+              </Card>
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-end gap-3">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={resetForm} 
-                className="h-11 border-gray-300 hover:bg-gray-50 order-2 sm:order-1"
-              >
-                Temizle
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={loading} 
-                className="h-11 bg-gray-900 hover:bg-gray-800 text-white order-1 sm:order-2"
-              >
-                {loading ? 'Kaydediliyor...' : 'Vardiya Kaydet'}
+            <Card className="shadow-sm border">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg flex items-center space-x-2 text-gray-900">
+                  <DollarSign className="h-5 w-5 text-gray-700" />
+                  <span>Satış Bilgileri</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label>Otomasyon Satış (₺)</Label>
+                    <Input 
+                      type="number" 
+                      step="0.001"
+                      value={shiftData.otomasyon_satis}
+                      onChange={(e) => handleInputChange('otomasyon_satis', parseFloat(e.target.value) || 0)}
+                      className="h-11 border-gray-300"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Nakit Satış (₺)</Label>
+                    <Input 
+                      type="number" 
+                      step="0.001"
+                      value={shiftData.cash_sales}
+                      onChange={(e) => handleInputChange('cash_sales', parseFloat(e.target.value) || 0)}
+                      className="h-11 border-gray-300"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Kart Satış (₺)</Label>
+                    <div className="flex space-x-2">
+                      <Input 
+                        type="number" 
+                        step="0.001"
+                        value={shiftData.card_sales}
+                        onChange={(e) => handleInputChange('card_sales', parseFloat(e.target.value) || 0)}
+                        className="h-11 border-gray-300"
+                        readOnly
+                      />
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => setShowBankDialog(true)}
+                        className="h-11 px-4"
+                      >
+                        Detay
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Veresiye (₺)</Label>
+                    <Input 
+                      type="number" 
+                      step="0.001"
+                      value={shiftData.veresiye}
+                      onChange={(e) => handleInputChange('veresiye', parseFloat(e.target.value) || 0)}
+                      className="h-11 border-gray-300"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Banka Havale (₺)</Label>
+                    <Input 
+                      type="number" 
+                      step="0.001"
+                      value={shiftData.bank_transfers}
+                      onChange={(e) => handleInputChange('bank_transfers', parseFloat(e.target.value) || 0)}
+                      className="h-11 border-gray-300"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Havale Açıklaması</Label>
+                    <Textarea 
+                      value={shiftData.bank_transfer_description}
+                      onChange={(e) => handleInputChange('bank_transfer_description', e.target.value)}
+                      className="border-gray-300"
+                      placeholder="Havale detayları ve açıklaması..."
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-sm border">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg flex items-center space-x-2">
+                  <AlertCircle className="h-5 w-5 text-gray-700" />
+                  <span>Özet</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center p-4 bg-gray-50 rounded-lg border">
+                    <p className="text-sm text-gray-600 font-medium">Otomasyon Satış</p>
+                    <p className="text-lg font-bold text-gray-900">{formatCurrency(shiftData.otomasyon_satis)}</p>
+                  </div>
+                  <div className="text-center p-4 bg-gray-50 rounded-lg border">
+                    <p className="text-sm text-gray-600 font-medium">Toplam Giderler</p>
+                    <p className="text-lg font-bold text-gray-900">{formatCurrency(totalExpenses)}</p>
+                  </div>
+                  <div className={`text-center p-4 rounded-lg border ${overShort >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                    <p className="text-sm font-medium text-gray-700">Açık/Fazla</p>
+                    <p className={`text-lg font-bold ${overShort >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {overShort >= 0 ? '+' : ''}{formatCurrency(overShort)}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-end space-x-2">
+              <Button type="submit" className="px-8 py-2 bg-blue-600 hover:bg-blue-700">
+                Vardiya Kaydet
               </Button>
             </div>
-          </CardContent>
-        </Card>
-      </form>
+          </form>
+        </CardContent>
+      </Card>
 
       <BankSelectionDialog
-        isOpen={bankDialogOpen}
-        onOpenChange={setBankDialogOpen}
-        bankAmounts={bankAmounts}
-        onBankAmountsChange={handleBankAmountsChange}
-        totalAmount={getBankTotal()}
+        isOpen={showBankDialog}
+        onOpenChange={setShowBankDialog}
+        onBankDetailsUpdate={handleBankDetailsUpdate}
+        currentDetails={bankDetails}
       />
     </div>
   );
