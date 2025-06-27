@@ -14,27 +14,33 @@ const BANKS = [
   'Şekerbank',
   'Garanti',
   'Halkbank',
-  'Diğer'
+  'Yapıkredi',
+  'Diğerleri'
 ];
 
 interface BankSelectionDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  bankAmounts: Record<string, string>;
-  onBankAmountsChange: (amounts: Record<string, string>) => void;
-  totalAmount: number;
+  onBankDetailsUpdate: (details: Array<{bank_name: string, amount: number}>) => void;
+  currentDetails: Array<{bank_name: string, amount: number}>;
 }
 
 export const BankSelectionDialog = ({ 
   isOpen, 
   onOpenChange, 
-  bankAmounts, 
-  onBankAmountsChange,
-  totalAmount 
+  onBankDetailsUpdate,
+  currentDetails 
 }: BankSelectionDialogProps) => {
+  const [bankAmounts, setBankAmounts] = useState<Record<string, string>>(() => {
+    const amounts: Record<string, string> = {};
+    currentDetails.forEach(detail => {
+      amounts[detail.bank_name] = detail.amount.toString();
+    });
+    return amounts;
+  });
+
   const handleBankAmountChange = (bank: string, amount: string) => {
-    const newAmounts = { ...bankAmounts, [bank]: amount };
-    onBankAmountsChange(newAmounts);
+    setBankAmounts(prev => ({ ...prev, [bank]: amount }));
   };
 
   const calculateTotal = () => {
@@ -48,7 +54,19 @@ export const BankSelectionDialog = ({
   };
 
   const clearAllAmounts = () => {
-    onBankAmountsChange({});
+    setBankAmounts({});
+  };
+
+  const handleSave = () => {
+    const details = Object.entries(bankAmounts)
+      .filter(([_, amount]) => parseFloat(amount) > 0)
+      .map(([bank_name, amount]) => ({
+        bank_name,
+        amount: parseFloat(amount)
+      }));
+    
+    onBankDetailsUpdate(details);
+    onOpenChange(false);
   };
 
   return (
@@ -111,7 +129,7 @@ export const BankSelectionDialog = ({
               Temizle
             </Button>
             <Button 
-              onClick={() => onOpenChange(false)} 
+              onClick={handleSave} 
               className="flex-1 h-11 bg-gray-900 hover:bg-gray-800 text-white"
             >
               Tamam
