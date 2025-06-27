@@ -143,6 +143,7 @@ export type Database = {
       shifts: {
         Row: {
           actual_amount: number | null
+          bank_transfer_description: string | null
           bank_transfers: number | null
           card_sales: number | null
           cash_sales: number | null
@@ -159,6 +160,7 @@ export type Database = {
         }
         Insert: {
           actual_amount?: number | null
+          bank_transfer_description?: string | null
           bank_transfers?: number | null
           card_sales?: number | null
           cash_sales?: number | null
@@ -175,6 +177,7 @@ export type Database = {
         }
         Update: {
           actual_amount?: number | null
+          bank_transfer_description?: string | null
           bank_transfers?: number | null
           card_sales?: number | null
           cash_sales?: number | null
