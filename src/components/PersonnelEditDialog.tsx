@@ -119,6 +119,7 @@ export const PersonnelEditDialog = ({
                 <SelectItem value="kasiyer">Kasiyer</SelectItem>
                 <SelectItem value="vardiya_amiri">Vardiya Amiri</SelectItem>
                 <SelectItem value="teknisyen">Teknisyen</SelectItem>
+                <SelectItem value="köy_tankeri">Köy Tankeri</SelectItem>
               </SelectContent>
             </Select>
           </div>
