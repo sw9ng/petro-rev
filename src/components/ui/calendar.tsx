@@ -8,16 +8,41 @@ import { buttonVariants } from "@/components/ui/button";
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
+// Istanbul timezone helper
+const getIstanbulTime = (date?: Date) => {
+  const d = date || new Date();
+  const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+  const istanbul = new Date(utc + (3 * 3600000)); // UTC+3
+  return istanbul;
+};
+
 function Calendar({
   className,
   classNames,
   showOutsideDays = true,
+  defaultMonth,
+  selected,
+  onSelect,
   ...props
 }: CalendarProps) {
+  // Convert selected date to Istanbul time for display
+  const istanbulSelected = selected ? getIstanbulTime(selected as Date) : undefined;
+  
+  // Handle date selection with Istanbul timezone
+  const handleSelect = (date: Date | undefined) => {
+    if (date && onSelect) {
+      const istanbulDate = getIstanbulTime(date);
+      onSelect(istanbulDate as any);
+    }
+  };
+
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn("p-3 pointer-events-auto", className)}
+      defaultMonth={defaultMonth ? getIstanbulTime(defaultMonth as Date) : getIstanbulTime()}
+      selected={istanbulSelected as any}
+      onSelect={handleSelect as any}
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",

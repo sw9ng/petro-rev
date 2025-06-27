@@ -7,7 +7,7 @@ import { usePersonnel } from '@/hooks/usePersonnel';
 import { useFuelSales } from '@/hooks/useFuelSales';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { formatNumber, formatCurrency } from '@/lib/numberUtils';
+import { formatNumber, formatCurrency, getIstanbulTime } from '@/lib/numberUtils';
 
 export const DashboardOverview = () => {
   const { allShifts, getWeeklyStats, getLatestShift, loading } = useShifts();
@@ -31,11 +31,11 @@ export const DashboardOverview = () => {
   const totalFuelSales = getTotalFuelSales();
   const fuelSalesByType = getFuelSalesByType();
 
-  // Calculate daily stats
-  const today = new Date();
+  // Calculate daily stats using Istanbul time
+  const today = getIstanbulTime();
   today.setHours(0, 0, 0, 0);
   const todayShifts = allShifts.filter(shift => {
-    const shiftDate = new Date(shift.start_time);
+    const shiftDate = getIstanbulTime(new Date(shift.start_time));
     shiftDate.setHours(0, 0, 0, 0);
     return shiftDate.getTime() === today.getTime();
   });
@@ -43,9 +43,9 @@ export const DashboardOverview = () => {
   const todaySales = todayShifts.reduce((sum, shift) => 
     sum + shift.cash_sales + shift.card_sales, 0);
 
-  // Calculate today's fuel sales
+  // Calculate today's fuel sales using Istanbul time
   const todayFuelSales = fuelSales.filter(sale => {
-    const saleDate = new Date(sale.sale_time);
+    const saleDate = getIstanbulTime(new Date(sale.sale_time));
     saleDate.setHours(0, 0, 0, 0);
     return saleDate.getTime() === today.getTime();
   }).reduce((sum, sale) => sum + sale.total_amount, 0);
@@ -165,7 +165,7 @@ export const DashboardOverview = () => {
                   <Badge variant="secondary" className="bg-green-100 text-green-800">Tamamlandı</Badge>
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  {format(new Date(latestShift.start_time), "PPPp", { locale: tr })}
+                  {format(getIstanbulTime(new Date(latestShift.start_time)), "PPPp", { locale: tr })}
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
