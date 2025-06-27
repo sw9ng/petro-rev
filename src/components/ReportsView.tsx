@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -5,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { CalendarIcon, TrendingUp, DollarSign, Users, Fuel } from 'lucide-react';
+import { CalendarIcon, TrendingUp, DollarSign, Users, Fuel, CreditCard } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -84,6 +85,9 @@ export const ReportsView = () => {
   const totalFuelRevenue = filteredFuelSales.reduce((sum, sale) => sum + sale.total_amount, 0);
   
   const totalOverShort = filteredShifts.reduce((sum, shift) => sum + (shift.over_short || 0), 0);
+  
+  // Calculate total veresiye
+  const totalVeresiye = filteredShifts.reduce((sum, shift) => sum + (shift.veresiye || 0), 0);
 
   // Prepare chart data
   const dailyRevenue = filteredShifts.reduce((acc, shift) => {
@@ -218,7 +222,7 @@ export const ReportsView = () => {
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Toplam Ciro</CardTitle>
@@ -236,6 +240,16 @@ export const ReportsView = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(totalFuelRevenue)}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Veresiyeler</CardTitle>
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(totalVeresiye)}</div>
           </CardContent>
         </Card>
 

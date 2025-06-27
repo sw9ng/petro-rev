@@ -7,6 +7,7 @@ import { usePersonnel } from '@/hooks/usePersonnel';
 import { useFuelSales } from '@/hooks/useFuelSales';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { formatNumber, formatCurrency } from '@/lib/numberUtils';
 
 export const DashboardOverview = () => {
   const { allShifts, getWeeklyStats, getLatestShift, loading } = useShifts();
@@ -74,7 +75,7 @@ export const DashboardOverview = () => {
             <DollarSign className="h-5 w-5 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-gray-900">₺{todaySales.toFixed(2)}</div>
+            <div className="text-3xl font-bold text-gray-900">{formatCurrency(todaySales)}</div>
             <p className="text-xs text-muted-foreground mt-1">
               {todayShifts.length} vardiya tamamlandı
             </p>
@@ -89,7 +90,7 @@ export const DashboardOverview = () => {
             <Fuel className="h-5 w-5 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-gray-900">₺{todayFuelSales.toFixed(2)}</div>
+            <div className="text-3xl font-bold text-gray-900">{formatCurrency(todayFuelSales)}</div>
             <p className="text-xs text-muted-foreground mt-1">
               akaryakıt satışları
             </p>
@@ -104,7 +105,7 @@ export const DashboardOverview = () => {
             <TrendingUp className="h-5 w-5 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-gray-900">₺{weeklyStats.totalSales.toFixed(2)}</div>
+            <div className="text-3xl font-bold text-gray-900">{formatCurrency(weeklyStats.totalSales)}</div>
             <p className="text-xs text-muted-foreground mt-1">
               vardiya satışları
             </p>
@@ -140,7 +141,7 @@ export const DashboardOverview = () => {
             {Object.entries(fuelSalesByType).map(([fuelType, amount]) => (
               <div key={fuelType} className="text-center p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm font-medium text-gray-600">{fuelType}</p>
-                <p className="text-xl font-bold text-gray-900">₺{amount.toFixed(2)}</p>
+                <p className="text-xl font-bold text-gray-900">{formatCurrency(amount)}</p>
               </div>
             ))}
           </div>
@@ -170,13 +171,13 @@ export const DashboardOverview = () => {
                   <div className="flex justify-between text-sm">
                     <span>Toplam Satış:</span>
                     <span className="font-medium">
-                      ₺{(latestShift.cash_sales + latestShift.card_sales).toFixed(2)}
+                      {formatCurrency(latestShift.cash_sales + latestShift.card_sales)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Açık/Fazla:</span>
                     <span className={`font-medium ${latestShift.over_short >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      ₺{Math.abs(latestShift.over_short).toFixed(2)} 
+                      {formatCurrency(Math.abs(latestShift.over_short))} 
                       {latestShift.over_short >= 0 ? ' (Fazla)' : ' (Açık)'}
                     </span>
                   </div>

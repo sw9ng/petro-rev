@@ -30,8 +30,8 @@ const Index = () => {
         {/* Header */}
         <div className="mb-6 bg-white rounded-xl shadow-sm border p-4 lg:p-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
+            <div className="flex items-center space-x-4">
+              <div className="w-16 h-16 rounded-lg flex items-center justify-center overflow-hidden">
                 <img 
                   src="/lovable-uploads/6b443a64-706a-401f-bdc5-fd18b2bcb790.png" 
                   alt="PetroRev Logo" 
@@ -39,10 +39,10 @@ const Index = () => {
                 />
               </div>
               <div>
-                <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
+                <h1 className="text-3xl lg:text-4xl font-bold text-gray-900">
                   PetroRev
                 </h1>
-                <p className="text-gray-600 text-sm">Akaryakıt İstasyonu Yönetim Sistemi</p>
+                <p className="text-gray-600 text-base">Akaryakıt İstasyonu Yönetim Sistemi</p>
               </div>
             </div>
             
