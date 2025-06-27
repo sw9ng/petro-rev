@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Fuel, Users, BarChart3, Shield, Clock, DollarSign, Zap, CheckCircle } from 'lucide-react';
@@ -56,11 +55,11 @@ export const Landing = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
+              <div className="w-16 h-16 rounded-lg flex items-center justify-center overflow-hidden">
                 <img 
                   src="/lovable-uploads/6b443a64-706a-401f-bdc5-fd18b2bcb790.png" 
                   alt="PetroRev Logo" 
-                  className="w-full h-full object-contain"
+                  className="w-14 h-14 object-contain"
                 />
               </div>
               <h1 className="text-2xl font-bold text-gray-900">PetroRev</h1>
@@ -241,11 +240,11 @@ export const Landing = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden">
                   <img 
                     src="/lovable-uploads/6b443a64-706a-401f-bdc5-fd18b2bcb790.png" 
                     alt="PetroRev Logo" 
-                    className="w-full h-full object-contain"
+                    className="w-10 h-10 object-contain"
                   />
                 </div>
                 <h3 className="text-xl font-bold">PetroRev</h3>
