@@ -14,7 +14,7 @@ import { tr } from 'date-fns/locale';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { formatCurrency, formatDateForDisplay } from '@/lib/numberUtils';
+import { formatCurrency } from '@/lib/numberUtils';
 
 export const ShiftList = () => {
   const { toast } = useToast();
@@ -45,12 +45,12 @@ export const ShiftList = () => {
 
     if (selectedDate) {
       filtered = filtered.filter(shift => {
-        const shiftDate = formatDateForDisplay(shift.start_time);
-        return (
-          shiftDate.getFullYear() === selectedDate.getFullYear() &&
-          shiftDate.getMonth() === selectedDate.getMonth() &&
-          shiftDate.getDate() === selectedDate.getDate()
-        );
+        // Create a date from the shift's start_time using local time
+        const shiftDate = new Date(shift.start_time);
+        const selectedDateString = format(selectedDate, 'yyyy-MM-dd');
+        const shiftDateString = format(shiftDate, 'yyyy-MM-dd');
+        
+        return shiftDateString === selectedDateString;
       });
     }
 
@@ -96,8 +96,8 @@ export const ShiftList = () => {
   const calculateDuration = (startTime: string, endTime: string | null) => {
     if (!endTime) return 'Devam ediyor';
     
-    const start = formatDateForDisplay(startTime);
-    const end = formatDateForDisplay(endTime);
+    const start = new Date(startTime);
+    const end = new Date(endTime);
     const diffMs = end.getTime() - start.getTime();
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
@@ -215,16 +215,16 @@ export const ShiftList = () => {
                       <CardDescription className="mt-1">
                         <div className="flex items-center space-x-1 mb-2">
                           <Calendar className="h-3 w-3" />
-                          <span className="text-sm">{format(formatDateForDisplay(shift.start_time), "dd MMMM yyyy", { locale: tr })}</span>
+                          <span className="text-sm">{format(new Date(shift.start_time), "dd MMMM yyyy", { locale: tr })}</span>
                         </div>
                         <div className="flex items-center space-x-4 text-xs text-gray-500">
                           <div className="flex items-center space-x-1">
                             <Clock className="h-3 w-3" />
-                            <span>{format(formatDateForDisplay(shift.start_time), "HH:mm")}</span>
+                            <span>{format(new Date(shift.start_time), "HH:mm")}</span>
                             {shift.end_time && (
                               <>
                                 <span>-</span>
-                                <span>{format(formatDateForDisplay(shift.end_time), "HH:mm")}</span>
+                                <span>{format(new Date(shift.end_time), "HH:mm")}</span>
                               </>
                             )}
                           </div>
