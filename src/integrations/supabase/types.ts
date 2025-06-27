@@ -151,6 +151,7 @@ export type Database = {
           end_time: string | null
           expected_amount: number | null
           id: string
+          loyalty_card: number | null
           over_short: number | null
           personnel_id: string
           start_time: string
@@ -168,6 +169,7 @@ export type Database = {
           end_time?: string | null
           expected_amount?: number | null
           id?: string
+          loyalty_card?: number | null
           over_short?: number | null
           personnel_id: string
           start_time: string
@@ -185,6 +187,7 @@ export type Database = {
           end_time?: string | null
           expected_amount?: number | null
           id?: string
+          loyalty_card?: number | null
           over_short?: number | null
           personnel_id?: string
           start_time?: string

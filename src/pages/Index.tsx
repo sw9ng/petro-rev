@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { DashboardOverview } from '@/components/DashboardOverview';
+import { FuelStationDashboard } from '@/components/FuelStationDashboard';
 import { PersonnelManagement } from '@/components/PersonnelManagement';
 import { ShiftManagement } from '@/components/ShiftManagement';
 import { ShiftList } from '@/components/ShiftList';
@@ -73,7 +73,7 @@ const Index = () => {
                   value="dashboard" 
                   className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-xs lg:text-sm px-2 lg:px-4"
                 >
-                  Pano
+                  Panel
                 </TabsTrigger>
                 <TabsTrigger 
                   value="personnel" 
@@ -113,7 +113,7 @@ const Index = () => {
 
             <div className="p-4 lg:p-6">
               <TabsContent value="dashboard" className="mt-0">
-                <DashboardOverview />
+                <FuelStationDashboard />
               </TabsContent>
 
               <TabsContent value="personnel" className="mt-0">

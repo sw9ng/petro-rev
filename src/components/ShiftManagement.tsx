@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Clock, DollarSign, Users, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, DollarSign, Users, AlertCircle, CreditCard } from 'lucide-react';
 import { useShifts } from '@/hooks/useShifts';
 import { usePersonnel } from '@/hooks/usePersonnel';
 import { BankSelectionDialog } from './BankSelectionDialog';
@@ -30,6 +31,7 @@ export const ShiftManagement = () => {
     otomasyon_satis: 0,
     veresiye: 0,
     bank_transfers: 0,
+    loyalty_card: 0,
     bank_transfer_description: ''
   });
 
@@ -85,6 +87,7 @@ export const ShiftManagement = () => {
       otomasyon_satis: shiftData.otomasyon_satis,
       veresiye: shiftData.veresiye,
       bank_transfers: shiftData.bank_transfers,
+      loyalty_card: shiftData.loyalty_card,
       bank_transfer_description: shiftData.bank_transfer_description,
       bank_details: bankDetails
     };
@@ -115,13 +118,14 @@ export const ShiftManagement = () => {
         otomasyon_satis: 0,
         veresiye: 0,
         bank_transfers: 0,
+        loyalty_card: 0,
         bank_transfer_description: ''
       });
       setBankDetails([]);
     }
   };
 
-  const totalExpenses = shiftData.cash_sales + shiftData.card_sales + shiftData.veresiye + shiftData.bank_transfers;
+  const totalExpenses = shiftData.cash_sales + shiftData.card_sales + shiftData.veresiye + shiftData.bank_transfers + shiftData.loyalty_card;
   const overShort = totalExpenses - shiftData.otomasyon_satis;
 
   return (
@@ -268,6 +272,19 @@ export const ShiftManagement = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
+                    <Label className="flex items-center space-x-2">
+                      <CreditCard className="h-4 w-4 text-gray-600" />
+                      <span>Sadakat Kartı (₺)</span>
+                    </Label>
+                    <Input 
+                      type="number" 
+                      step="0.001"
+                      value={shiftData.loyalty_card}
+                      onChange={(e) => handleInputChange('loyalty_card', parseFloat(e.target.value) || 0)}
+                      className="h-11 border-gray-300"
+                    />
+                  </div>
+                  <div className="space-y-2">
                     <Label>Veresiye (₺)</Label>
                     <Input 
                       type="number" 
@@ -287,7 +304,7 @@ export const ShiftManagement = () => {
                       className="h-11 border-gray-300"
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 md:col-span-2">
                     <Label>Havale Açıklaması</Label>
                     <Textarea 
                       value={shiftData.bank_transfer_description}

@@ -14,6 +14,7 @@ export interface Shift {
   status: string;
   veresiye: number;
   bank_transfers: number;
+  loyalty_card: number;
   bank_transfer_description?: string;
   personnel: {
     name: string;
@@ -57,6 +58,7 @@ export const useShifts = () => {
         status: shift.status,
         veresiye: shift.veresiye || 0,
         bank_transfers: shift.bank_transfers || 0,
+        loyalty_card: shift.loyalty_card || 0,
         bank_transfer_description: shift.bank_transfer_description || '',
         personnel: shift.personnel
       }));
@@ -100,6 +102,7 @@ export const useShifts = () => {
       status: shift.status,
       veresiye: shift.veresiye || 0,
       bank_transfers: shift.bank_transfers || 0,
+      loyalty_card: shift.loyalty_card || 0,
       bank_transfer_description: shift.bank_transfer_description || '',
       personnel: shift.personnel
     }));
@@ -110,8 +113,8 @@ export const useShifts = () => {
   const addShift = async (shiftData: any) => {
     if (!user) return { error: 'Kullanıcı doğrulanmadı' };
 
-    // CORRECTED calculation: (nakit + kart + veresiye + havale) - otomasyon
-    const totalCollected = shiftData.cash_sales + shiftData.card_sales + shiftData.veresiye + shiftData.bank_transfers;
+    // CORRECTED calculation: (nakit + kart + veresiye + havale + sadakat kartı) - otomasyon
+    const totalCollected = shiftData.cash_sales + shiftData.card_sales + shiftData.veresiye + shiftData.bank_transfers + shiftData.loyalty_card;
     const overShort = totalCollected - shiftData.otomasyon_satis; // CORRECTED: collected - automation
 
     const { data, error } = await supabase
@@ -129,6 +132,7 @@ export const useShifts = () => {
           status: 'completed',
           veresiye: shiftData.veresiye || 0,
           bank_transfers: shiftData.bank_transfers || 0,
+          loyalty_card: shiftData.loyalty_card || 0,
           bank_transfer_description: shiftData.bank_transfer_description || ''
         }
       ])
@@ -153,6 +157,7 @@ export const useShifts = () => {
         status: data.status,
         veresiye: data.veresiye || 0,
         bank_transfers: data.bank_transfers || 0,
+        loyalty_card: data.loyalty_card || 0,
         bank_transfer_description: data.bank_transfer_description || '',
         personnel: data.personnel
       };
@@ -204,7 +209,7 @@ export const useShifts = () => {
 
     return {
       totalSales: weeklyShifts.reduce((sum, shift) => 
-        sum + shift.cash_sales + shift.card_sales, 0),
+        sum + shift.cash_sales + shift.card_sales + shift.loyalty_card, 0),
       totalOverShort: weeklyShifts.reduce((sum, shift) => sum + shift.over_short, 0),
       shiftCount: weeklyShifts.length
     };
@@ -261,6 +266,7 @@ export const useShifts = () => {
       status: shift.status,
       veresiye: shift.veresiye || 0,
       bank_transfers: shift.bank_transfers || 0,
+      loyalty_card: shift.loyalty_card || 0,
       bank_transfer_description: shift.bank_transfer_description || '',
       personnel: shift.personnel
     }));
