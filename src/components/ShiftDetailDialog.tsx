@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +7,7 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { formatCurrency } from '@/lib/numberUtils';
 
 interface ShiftDetailDialogProps {
   shift: Shift | null;
@@ -141,29 +141,29 @@ export const ShiftDetailDialog = ({ shift, isOpen, onOpenChange }: ShiftDetailDi
                 <div className="space-y-4">
                   <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg border">
                     <span className="text-gray-700 font-medium">Otomasyon Satış:</span>
-                    <span className="font-bold text-gray-900 text-lg">₺{shift.otomasyon_satis.toFixed(2)}</span>
+                    <span className="font-bold text-gray-900 text-lg">{formatCurrency(shift.otomasyon_satis)}</span>
                   </div>
                   <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg border">
                     <span className="text-gray-700 font-medium">Nakit Satış:</span>
-                    <span className="font-bold text-gray-900 text-lg">₺{shift.cash_sales.toFixed(2)}</span>
+                    <span className="font-bold text-gray-900 text-lg">{formatCurrency(shift.cash_sales)}</span>
                   </div>
                   <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg border">
                     <span className="text-gray-700 font-medium">Kart Satış:</span>
-                    <span className="font-bold text-gray-900 text-lg">₺{shift.card_sales.toFixed(2)}</span>
+                    <span className="font-bold text-gray-900 text-lg">{formatCurrency(shift.card_sales)}</span>
                   </div>
                 </div>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg border">
                     <span className="text-gray-700 font-medium">Veresiye:</span>
-                    <span className="font-bold text-gray-900 text-lg">₺{shift.veresiye.toFixed(2)}</span>
+                    <span className="font-bold text-gray-900 text-lg">{formatCurrency(shift.veresiye)}</span>
                   </div>
                   <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg border">
                     <span className="text-gray-700 font-medium">Banka Havale:</span>
-                    <span className="font-bold text-gray-900 text-lg">₺{shift.bank_transfers.toFixed(2)}</span>
+                    <span className="font-bold text-gray-900 text-lg">{formatCurrency(shift.bank_transfers)}</span>
                   </div>
                   <div className="flex justify-between items-center p-4 bg-gray-100 rounded-lg border-2">
                     <span className="font-bold text-gray-900">Toplam Giderler:</span>
-                    <span className="font-bold text-gray-900 text-xl">₺{totalExpenses.toFixed(2)}</span>
+                    <span className="font-bold text-gray-900 text-xl">{formatCurrency(totalExpenses)}</span>
                   </div>
                 </div>
               </div>
@@ -188,13 +188,13 @@ export const ShiftDetailDialog = ({ shift, isOpen, onOpenChange }: ShiftDetailDi
                           <CreditCard className="h-5 w-5 text-gray-700" />
                           <span className="font-medium text-gray-900">{bank.bank_name}</span>
                         </div>
-                        <span className="font-bold text-lg text-gray-900">₺{bank.amount.toFixed(2)}</span>
+                        <span className="font-bold text-lg text-gray-900">{formatCurrency(bank.amount)}</span>
                       </div>
                     ))}
                   </div>
                   <div className="flex justify-between items-center pt-4 border-t-2 bg-gray-100 p-4 rounded-lg">
                     <span className="font-bold text-lg text-gray-900">Toplam Kart Satış:</span>
-                    <span className="font-bold text-xl text-gray-900">₺{shift.card_sales.toFixed(2)}</span>
+                    <span className="font-bold text-xl text-gray-900">{formatCurrency(shift.card_sales)}</span>
                   </div>
                 </div>
               ) : (
@@ -219,16 +219,16 @@ export const ShiftDetailDialog = ({ shift, isOpen, onOpenChange }: ShiftDetailDi
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg border">
                   <span className="font-medium text-gray-900">Otomasyon Satış:</span>
-                  <span className="font-bold text-gray-900 text-lg">₺{shift.otomasyon_satis.toFixed(2)}</span>
+                  <span className="font-bold text-gray-900 text-lg">{formatCurrency(shift.otomasyon_satis)}</span>
                 </div>
                 <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg border">
                   <span className="font-medium text-gray-900">Toplam Giderler:</span>
-                  <span className="font-bold text-gray-900 text-lg">₺{totalExpenses.toFixed(2)}</span>
+                  <span className="font-bold text-gray-900 text-lg">{formatCurrency(totalExpenses)}</span>
                 </div>
               </div>
               <div className={`p-6 rounded-lg text-center border-2 ${shift.over_short >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
                 <div className={`font-bold text-3xl ${shift.over_short >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  <span>{shift.over_short >= 0 ? 'FAZLA: +' : 'AÇIK: '}₺{Math.abs(shift.over_short).toFixed(2)}</span>
+                  <span>{shift.over_short >= 0 ? 'FAZLA: +' : 'AÇIK: '}{formatCurrency(Math.abs(shift.over_short))}</span>
                 </div>
                 <p className="text-sm text-gray-600 mt-2">
                   {shift.over_short >= 0 ? 'Beklenen tutardan fazla gelir elde edildi' : 'Beklenen tutardan az gelir elde edildi'}

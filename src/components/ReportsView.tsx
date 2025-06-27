@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,6 +9,7 @@ import { CalendarIcon, TrendingUp, DollarSign, Users, Fuel } from 'lucide-react'
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { formatCurrency } from '@/lib/numberUtils';
 import { useShifts } from '@/hooks/useShifts';
 import { usePersonnel } from '@/hooks/usePersonnel';
 import { useFuelSales } from '@/hooks/useFuelSales';
@@ -225,7 +225,7 @@ export const ReportsView = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₺{totalRevenue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
           </CardContent>
         </Card>
 
@@ -235,7 +235,7 @@ export const ReportsView = () => {
             <Fuel className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₺{totalFuelRevenue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalFuelRevenue)}</div>
           </CardContent>
         </Card>
 
@@ -256,7 +256,7 @@ export const ReportsView = () => {
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${totalOverShort >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              ₺{totalOverShort.toFixed(2)}
+              {formatCurrency(totalOverShort)}
             </div>
           </CardContent>
         </Card>
@@ -281,7 +281,7 @@ export const ReportsView = () => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
                   <YAxis />
-                  <Tooltip formatter={(value) => [`₺${Number(value).toFixed(2)}`, 'Ciro']} />
+                  <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Ciro']} />
                   <Legend />
                   <Bar dataKey="revenue" fill="#8884d8" name="Günlük Ciro" />
                 </BarChart>
@@ -313,7 +313,7 @@ export const ReportsView = () => {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => [`₺${Number(value).toFixed(2)}`, 'Tutar']} />
+                  <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Tutar']} />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>

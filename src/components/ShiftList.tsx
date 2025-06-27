@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +13,7 @@ import { tr } from 'date-fns/locale';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { formatCurrency } from '@/lib/numberUtils';
 
 export const ShiftList = () => {
   const { toast } = useToast();
@@ -264,27 +264,27 @@ export const ShiftList = () => {
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 bg-gray-50 rounded-lg border">
                     <div className="text-center">
                       <p className="text-xs text-gray-600 font-medium">Otomasyon</p>
-                      <p className="text-sm font-semibold text-gray-900">₺{shift.otomasyon_satis.toFixed(2)}</p>
+                      <p className="text-sm font-semibold text-gray-900">{formatCurrency(shift.otomasyon_satis)}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-xs text-gray-600 font-medium">Nakit</p>
-                      <p className="text-sm font-semibold text-gray-900">₺{shift.cash_sales.toFixed(2)}</p>
+                      <p className="text-sm font-semibold text-gray-900">{formatCurrency(shift.cash_sales)}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-xs text-gray-600 font-medium">Kart</p>
-                      <p className="text-sm font-semibold text-gray-900">₺{shift.card_sales.toFixed(2)}</p>
+                      <p className="text-sm font-semibold text-gray-900">{formatCurrency(shift.card_sales)}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-xs text-gray-600 font-medium">Veresiye</p>
-                      <p className="text-sm font-semibold text-gray-900">₺{shift.veresiye.toFixed(2)}</p>
+                      <p className="text-sm font-semibold text-gray-900">{formatCurrency(shift.veresiye)}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-xs text-gray-600 font-medium">Havale</p>
-                      <p className="text-sm font-semibold text-gray-900">₺{shift.bank_transfers.toFixed(2)}</p>
+                      <p className="text-sm font-semibold text-gray-900">{formatCurrency(shift.bank_transfers)}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-xs text-gray-600 font-medium">Toplam</p>
-                      <p className="text-sm font-bold text-gray-900">₺{totalExpenses.toFixed(2)}</p>
+                      <p className="text-sm font-bold text-gray-900">{formatCurrency(totalExpenses)}</p>
                     </div>
                   </div>
 
@@ -295,7 +295,7 @@ export const ShiftList = () => {
                       <Calculator className="h-4 w-4 text-gray-500" />
                     </div>
                     <div className={`text-right font-bold text-lg ${shift.over_short >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      <span>{shift.over_short >= 0 ? 'Fazla:' : 'Açık:'} ₺{Math.abs(shift.over_short).toFixed(2)}</span>
+                      <span>{shift.over_short >= 0 ? 'Fazla:' : 'Açık:'} {formatCurrency(Math.abs(shift.over_short))}</span>
                     </div>
                   </div>
                 </CardContent>

@@ -11,6 +11,7 @@ import { useShifts } from '@/hooks/useShifts';
 import { useToast } from '@/hooks/use-toast';
 import { BankSelectionDialog } from './BankSelectionDialog';
 import { supabase } from '@/integrations/supabase/client';
+import { formatCurrency, formatNumber } from '@/lib/numberUtils';
 
 export const ShiftManagement = () => {
   const { toast } = useToast();
@@ -302,16 +303,16 @@ export const ShiftManagement = () => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg border">
               <div className="text-center">
                 <p className="text-sm text-gray-600 font-medium">Otomasyon Satış</p>
-                <p className="text-lg font-semibold text-gray-900">₺{otomasyonValue.toFixed(2)}</p>
+                <p className="text-lg font-semibold text-gray-900">{formatCurrency(otomasyonValue)}</p>
               </div>
               <div className="text-center">
                 <p className="text-sm text-gray-600 font-medium">Toplam Giderler</p>
-                <p className="text-lg font-semibold text-gray-900">₺{totalExpenses.toFixed(2)}</p>
+                <p className="text-lg font-semibold text-gray-900">{formatCurrency(totalExpenses)}</p>
               </div>
               <div className="text-center">
                 <p className="text-sm text-gray-600 font-medium">Açık/Fazla</p>
                 <p className={`text-lg font-bold ${overShort >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {overShort >= 0 ? '+' : ''}₺{overShort.toFixed(2)}
+                  {overShort >= 0 ? '+' : ''}{formatCurrency(overShort)}
                 </p>
               </div>
             </div>
