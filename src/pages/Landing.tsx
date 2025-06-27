@@ -2,72 +2,46 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Fuel, Users, BarChart3, Shield, Clock, DollarSign, Zap, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
 export const Landing = () => {
   const navigate = useNavigate();
-
-  const features = [
-    {
-      icon: <Users className="h-8 w-8 text-blue-600" />,
-      title: "Personel Yönetimi",
-      description: "Akaryakıt istasyonu personelinizi kolayca yönetin, vardiya takibi yapın ve performansları izleyin."
-    },
-    {
-      icon: <Clock className="h-8 w-8 text-green-600" />,
-      title: "Vardiya Takibi",
-      description: "Detaylı vardiya kaydı tutun, satış verilerini girin ve açık/fazla hesaplamalarını otomatik yapın."
-    },
-    {
-      icon: <DollarSign className="h-8 w-8 text-purple-600" />,
-      title: "Satış Analizi",
-      description: "Nakit, kart, sadakat kartı ve havale ödemelerini ayrı ayrı takip edin, raporlar alın."
-    },
-    {
-      icon: <BarChart3 className="h-8 w-8 text-orange-600" />,
-      title: "Detaylı Raporlar",
-      description: "Günlük, haftalık ve aylık satış raporları ile istasyonunuzun performansını analiz edin."
-    },
-    {
-      icon: <Fuel className="h-8 w-8 text-red-600" />,
-      title: "Akaryakıt Takibi",
-      description: "Yakıt satışlarını pompaya göre takip edin, stok yönetimi yapın ve litre bazında analiz edin."
-    },
-    {
-      icon: <Shield className="h-8 w-8 text-indigo-600" />,
-      title: "Güvenli Veri",
-      description: "Tüm verileriniz güvenli bulut ortamında saklanır ve sadece sizin erişiminize açıktır."
-    }
-  ];
-
-  const benefits = [
-    "Kolay kullanım ve hızlı öğrenme",
-    "Mobil uyumlu tasarım",
-    "Gerçek zamanlı veri senkronizasyonu",
-    "Detaylı analiz ve raporlama",
-    "Çoklu ödeme yöntemi desteği",
-    "7/24 teknik destek"
-  ];
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+  const features = [{
+    icon: <Users className="h-8 w-8 text-blue-600" />,
+    title: "Personel Yönetimi",
+    description: "Akaryakıt istasyonu personelinizi kolayca yönetin, vardiya takibi yapın ve performansları izleyin."
+  }, {
+    icon: <Clock className="h-8 w-8 text-green-600" />,
+    title: "Vardiya Takibi",
+    description: "Detaylı vardiya kaydı tutun, satış verilerini girin ve açık/fazla hesaplamalarını otomatik yapın."
+  }, {
+    icon: <DollarSign className="h-8 w-8 text-purple-600" />,
+    title: "Satış Analizi",
+    description: "Nakit, kart, sadakat kartı ve havale ödemelerini ayrı ayrı takip edin, raporlar alın."
+  }, {
+    icon: <BarChart3 className="h-8 w-8 text-orange-600" />,
+    title: "Detaylı Raporlar",
+    description: "Günlük, haftalık ve aylık satış raporları ile istasyonunuzun performansını analiz edin."
+  }, {
+    icon: <Fuel className="h-8 w-8 text-red-600" />,
+    title: "Akaryakıt Takibi",
+    description: "Yakıt satışlarını pompaya göre takip edin, stok yönetimi yapın ve litre bazında analiz edin."
+  }, {
+    icon: <Shield className="h-8 w-8 text-indigo-600" />,
+    title: "Güvenli Veri",
+    description: "Tüm verileriniz güvenli bulut ortamında saklanır ve sadece sizin erişiminize açıktır."
+  }];
+  const benefits = ["Kolay kullanım ve hızlı öğrenme", "Mobil uyumlu tasarım", "Gerçek zamanlı veri senkronizasyonu", "Detaylı analiz ve raporlama", "Çoklu ödeme yöntemi desteği", "7/24 teknik destek"];
+  return <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
       <nav className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-3">
-              <div className="w-16 h-16 rounded-lg flex items-center justify-center overflow-hidden">
-                <img 
-                  src="/lovable-uploads/6b443a64-706a-401f-bdc5-fd18b2bcb790.png" 
-                  alt="PetroRev Logo" 
-                  className="w-14 h-14 object-contain"
-                />
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
+                <img src="/lovable-uploads/6b443a64-706a-401f-bdc5-fd18b2bcb790.png" alt="PetroRev Logo" className="w-full h-full object-contain" />
               </div>
               <h1 className="text-2xl font-bold text-gray-900">PetroRev</h1>
             </div>
-            <Button 
-              onClick={() => navigate('/')}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
+            <Button onClick={() => navigate('/')} className="bg-blue-600 hover:bg-blue-700">
               Giriş Yap
             </Button>
           </div>
@@ -87,19 +61,11 @@ export const Landing = () => {
               Personel yönetimi, vardiya takibi, satış analizi ve raporlama artık tek platformda.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                size="lg" 
-                className="bg-blue-600 hover:bg-blue-700 text-lg px-8 py-4"
-                onClick={() => navigate('/')}
-              >
+              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-lg px-8 py-4" onClick={() => navigate('/')}>
                 <Zap className="mr-2 h-5 w-5" />
                 Hemen Başla
               </Button>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="text-lg px-8 py-4 border-gray-300"
-              >
+              <Button size="lg" variant="outline" className="text-lg px-8 py-4 border-gray-300">
                 Demo İzle
               </Button>
             </div>
@@ -120,8 +86,7 @@ export const Landing = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+            {features.map((feature, index) => <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <CardHeader className="text-center pb-4">
                   <div className="mx-auto mb-4 p-3 bg-gray-50 rounded-full w-fit">
                     {feature.icon}
@@ -135,8 +100,7 @@ export const Landing = () => {
                     {feature.description}
                   </CardDescription>
                 </CardContent>
-              </Card>
-            ))}
+              </Card>)}
           </div>
         </div>
       </section>
@@ -155,12 +119,10 @@ export const Landing = () => {
                 operasyonel verimliliğinizi artırın.
               </p>
               <ul className="space-y-4">
-                {benefits.map((benefit, index) => (
-                  <li key={index} className="flex items-center space-x-3">
+                {benefits.map((benefit, index) => <li key={index} className="flex items-center space-x-3">
                     <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
                     <span className="text-gray-700">{benefit}</span>
-                  </li>
-                ))}
+                  </li>)}
               </ul>
             </div>
             <div className="bg-white rounded-2xl shadow-2xl p-8">
@@ -191,10 +153,7 @@ export const Landing = () => {
                     <CheckCircle className="h-5 w-5 text-green-600" />
                   </div>
                 </div>
-                <Button 
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6"
-                  onClick={() => navigate('/')}
-                >
+                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6" onClick={() => navigate('/')}>
                   Ücretsiz Başla
                 </Button>
               </div>
@@ -215,18 +174,10 @@ export const Landing = () => {
               Siz de bugün başlayın ve farkı yaşayın.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                size="lg" 
-                className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 py-4"
-                onClick={() => navigate('/')}
-              >
+              <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 py-4" onClick={() => navigate('/')}>
                 Hemen Dene
               </Button>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="text-white border-white hover:bg-white hover:text-blue-600 text-lg px-8 py-4"
-              >
+              <Button size="lg" variant="outline" className="text-white border-white hover:bg-white hover:text-blue-600 text-lg px-8 py-4">
                 İletişime Geç
               </Button>
             </div>
@@ -240,12 +191,8 @@ export const Landing = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden">
-                  <img 
-                    src="/lovable-uploads/6b443a64-706a-401f-bdc5-fd18b2bcb790.png" 
-                    alt="PetroRev Logo" 
-                    className="w-10 h-10 object-contain"
-                  />
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
+                  <img src="/lovable-uploads/6b443a64-706a-401f-bdc5-fd18b2bcb790.png" alt="PetroRev Logo" className="w-full h-full object-contain" />
                 </div>
                 <h3 className="text-xl font-bold">PetroRev</h3>
               </div>
@@ -275,7 +222,7 @@ export const Landing = () => {
               <h4 className="font-semibold mb-4">İletişim</h4>
               <ul className="space-y-2 text-gray-400">
                 <li>info@petrorev.com</li>
-                <li>+90 555 123 4567</li>
+                <li>yusufsami.1061@gmail.com</li>
                 <li>İstanbul, Türkiye</li>
               </ul>
             </div>
@@ -285,6 +232,5 @@ export const Landing = () => {
           </div>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 };
