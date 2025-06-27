@@ -12,7 +12,22 @@ export const formatCurrency = (amount: number): string => {
   return `₺${formatNumber(amount)}`;
 };
 
-// Istanbul timezone helper (UTC+3)
+// Format date for input fields (use local time, not timezone converted)
+export const formatDateForInput = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+// Format time for input fields (use local time, not timezone converted)
+export const formatTimeForInput = (date: Date): string => {
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
+};
+
+// Get current date in Istanbul timezone (for new entries)
 export const getIstanbulTime = (date?: Date): Date => {
   const d = date || new Date();
   const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
@@ -20,19 +35,7 @@ export const getIstanbulTime = (date?: Date): Date => {
   return istanbul;
 };
 
-// Format date for input fields in Istanbul timezone
-export const formatDateForInput = (date: Date): string => {
-  const istanbul = getIstanbulTime(date);
-  const year = istanbul.getFullYear();
-  const month = String(istanbul.getMonth() + 1).padStart(2, '0');
-  const day = String(istanbul.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
-// Format time for input fields in Istanbul timezone
-export const formatTimeForInput = (date: Date): string => {
-  const istanbul = getIstanbulTime(date);
-  const hours = String(istanbul.getHours()).padStart(2, '0');
-  const minutes = String(istanbul.getMinutes()).padStart(2, '0');
-  return `${hours}:${minutes}`;
+// Format date for display (use local time without timezone conversion)
+export const formatDateForDisplay = (date: Date | string): Date => {
+  return new Date(date);
 };

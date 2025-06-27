@@ -8,7 +8,7 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { formatCurrency, getIstanbulTime } from '@/lib/numberUtils';
+import { formatCurrency, formatDateForDisplay } from '@/lib/numberUtils';
 
 interface ShiftDetailDialogProps {
   shift: Shift | null;
@@ -54,8 +54,8 @@ export const ShiftDetailDialog = ({ shift, isOpen, onOpenChange }: ShiftDetailDi
   const calculateDuration = (startTime: string, endTime: string | null) => {
     if (!endTime) return 'Devam ediyor';
     
-    const start = getIstanbulTime(new Date(startTime));
-    const end = getIstanbulTime(new Date(endTime));
+    const start = formatDateForDisplay(startTime);
+    const end = formatDateForDisplay(endTime);
     const diffMs = end.getTime() - start.getTime();
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
@@ -78,7 +78,7 @@ export const ShiftDetailDialog = ({ shift, isOpen, onOpenChange }: ShiftDetailDi
           <DialogDescription className="text-gray-600">
             <div className="flex items-center space-x-1">
               <Calendar className="h-3 w-3" />
-              <span>{format(getIstanbulTime(new Date(shift.start_time)), "PPPp", { locale: tr })}</span>
+              <span>{format(formatDateForDisplay(shift.start_time), "PPPp", { locale: tr })}</span>
             </div>
           </DialogDescription>
         </DialogHeader>
@@ -101,12 +101,12 @@ export const ShiftDetailDialog = ({ shift, isOpen, onOpenChange }: ShiftDetailDi
                   </div>
                   <div className="flex justify-between py-2 border-b border-gray-100">
                     <span className="text-gray-600 font-medium">Giriş:</span>
-                    <span className="font-mono text-gray-900">{format(getIstanbulTime(new Date(shift.start_time)), "dd MMM yyyy HH:mm", { locale: tr })}</span>
+                    <span className="font-mono text-gray-900">{format(formatDateForDisplay(shift.start_time), "dd MMM yyyy HH:mm", { locale: tr })}</span>
                   </div>
                   {shift.end_time && (
                     <div className="flex justify-between py-2 border-b border-gray-100">
                       <span className="text-gray-600 font-medium">Çıkış:</span>
-                      <span className="font-mono text-gray-900">{format(getIstanbulTime(new Date(shift.end_time)), "dd MMM yyyy HH:mm", { locale: tr })}</span>
+                      <span className="font-mono text-gray-900">{format(formatDateForDisplay(shift.end_time), "dd MMM yyyy HH:mm", { locale: tr })}</span>
                     </div>
                   )}
                 </div>
