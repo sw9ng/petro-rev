@@ -16,13 +16,32 @@ import { cn } from '@/lib/utils';
 
 const FUEL_TYPES = ['MOTORİN', 'LPG', 'BENZİN', 'MOTORİN(DİĞER)'] as const;
 
+// Istanbul timezone offset (UTC+3)
+const getIstanbulTime = (date?: Date) => {
+  const d = date || new Date();
+  const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+  const istanbul = new Date(utc + (3 * 3600000)); // UTC+3
+  return istanbul;
+};
+
+const formatDateForInput = (date: Date) => {
+  const istanbul = getIstanbulTime(date);
+  return format(istanbul, 'yyyy-MM-dd');
+};
+
+const formatTimeForInput = (date: Date) => {
+  const istanbul = getIstanbulTime(date);
+  return format(istanbul, 'HH:mm');
+};
+
 export const FuelSalesManagement = () => {
   const { toast } = useToast();
   const { fuelSales, loading: fuelLoading, addFuelSale, deleteFuelSale } = useFuelSales();
   const [newSaleOpen, setNewSaleOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [startHour, setStartHour] = useState('');
-  const [endHour, setEndHour] = useState('');
+  const [startDate, setStartDate] = useState<Date>(new Date());
+  const [endDate, setEndDate] = useState<Date>(new Date());
+  const [startTime, setStartTime] = useState(formatTimeForInput(new Date()));
+  const [endTime, setEndTime] = useState(formatTimeForInput(new Date()));
   const [fuelData, setFuelData] = useState({
     'MOTORİN': { liters: '', price_per_liter: '' },
     'LPG': { liters: '', price_per_liter: '' },
@@ -33,10 +52,10 @@ export const FuelSalesManagement = () => {
   const handleCreateSales = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedDate || !startHour || !endHour) {
+    if (!startDate || !endDate || !startTime || !endTime) {
       toast({
         title: "Hata",
-        description: "Tarih, başlangıç saati ve bitiş saati zorunludur.",
+        description: "Başlangıç tarihi, bitiş tarihi ve saatler zorunludur.",
         variant: "destructive"
       });
       return;
@@ -57,9 +76,9 @@ export const FuelSalesManagement = () => {
       return;
     }
 
-    // Create sale time from date and start hour
-    const [hour, minute] = startHour.split(':');
-    const saleDateTime = new Date(selectedDate);
+    // Create sale time from start date and start time (Istanbul time)
+    const [hour, minute] = startTime.split(':');
+    const saleDateTime = getIstanbulTime(startDate);
     saleDateTime.setHours(parseInt(hour), parseInt(minute), 0, 0);
 
     let hasError = false;
@@ -77,8 +96,8 @@ export const FuelSalesManagement = () => {
         total_amount: totalAmount,
         amount: totalAmount,
         sale_time: saleDateTime.toISOString(),
-        start_hour: startHour,
-        end_hour: endHour
+        start_hour: startTime,
+        end_hour: endTime
       };
 
       const { error } = await addFuelSale(saleData);
@@ -102,8 +121,8 @@ export const FuelSalesManagement = () => {
       });
       
       setNewSaleOpen(false);
-      setStartHour('');
-      setEndHour('');
+      setStartTime(formatTimeForInput(new Date()));
+      setEndTime(formatTimeForInput(new Date()));
       setFuelData({
         'MOTORİN': { liters: '', price_per_liter: '' },
         'LPG': { liters: '', price_per_liter: '' },
@@ -164,9 +183,10 @@ export const FuelSalesManagement = () => {
 
   const totalAmount = calculateTotalAmount();
 
-  // Group sales by date
+  // Group sales by date (using Istanbul time)
   const groupedSales = fuelSales.reduce((acc, sale) => {
-    const dateKey = format(new Date(sale.sale_time), 'yyyy-MM-dd');
+    const istanbulDate = getIstanbulTime(new Date(sale.sale_time));
+    const dateKey = format(istanbulDate, 'yyyy-MM-dd');
     
     if (!acc[dateKey]) {
       acc[dateKey] = {
@@ -199,7 +219,7 @@ export const FuelSalesManagement = () => {
               Satış Ekle
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-2xl font-bold text-gray-900">Günlük Akaryakıt Satışları</DialogTitle>
               <DialogDescription className="text-gray-600">
@@ -209,29 +229,56 @@ export const FuelSalesManagement = () => {
             
             <form onSubmit={handleCreateSales} className="space-y-6 py-4">
               {/* Date and Time Selection */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Satış Tarihi *</Label>
+                  <Label className="text-sm font-medium">Vardiya Başlangıç Tarihi *</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         className={cn(
                           "w-full justify-start text-left font-normal",
-                          !selectedDate && "text-muted-foreground"
+                          !startDate && "text-muted-foreground"
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {selectedDate ? format(selectedDate, "PPP", { locale: tr }) : "Tarih seçin"}
+                        {startDate ? format(startDate, "dd MMM yyyy", { locale: tr }) : "Başlangıç tarihi"}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto p-0 bg-white border shadow-lg z-50" align="start">
                       <Calendar
                         mode="single"
-                        selected={selectedDate}
-                        onSelect={(date) => date && setSelectedDate(date)}
+                        selected={startDate}
+                        onSelect={(date) => date && setStartDate(date)}
                         initialFocus
-                        className="pointer-events-auto"
+                        locale={tr}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Vardiya Bitiş Tarihi *</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !endDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {endDate ? format(endDate, "dd MMM yyyy", { locale: tr }) : "Bitiş tarihi"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-white border shadow-lg z-50" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={endDate}
+                        onSelect={(date) => date && setEndDate(date)}
+                        initialFocus
+                        locale={tr}
                       />
                     </PopoverContent>
                   </Popover>
@@ -243,8 +290,8 @@ export const FuelSalesManagement = () => {
                     <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input
                       type="time"
-                      value={startHour}
-                      onChange={(e) => setStartHour(e.target.value)}
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
                       className="pl-10"
                       required
                     />
@@ -257,8 +304,8 @@ export const FuelSalesManagement = () => {
                     <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input
                       type="time"
-                      value={endHour}
-                      onChange={(e) => setEndHour(e.target.value)}
+                      value={endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
                       className="pl-10"
                       required
                     />
@@ -306,7 +353,7 @@ export const FuelSalesManagement = () => {
                           <div className="space-y-1">
                             <Label className="text-xs text-gray-600">Toplam (₺)</Label>
                             <div className="h-9 px-3 py-2 bg-gray-50 border rounded-md text-sm flex items-center">
-                              ₺{((parseFloat(fuelData[fuelType].liters) || 0) * (parseFloat(fuelData[fuelType].price_per_liter) || 0)).toFixed(2)}
+                              ₺{((parseFloat(fuelData[fuelType].liters) || 0) * (parseFloat(fuelData[fuelType].price_per_liter) || 0)).toFixed(3)}
                             </div>
                           </div>
                         </div>
@@ -327,7 +374,7 @@ export const FuelSalesManagement = () => {
                         </div>
                         <span className="font-semibold text-green-800 text-lg">Genel Toplam:</span>
                       </div>
-                      <span className="font-bold text-3xl text-green-600">₺{totalAmount.toFixed(2)}</span>
+                      <span className="font-bold text-3xl text-green-600">₺{totalAmount.toFixed(3)}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -370,7 +417,7 @@ export const FuelSalesManagement = () => {
                     <div>
                       <CardTitle className="text-xl text-gray-900 flex items-center">
                         <CalendarIcon className="h-5 w-5 mr-2 text-blue-600" />
-                        {format(new Date(group.date), "PPP", { locale: tr })}
+                        {format(new Date(group.date), "dd MMMM yyyy", { locale: tr })}
                       </CardTitle>
                       <CardDescription className="mt-1 text-gray-600">
                         {group.sales.length} akaryakıt türü satışı
@@ -378,7 +425,7 @@ export const FuelSalesManagement = () => {
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-gray-600">Günlük Toplam</p>
-                      <p className="font-bold text-2xl text-green-600">₺{group.totalAmount.toFixed(2)}</p>
+                      <p className="font-bold text-2xl text-green-600">₺{group.totalAmount.toFixed(3)}</p>
                     </div>
                   </div>
                 </CardHeader>
@@ -410,7 +457,7 @@ export const FuelSalesManagement = () => {
                             </div>
                             <div className="flex justify-between font-semibold border-t pt-2">
                               <span>Toplam:</span>
-                              <span className="text-green-600">₺{sale.total_amount.toFixed(2)}</span>
+                              <span className="text-green-600">₺{sale.total_amount.toFixed(3)}</span>
                             </div>
                           </div>
                         </div>
