@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -5,27 +6,19 @@ import { useAuth } from '@/contexts/AuthContext';
 export interface CustomerTransaction {
   id: string;
   customer_id: string;
-  shift_id?: string;
   personnel_id: string;
-  transaction_type: 'veresiye' | 'payment';
   amount: number;
-  payment_method?: 'nakit' | 'kredi_karti' | 'havale';
-  description?: string;
   transaction_date: string;
-  status: 'pending' | 'collected';
+  transaction_type: 'debt' | 'payment';
+  status: 'pending' | 'completed';
+  payment_method?: string;
+  description?: string;
   customer: {
     name: string;
   };
   personnel: {
     name: string;
-  };
-  shift?: {
-    start_time: string;
-    shift_number?: string;
-    personnel: {
-      name: string;
-    };
-  };
+  } | null;
 }
 
 export const useCustomerTransactions = () => {
@@ -41,64 +34,44 @@ export const useCustomerTransactions = () => {
       .from('customer_transactions')
       .select(`
         *,
-        customer:customer_id (name),
-        personnel:personnel_id (name),
-        shift:shift_id (
-          start_time,
-          shift_number,
-          personnel:personnel_id (name)
+        customer:customer_id (
+          name
+        ),
+        personnel:personnel_id (
+          name
         )
       `)
       .eq('station_id', user.id)
-      .order('transaction_date', { ascending: false });
+      .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching transactions:', error);
+      console.error('Error fetching customer transactions:', error);
     } else {
-      // Safe type assertion with proper data validation
-      const typedData = (data || []).map(item => {
-        // Ensure customer and personnel data exists
-        const customer = item.customer && typeof item.customer === 'object' && 'name' in item.customer 
-          ? { name: item.customer.name }
-          : { name: 'Unknown Customer' };
-        
-        const personnel = item.personnel && typeof item.personnel === 'object' && item.personnel !== null && 'name' in item.personnel
-          ? { name: (item.personnel as any).name }
-          : { name: 'Unknown Personnel' };
-
-        // Handle shift data safely
-        const shift = item.shift && typeof item.shift === 'object' 
-          ? {
-              start_time: item.shift.start_time || '',
-              shift_number: item.shift.shift_number || undefined,
-              personnel: item.shift.personnel && typeof item.shift.personnel === 'object' && item.shift.personnel !== null && 'name' in item.shift.personnel
-                ? { name: (item.shift.personnel as any).name }
-                : { name: 'Unknown Personnel' }
-            }
-          : undefined;
-
-        return {
-          ...item,
-          transaction_type: item.transaction_type as 'veresiye' | 'payment',
-          status: item.status as 'pending' | 'collected',
-          payment_method: item.payment_method as 'nakit' | 'kredi_karti' | 'havale' | undefined,
-          customer,
-          personnel,
-          shift
-        };
-      }) as CustomerTransaction[];
-      
-      setTransactions(typedData);
+      const mappedData = (data || []).map(item => ({
+        id: item.id,
+        customer_id: item.customer_id,
+        personnel_id: item.personnel_id,
+        amount: item.amount,
+        transaction_date: item.transaction_date,
+        transaction_type: item.transaction_type,
+        status: item.status,
+        payment_method: item.payment_method,
+        description: item.description,
+        customer: item.customer,
+        personnel: item.personnel ? { name: item.personnel.name } : { name: 'Bilinmeyen Personel' }
+      }));
+      setTransactions(mappedData);
     }
     setLoading(false);
   };
 
-  const addVeresiye = async (transactionData: {
+  const addPayment = async (paymentData: {
     customer_id: string;
     personnel_id: string;
     amount: number;
+    payment_method?: string;
     description?: string;
-    transaction_date?: string;
+    transaction_date: string;
   }) => {
     if (!user) return { error: 'Kullanıcı doğrulanmadı' };
 
@@ -106,66 +79,55 @@ export const useCustomerTransactions = () => {
       .from('customer_transactions')
       .insert([
         {
-          ...transactionData,
-          transaction_type: 'veresiye',
+          customer_id: paymentData.customer_id,
+          personnel_id: paymentData.personnel_id,
+          amount: paymentData.amount,
+          transaction_date: paymentData.transaction_date,
           station_id: user.id,
-          transaction_date: transactionData.transaction_date || new Date().toISOString()
+          transaction_type: 'payment',
+          status: 'completed',
+          payment_method: paymentData.payment_method,
+          description: paymentData.description
         }
       ])
       .select(`
         *,
-        customer:customer_id (name),
-        personnel:personnel_id (name),
-        shift:shift_id (
-          start_time,
-          shift_number,
-          personnel:personnel_id (name)
+        customer:customer_id (
+          name
+        ),
+        personnel:personnel_id (
+          name
         )
       `)
       .single();
 
     if (!error && data) {
-      const customer = data.customer && typeof data.customer === 'object' && 'name' in data.customer 
-        ? { name: data.customer.name }
-        : { name: 'Unknown Customer' };
+      const mappedTransaction = {
+        id: data.id,
+        customer_id: data.customer_id,
+        personnel_id: data.personnel_id,
+        amount: data.amount,
+        transaction_date: data.transaction_date,
+        transaction_type: data.transaction_type as 'debt' | 'payment',
+        status: data.status as 'pending' | 'completed',
+        payment_method: data.payment_method,
+        description: data.description,
+        customer: data.customer,
+        personnel: data.personnel ? { name: data.personnel.name } : { name: 'Bilinmeyen Personel' }
+      };
       
-      const personnel = data.personnel && typeof data.personnel === 'object' && data.personnel !== null && 'name' in data.personnel
-        ? { name: (data.personnel as any).name }
-        : { name: 'Unknown Personnel' };
-
-      const shift = data.shift && typeof data.shift === 'object' 
-        ? {
-            start_time: data.shift.start_time || '',
-            shift_number: data.shift.shift_number || undefined,
-            personnel: data.shift.personnel && typeof data.shift.personnel === 'object' && data.shift.personnel !== null && 'name' in data.shift.personnel
-              ? { name: (data.shift.personnel as any).name }
-              : { name: 'Unknown Personnel' }
-          }
-        : undefined;
-
-      const typedData = {
-        ...data,
-        transaction_type: data.transaction_type as 'veresiye' | 'payment',
-        status: data.status as 'pending' | 'collected',
-        payment_method: data.payment_method as 'nakit' | 'kredi_karti' | 'havale' | undefined,
-        customer,
-        personnel,
-        shift
-      } as CustomerTransaction;
-      
-      setTransactions(prev => [typedData, ...prev]);
+      setTransactions(prev => [mappedTransaction, ...prev]);
     }
 
     return { data, error };
   };
 
-  const addPayment = async (transactionData: {
+  const addVeresiye = async (veresiyeData: {
     customer_id: string;
     personnel_id: string;
     amount: number;
-    payment_method: 'nakit' | 'kredi_karti' | 'havale';
     description?: string;
-    transaction_date?: string;
+    transaction_date: string;
   }) => {
     if (!user) return { error: 'Kullanıcı doğrulanmadı' };
 
@@ -173,55 +135,43 @@ export const useCustomerTransactions = () => {
       .from('customer_transactions')
       .insert([
         {
-          ...transactionData,
-          transaction_type: 'payment',
-          status: 'collected',
+          customer_id: veresiyeData.customer_id,
+          personnel_id: veresiyeData.personnel_id,
+          amount: veresiyeData.amount,
+          transaction_date: veresiyeData.transaction_date,
           station_id: user.id,
-          transaction_date: transactionData.transaction_date || new Date().toISOString()
+          transaction_type: 'debt',
+          status: 'pending',
+          description: veresiyeData.description
         }
       ])
       .select(`
         *,
-        customer:customer_id (name),
-        personnel:personnel_id (name),
-        shift:shift_id (
-          start_time,
-          shift_number,
-          personnel:personnel_id (name)
+        customer:customer_id (
+          name
+        ),
+        personnel:personnel_id (
+          name
         )
       `)
       .single();
 
     if (!error && data) {
-      const customer = data.customer && typeof data.customer === 'object' && 'name' in data.customer 
-        ? { name: data.customer.name }
-        : { name: 'Unknown Customer' };
+      const mappedTransaction = {
+        id: data.id,
+        customer_id: data.customer_id,
+        personnel_id: data.personnel_id,
+        amount: data.amount,
+        transaction_date: data.transaction_date,
+        transaction_type: data.transaction_type as 'debt' | 'payment',
+        status: data.status as 'pending' | 'completed',
+        payment_method: data.payment_method,
+        description: data.description,
+        customer: data.customer,
+        personnel: data.personnel ? { name: data.personnel.name } : { name: 'Bilinmeyen Personel' }
+      };
       
-      const personnel = data.personnel && typeof data.personnel === 'object' && data.personnel !== null && 'name' in data.personnel
-        ? { name: (data.personnel as any).name }
-        : { name: 'Unknown Personnel' };
-
-      const shift = data.shift && typeof data.shift === 'object' 
-        ? {
-            start_time: data.shift.start_time || '',
-            shift_number: data.shift.shift_number || undefined,
-            personnel: data.shift.personnel && typeof data.shift.personnel === 'object' && data.shift.personnel !== null && 'name' in data.shift.personnel
-              ? { name: (data.shift.personnel as any).name }
-              : { name: 'Unknown Personnel' }
-          }
-        : undefined;
-
-      const typedData = {
-        ...data,
-        transaction_type: data.transaction_type as 'veresiye' | 'payment',
-        status: data.status as 'pending' | 'collected',
-        payment_method: data.payment_method as 'nakit' | 'kredi_karti' | 'havale' | undefined,
-        customer,
-        personnel,
-        shift
-      } as CustomerTransaction;
-      
-      setTransactions(prev => [typedData, ...prev]);
+      setTransactions(prev => [mappedTransaction, ...prev]);
     }
 
     return { data, error };
@@ -229,93 +179,108 @@ export const useCustomerTransactions = () => {
 
   const getCustomerBalance = (customerId: string) => {
     const customerTransactions = transactions.filter(t => t.customer_id === customerId);
-    return customerTransactions.reduce((balance, transaction) => {
-      if (transaction.transaction_type === 'veresiye') {
-        return balance + transaction.amount;
-      } else {
-        return balance - transaction.amount;
-      }
-    }, 0);
+    const totalDebt = customerTransactions
+      .filter(t => t.transaction_type === 'debt')
+      .reduce((sum, t) => sum + t.amount, 0);
+    const totalPayments = customerTransactions
+      .filter(t => t.transaction_type === 'payment')
+      .reduce((sum, t) => sum + t.amount, 0);
+    return totalDebt - totalPayments;
   };
 
-  const getCustomerDebts = () => {
-    const debts = new Map<string, { customer: string; balance: number }>();
+  const getCustomerTransactions = (customerId: string) => {
+    return transactions.filter(t => t.customer_id === customerId);
+  };
+
+  const getTotalOutstandingDebt = () => {
+    // Group by customer and calculate each customer's balance
+    const customerBalances: { [key: string]: number } = {};
     
     transactions.forEach(transaction => {
-      const customerId = transaction.customer_id;
-      const customerName = transaction.customer.name;
-      
-      if (!debts.has(customerId)) {
-        debts.set(customerId, { customer: customerName, balance: 0 });
+      if (!customerBalances[transaction.customer_id]) {
+        customerBalances[transaction.customer_id] = 0;
       }
       
-      const current = debts.get(customerId)!;
-      if (transaction.transaction_type === 'veresiye') {
-        current.balance += transaction.amount;
+      if (transaction.transaction_type === 'debt') {
+        customerBalances[transaction.customer_id] += transaction.amount;
       } else {
-        current.balance -= transaction.amount;
+        customerBalances[transaction.customer_id] -= transaction.amount;
       }
     });
     
-    return Array.from(debts.entries())
-      .map(([id, data]) => ({ customerId: id, ...data }))
-      .filter(debt => debt.balance > 0);
+    // Sum only positive balances (outstanding debts)
+    return Object.values(customerBalances)
+      .filter(balance => balance > 0)
+      .reduce((sum, balance) => sum + balance, 0);
   };
 
-  const getTransactionsByDateRange = async (startDate: string, endDate: string) => {
+  const getAllTransactionsGroupedByCustomer = () => {
+    const grouped: { [key: string]: { customer: any, transactions: CustomerTransaction[], balance: number } } = {};
+    
+    transactions.forEach(transaction => {
+      if (!grouped[transaction.customer_id]) {
+        grouped[transaction.customer_id] = {
+          customer: transaction.customer,
+          transactions: [],
+          balance: 0
+        };
+      }
+      
+      grouped[transaction.customer_id].transactions.push(transaction);
+      
+      if (transaction.transaction_type === 'debt') {
+        grouped[transaction.customer_id].balance += transaction.amount;
+      } else {
+        grouped[transaction.customer_id].balance -= transaction.amount;
+      }
+    });
+    
+    return Object.values(grouped);
+  };
+
+  const findTransactionsByDate = async (date: string) => {
     if (!user) return [];
+    
+    const startDate = new Date(date);
+    const endDate = new Date(date);
+    endDate.setDate(endDate.getDate() + 1);
     
     const { data, error } = await supabase
       .from('customer_transactions')
       .select(`
         *,
-        customer:customer_id (name),
-        personnel:personnel_id (name),
-        shift:shift_id (
-          start_time,
-          shift_number,
-          personnel:personnel_id (name)
+        customer:customer_id (
+          name
+        ),
+        personnel:personnel_id (
+          name
         )
       `)
       .eq('station_id', user.id)
-      .gte('transaction_date', startDate)
-      .lte('transaction_date', endDate)
+      .gte('transaction_date', startDate.toISOString())
+      .lt('transaction_date', endDate.toISOString())
       .order('transaction_date', { ascending: false });
 
     if (error) {
-      console.error('Error fetching transactions by date:', error);
+      console.error('Error searching transactions:', error);
       return [];
     }
-
-    return (data || []).map(item => {
-      const customer = item.customer && typeof item.customer === 'object' && 'name' in item.customer 
-        ? { name: item.customer.name }
-        : { name: 'Unknown Customer' };
-      
-      const personnel = item.personnel && typeof item.personnel === 'object' && item.personnel !== null && 'name' in item.personnel
-        ? { name: (item.personnel as any).name }
-        : { name: 'Unknown Personnel' };
-
-      const shift = item.shift && typeof item.shift === 'object' 
-        ? {
-            start_time: item.shift.start_time || '',
-            shift_number: item.shift.shift_number || undefined,
-            personnel: item.shift.personnel && typeof item.shift.personnel === 'object' && item.shift.personnel !== null && 'name' in item.shift.personnel
-              ? { name: (item.shift.personnel as any).name }
-              : { name: 'Unknown Personnel' }
-          }
-        : undefined;
-
-      return {
-        ...item,
-        transaction_type: item.transaction_type as 'veresiye' | 'payment',
-        status: item.status as 'pending' | 'collected',
-        payment_method: item.payment_method as 'nakit' | 'kredi_karti' | 'havale' | undefined,
-        customer,
-        personnel,
-        shift
-      };
-    }) as CustomerTransaction[];
+    
+    const mappedData = (data || []).map(item => ({
+      id: item.id,
+      customer_id: item.customer_id,
+      personnel_id: item.personnel_id,
+      amount: item.amount,
+      transaction_date: item.transaction_date,
+      transaction_type: item.transaction_type,
+      status: item.status,
+      payment_method: item.payment_method,
+      description: item.description,
+      customer: item.customer,
+      personnel: item.personnel ? { name: item.personnel.name } : { name: 'Bilinmeyen Personel' }
+    }));
+    
+    return mappedData;
   };
 
   useEffect(() => {
@@ -325,11 +290,13 @@ export const useCustomerTransactions = () => {
   return {
     transactions,
     loading,
-    addVeresiye,
     addPayment,
+    addVeresiye,
     getCustomerBalance,
-    getCustomerDebts,
-    getTransactionsByDateRange,
+    getCustomerTransactions,
+    getTotalOutstandingDebt,
+    getAllTransactionsGroupedByCustomer,
+    findTransactionsByDate,
     refreshTransactions: fetchTransactions
   };
 };

@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Clock, DollarSign, User, CreditCard, Building2, FileText } from 'lucide-react';
 import { formatCurrency } from '@/lib/numberUtils';
 import { Shift } from '@/hooks/useShifts';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ShiftDetailDialogProps {
   shift: Shift | null;
@@ -12,7 +14,40 @@ interface ShiftDetailDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+interface BankDetail {
+  id: string;
+  bank_name: string;
+  amount: number;
+}
+
 export const ShiftDetailDialog = ({ shift, isOpen, onOpenChange }: ShiftDetailDialogProps) => {
+  const [bankDetails, setBankDetails] = useState<BankDetail[]>([]);
+  const [loadingBankDetails, setLoadingBankDetails] = useState(false);
+
+  useEffect(() => {
+    if (shift && isOpen) {
+      fetchBankDetails();
+    }
+  }, [shift, isOpen]);
+
+  const fetchBankDetails = async () => {
+    if (!shift) return;
+    
+    setLoadingBankDetails(true);
+    const { data, error } = await supabase
+      .from('shift_bank_details')
+      .select('*')
+      .eq('shift_id', shift.id)
+      .order('bank_name');
+
+    if (error) {
+      console.error('Error fetching bank details:', error);
+    } else {
+      setBankDetails(data || []);
+    }
+    setLoadingBankDetails(false);
+  };
+
   if (!shift) return null;
 
   const startTime = new Date(shift.start_time);
@@ -96,6 +131,32 @@ export const ShiftDetailDialog = ({ shift, isOpen, onOpenChange }: ShiftDetailDi
               </div>
             </CardContent>
           </Card>
+
+          {/* Bank Details */}
+          {bankDetails.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center space-x-2">
+                  <Building2 className="h-4 w-4" />
+                  <span>Kart Satış Detayları</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {bankDetails.map((detail) => (
+                    <div key={detail.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                      <span className="text-sm font-medium text-gray-700">{detail.bank_name}</span>
+                      <span className="text-sm font-bold text-gray-900">{formatCurrency(detail.amount)}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border-t-2 border-blue-200 mt-3">
+                    <span className="text-sm font-bold text-blue-900">Toplam Kart Satış</span>
+                    <span className="text-sm font-bold text-blue-900">{formatCurrency(shift.card_sales)}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Bank Transfer Description */}
           {shift.bank_transfer_description && (
