@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -96,15 +95,6 @@ export const ShiftManagement = () => {
       return;
     }
 
-    if (shiftData.veresiye > 0 && !shiftData.customer_id) {
-      toast({
-        title: "Hata",
-        description: "Veresiye tutarı girildiğinde müşteri seçimi zorunludur.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     // Create datetime strings without timezone conversion - store exactly as entered
     const startDateTime = `${shiftData.start_date}T${shiftData.start_time}:00`;
     const endDateTime = `${shiftData.end_date}T${shiftData.end_time}:00`;
@@ -136,14 +126,14 @@ export const ShiftManagement = () => {
       return;
     }
 
-    // If there's a veresiye amount, record it in customer transactions
+    // If there's a veresiye amount and customer is selected, record it in customer transactions
     if (shiftData.veresiye > 0 && shiftData.customer_id && shiftResult) {
       await addVeresiye({
         customer_id: shiftData.customer_id,
-        shift_id: shiftResult.id,
         personnel_id: shiftData.personnel_id,
         amount: shiftData.veresiye,
-        description: `Vardiya veresiye satışı - ${new Date(startDateTime).toLocaleDateString('tr-TR')}`
+        description: `Vardiya veresiye satışı - ${new Date(startDateTime).toLocaleDateString('tr-TR')}`,
+        transaction_date: new Date(startDateTime).toISOString()
       });
     }
 
@@ -367,10 +357,10 @@ export const ShiftManagement = () => {
                   </div>
                   {shiftData.veresiye > 0 && (
                     <div className="space-y-2 md:col-span-2">
-                      <Label>Veresiye Müşterisi *</Label>
+                      <Label>Veresiye Müşterisi (Opsiyonel)</Label>
                       <Select value={shiftData.customer_id} onValueChange={(value) => handleInputChange('customer_id', value)}>
                         <SelectTrigger className="h-11 border-gray-300">
-                          <SelectValue placeholder="Müşteri seçin" />
+                          <SelectValue placeholder="Müşteri seçin (opsiyonel)" />
                         </SelectTrigger>
                         <SelectContent className="bg-white border shadow-lg">
                           {customers.map((customer) => (
