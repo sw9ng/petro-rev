@@ -20,6 +20,12 @@ export interface CustomerTransaction {
   personnel: {
     name: string;
   };
+  shift?: {
+    start_time: string;
+    personnel: {
+      name: string;
+    };
+  };
 }
 
 export const useCustomerTransactions = () => {
@@ -36,7 +42,11 @@ export const useCustomerTransactions = () => {
       .select(`
         *,
         customer:customer_id (name),
-        personnel:personnel_id (name)
+        personnel:personnel_id (name),
+        shift:shift_id (
+          start_time,
+          personnel:personnel_id (name)
+        )
       `)
       .eq('station_id', user.id)
       .order('transaction_date', { ascending: false });
@@ -44,7 +54,15 @@ export const useCustomerTransactions = () => {
     if (error) {
       console.error('Error fetching transactions:', error);
     } else {
-      setTransactions(data || []);
+      // Type assertion to ensure proper typing
+      const typedData = (data || []).map(item => ({
+        ...item,
+        transaction_type: item.transaction_type as 'veresiye' | 'payment',
+        status: item.status as 'pending' | 'collected',
+        payment_method: item.payment_method as 'nakit' | 'kredi_karti' | 'havale' | undefined
+      })) as CustomerTransaction[];
+      
+      setTransactions(typedData);
     }
     setLoading(false);
   };
@@ -70,12 +88,23 @@ export const useCustomerTransactions = () => {
       .select(`
         *,
         customer:customer_id (name),
-        personnel:personnel_id (name)
+        personnel:personnel_id (name),
+        shift:shift_id (
+          start_time,
+          personnel:personnel_id (name)
+        )
       `)
       .single();
 
     if (!error && data) {
-      setTransactions(prev => [data, ...prev]);
+      const typedData = {
+        ...data,
+        transaction_type: data.transaction_type as 'veresiye' | 'payment',
+        status: data.status as 'pending' | 'collected',
+        payment_method: data.payment_method as 'nakit' | 'kredi_karti' | 'havale' | undefined
+      } as CustomerTransaction;
+      
+      setTransactions(prev => [typedData, ...prev]);
     }
 
     return { data, error };
@@ -83,6 +112,7 @@ export const useCustomerTransactions = () => {
 
   const addPayment = async (transactionData: {
     customer_id: string;
+    shift_id?: string;
     personnel_id: string;
     amount: number;
     payment_method: 'nakit' | 'kredi_karti' | 'havale';
@@ -103,12 +133,23 @@ export const useCustomerTransactions = () => {
       .select(`
         *,
         customer:customer_id (name),
-        personnel:personnel_id (name)
+        personnel:personnel_id (name),
+        shift:shift_id (
+          start_time,
+          personnel:personnel_id (name)
+        )
       `)
       .single();
 
     if (!error && data) {
-      setTransactions(prev => [data, ...prev]);
+      const typedData = {
+        ...data,
+        transaction_type: data.transaction_type as 'veresiye' | 'payment',
+        status: data.status as 'pending' | 'collected',
+        payment_method: data.payment_method as 'nakit' | 'kredi_karti' | 'havale' | undefined
+      } as CustomerTransaction;
+      
+      setTransactions(prev => [typedData, ...prev]);
     }
 
     return { data, error };

@@ -11,6 +11,7 @@ import { CreditCard, Plus, Calendar, User, DollarSign } from 'lucide-react';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { usePersonnel } from '@/hooks/usePersonnel';
+import { useShifts } from '@/hooks/useShifts';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/numberUtils';
 
@@ -18,12 +19,14 @@ export const PaymentTracking = () => {
   const { toast } = useToast();
   const { customers } = useCustomers();
   const { personnel } = usePersonnel();
+  const { allShifts, getShiftDisplayName } = useShifts();
   const { transactions, loading, addPayment, getCustomerDebts } = useCustomerTransactions();
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   
   const [paymentData, setPaymentData] = useState({
     customer_id: '',
     personnel_id: '',
+    shift_id: '',
     amount: 0,
     payment_method: '' as 'nakit' | 'kredi_karti' | 'havale' | '',
     description: ''
@@ -33,6 +36,7 @@ export const PaymentTracking = () => {
     setPaymentData({
       customer_id: '',
       personnel_id: '',
+      shift_id: '',
       amount: 0,
       payment_method: '' as any,
       description: ''
@@ -51,7 +55,10 @@ export const PaymentTracking = () => {
       return;
     }
 
-    const { error } = await addPayment(paymentData as any);
+    const { error } = await addPayment({
+      ...paymentData,
+      shift_id: paymentData.shift_id || undefined
+    } as any);
 
     if (error) {
       toast({
@@ -79,8 +86,8 @@ export const PaymentTracking = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col space-y-2">
-        <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Tahsilat Modülü</h2>
-        <p className="text-sm lg:text-base text-gray-600">Müşteri ödemelerini takip edin</p>
+        <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Cari Satış</h2>
+        <p className="text-sm lg:text-base text-gray-600">Müşteri ödemelerini ve borçlarını takip edin</p>
       </div>
 
       <div className="flex justify-end">
@@ -111,6 +118,21 @@ export const PaymentTracking = () => {
                   <SelectContent className="bg-white border shadow-lg">
                     {customers.map((customer) => (
                       <SelectItem key={customer.id} value={customer.id}>{customer.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>İlgili Vardiya</Label>
+                <Select value={paymentData.shift_id} onValueChange={(value) => setPaymentData(prev => ({ ...prev, shift_id: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vardiya seçin (opsiyonel)" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border shadow-lg">
+                    {allShifts.map((shift) => (
+                      <SelectItem key={shift.id} value={shift.id}>
+                        {getShiftDisplayName(shift)} - {shift.personnel.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -235,8 +257,13 @@ export const PaymentTracking = () => {
                     <p className="text-sm text-gray-600">
                       {transaction.transaction_type === 'payment' ? 'Ödeme' : 'Veresiye'} - {transaction.personnel.name}
                     </p>
+                    {transaction.shift && (
+                      <p className="text-xs text-gray-500">
+                        Vardiya: {getShiftDisplayName(transaction.shift as any)}
+                      </p>
+                    )}
                     <p className="text-xs text-gray-500">
-                      {new Date(transaction.transaction_date).toLocaleDateString('tr-TR')} {new Date(transaction.transaction_date).toLocaleTimeString('tr-TR')}
+                      {new Date(transaction.transaction_date).toLocaleDateString('tr-TR')} {new Date(transaction.transaction_date).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
                 </div>

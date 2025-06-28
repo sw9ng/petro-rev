@@ -99,7 +99,7 @@ const Index = () => {
             </TabsTrigger>
             <TabsTrigger value="payments" className="flex items-center space-x-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
               <CreditCard className="h-4 w-4" />
-              <span className="hidden sm:inline">Tahsilat</span>
+              <span className="hidden sm:inline">Cari Satış</span>
             </TabsTrigger>
             <TabsTrigger value="fuel" className="flex items-center space-x-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
               <Fuel className="h-4 w-4" />

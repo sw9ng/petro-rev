@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -52,7 +53,8 @@ export const ShiftManagement = () => {
     customer_id: '',
     bank_transfers: 0,
     loyalty_card: 0,
-    bank_transfer_description: ''
+    bank_transfer_description: '',
+    shift_number: '' as 'V1' | 'V2' | ''
   });
 
   // Set default date to today
@@ -85,10 +87,10 @@ export const ShiftManagement = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!shiftData.personnel_id || !shiftData.start_date || !shiftData.start_time || !shiftData.end_date || !shiftData.end_time) {
+    if (!shiftData.personnel_id || !shiftData.start_date || !shiftData.start_time || !shiftData.end_date || !shiftData.end_time || !shiftData.shift_number) {
       toast({
         title: "Hata",
-        description: "Lütfen tüm zorunlu alanları doldurun.",
+        description: "Lütfen tüm zorunlu alanları doldurun (Vardiya numarası dahil).",
         variant: "destructive"
       });
       return;
@@ -119,6 +121,7 @@ export const ShiftManagement = () => {
       bank_transfers: shiftData.bank_transfers,
       loyalty_card: shiftData.loyalty_card,
       bank_transfer_description: shiftData.bank_transfer_description,
+      shift_number: shiftData.shift_number,
       bank_details: bankDetails
     };
 
@@ -163,7 +166,8 @@ export const ShiftManagement = () => {
       customer_id: '',
       bank_transfers: 0,
       loyalty_card: 0,
-      bank_transfer_description: ''
+      bank_transfer_description: '',
+      shift_number: '' as any
     });
     setBankDetails([]);
   };
@@ -211,6 +215,18 @@ export const ShiftManagement = () => {
                     {personnel.map((person) => (
                       <SelectItem key={person.id} value={person.id}>{person.name}</SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Vardiya Numarası *</Label>
+                <Select value={shiftData.shift_number} onValueChange={(value: 'V1' | 'V2') => handleInputChange('shift_number', value)}>
+                  <SelectTrigger className="h-11 border-gray-300">
+                    <SelectValue placeholder="Vardiya numarası seçin" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border shadow-lg">
+                    <SelectItem value="V1">V1 (Vardiya 1)</SelectItem>
+                    <SelectItem value="V2">V2 (Vardiya 2)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

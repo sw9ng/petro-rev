@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,6 +17,7 @@ export interface Shift {
   bank_transfers: number;
   loyalty_card: number;
   bank_transfer_description?: string;
+  shift_number?: 'V1' | 'V2';
   personnel: {
     name: string;
   };
@@ -60,6 +62,7 @@ export const useShifts = () => {
         bank_transfers: shift.bank_transfers || 0,
         loyalty_card: shift.loyalty_card || 0,
         bank_transfer_description: shift.bank_transfer_description || '',
+        shift_number: shift.shift_number as 'V1' | 'V2' | undefined,
         personnel: shift.personnel
       }));
       
@@ -104,6 +107,7 @@ export const useShifts = () => {
       bank_transfers: shift.bank_transfers || 0,
       loyalty_card: shift.loyalty_card || 0,
       bank_transfer_description: shift.bank_transfer_description || '',
+      shift_number: shift.shift_number as 'V1' | 'V2' | undefined,
       personnel: shift.personnel
     }));
     
@@ -133,7 +137,8 @@ export const useShifts = () => {
           veresiye: shiftData.veresiye || 0,
           bank_transfers: shiftData.bank_transfers || 0,
           loyalty_card: shiftData.loyalty_card || 0,
-          bank_transfer_description: shiftData.bank_transfer_description || ''
+          bank_transfer_description: shiftData.bank_transfer_description || '',
+          shift_number: shiftData.shift_number || null
         }
       ])
       .select(`
@@ -159,6 +164,7 @@ export const useShifts = () => {
         bank_transfers: data.bank_transfers || 0,
         loyalty_card: data.loyalty_card || 0,
         bank_transfer_description: data.bank_transfer_description || '',
+        shift_number: data.shift_number as 'V1' | 'V2' | undefined,
         personnel: data.personnel
       };
       
@@ -268,10 +274,18 @@ export const useShifts = () => {
       bank_transfers: shift.bank_transfers || 0,
       loyalty_card: shift.loyalty_card || 0,
       bank_transfer_description: shift.bank_transfer_description || '',
+      shift_number: shift.shift_number as 'V1' | 'V2' | undefined,
       personnel: shift.personnel
     }));
     
     return mappedData;
+  };
+
+  const getShiftDisplayName = (shift: Shift) => {
+    const date = new Date(shift.start_time);
+    const formattedDate = date.toLocaleDateString('tr-TR');
+    const shiftNumber = shift.shift_number || 'V1';
+    return `${formattedDate} – ${shiftNumber}`;
   };
 
   useEffect(() => {
@@ -288,6 +302,7 @@ export const useShifts = () => {
     getLatestShift,
     fetchAllShifts,
     findShiftsByDateAndPersonnel,
+    getShiftDisplayName,
     refreshShifts: fetchShifts
   };
 };
