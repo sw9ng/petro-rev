@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,7 +9,7 @@ export interface Shift {
   end_time: string | null;
   cash_sales: number;
   card_sales: number;
-  otomasyon_satis: number; // Changed from personel_odenen
+  otomasyon_satis: number;
   over_short: number;
   status: string;
   veresiye: number;
@@ -55,19 +54,18 @@ export const useShifts = () => {
         end_time: shift.end_time,
         cash_sales: shift.cash_sales || 0,
         card_sales: shift.card_sales || 0,
-        otomasyon_satis: shift.actual_amount || 0, // Map actual_amount to otomasyon_satis
+        otomasyon_satis: shift.actual_amount || 0,
         over_short: shift.over_short || 0,
         status: shift.status,
         veresiye: shift.veresiye || 0,
         bank_transfers: shift.bank_transfers || 0,
         loyalty_card: shift.loyalty_card || 0,
         bank_transfer_description: shift.bank_transfer_description || '',
-        shift_number: shift.shift_number as 'V1' | 'V2' | undefined,
+        shift_number: (shift.shift_number as 'V1' | 'V2') || undefined,
         personnel: shift.personnel
       }));
       
       setAllShifts(mappedData);
-      // Only active shifts for the main shifts view
       setShifts(mappedData.filter(shift => shift.status === 'active'));
     }
     setLoading(false);
@@ -92,7 +90,6 @@ export const useShifts = () => {
       return [];
     }
     
-    // Map the data to ensure we have all required fields
     const mappedData = (data || []).map(shift => ({
       id: shift.id,
       personnel_id: shift.personnel_id,
@@ -100,14 +97,14 @@ export const useShifts = () => {
       end_time: shift.end_time,
       cash_sales: shift.cash_sales || 0,
       card_sales: shift.card_sales || 0,
-      otomasyon_satis: shift.actual_amount || 0, // Map actual_amount to otomasyon_satis
+      otomasyon_satis: shift.actual_amount || 0,
       over_short: shift.over_short || 0,
       status: shift.status,
       veresiye: shift.veresiye || 0,
       bank_transfers: shift.bank_transfers || 0,
       loyalty_card: shift.loyalty_card || 0,
       bank_transfer_description: shift.bank_transfer_description || '',
-      shift_number: shift.shift_number as 'V1' | 'V2' | undefined,
+      shift_number: (shift.shift_number as 'V1' | 'V2') || undefined,
       personnel: shift.personnel
     }));
     
@@ -117,20 +114,19 @@ export const useShifts = () => {
   const addShift = async (shiftData: any) => {
     if (!user) return { error: 'Kullanıcı doğrulanmadı' };
 
-    // CORRECTED calculation: (nakit + kart + veresiye + havale + sadakat kartı) - otomasyon
     const totalCollected = shiftData.cash_sales + shiftData.card_sales + shiftData.veresiye + shiftData.bank_transfers + shiftData.loyalty_card;
-    const overShort = totalCollected - shiftData.otomasyon_satis; // CORRECTED: collected - automation
+    const overShort = totalCollected - shiftData.otomasyon_satis;
 
     const { data, error } = await supabase
       .from('shifts')
       .insert([
         {
           personnel_id: shiftData.personnel_id,
-          start_time: shiftData.start_time, // Store as-is without timezone conversion
-          end_time: shiftData.end_time, // Store as-is without timezone conversion
+          start_time: shiftData.start_time,
+          end_time: shiftData.end_time,
           cash_sales: shiftData.cash_sales,
           card_sales: shiftData.card_sales,
-          actual_amount: shiftData.otomasyon_satis, // Store as actual_amount in DB
+          actual_amount: shiftData.otomasyon_satis,
           over_short: overShort,
           station_id: user.id,
           status: 'completed',
@@ -164,14 +160,13 @@ export const useShifts = () => {
         bank_transfers: data.bank_transfers || 0,
         loyalty_card: data.loyalty_card || 0,
         bank_transfer_description: data.bank_transfer_description || '',
-        shift_number: data.shift_number as 'V1' | 'V2' | undefined,
+        shift_number: (data.shift_number as 'V1' | 'V2') || undefined,
         personnel: data.personnel
       };
       
       setShifts(prev => [mappedShift, ...prev]);
       setAllShifts(prev => [mappedShift, ...prev]);
 
-      // Save bank details if provided
       if (shiftData.bank_details && shiftData.bank_details.length > 0) {
         const bankDetailsPayload = shiftData.bank_details.map((detail: any) => ({
           shift_id: data.id,
@@ -259,7 +254,6 @@ export const useShifts = () => {
       return [];
     }
     
-    // Map the data to ensure we have all required fields
     const mappedData = (data || []).map(shift => ({
       id: shift.id,
       personnel_id: shift.personnel_id,
@@ -274,7 +268,7 @@ export const useShifts = () => {
       bank_transfers: shift.bank_transfers || 0,
       loyalty_card: shift.loyalty_card || 0,
       bank_transfer_description: shift.bank_transfer_description || '',
-      shift_number: shift.shift_number as 'V1' | 'V2' | undefined,
+      shift_number: (shift.shift_number as 'V1' | 'V2') || undefined,
       personnel: shift.personnel
     }));
     

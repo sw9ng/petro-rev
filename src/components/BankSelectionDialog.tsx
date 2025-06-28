@@ -1,138 +1,134 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { CreditCard, Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 
-const BANKS = [
-  'Ziraat',
-  'İş Bankası', 
-  'Denizbank',
-  'Vakıfbank',
-  'Şekerbank',
-  'Garanti',
-  'Halkbank',
-  'Yapıkredi',
-  'Diğerleri'
-];
+interface BankDetail {
+  bank_name: string;
+  amount: number;
+}
 
 interface BankSelectionDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onBankDetailsUpdate: (details: Array<{bank_name: string, amount: number}>) => void;
-  currentDetails: Array<{bank_name: string, amount: number}>;
+  onBankDetailsUpdate: (details: BankDetail[]) => void;
+  currentDetails: BankDetail[];
 }
 
-export const BankSelectionDialog = ({ 
-  isOpen, 
-  onOpenChange, 
-  onBankDetailsUpdate,
-  currentDetails 
-}: BankSelectionDialogProps) => {
-  const [bankAmounts, setBankAmounts] = useState<Record<string, string>>(() => {
-    const amounts: Record<string, string> = {};
-    currentDetails.forEach(detail => {
-      amounts[detail.bank_name] = detail.amount.toString();
-    });
-    return amounts;
-  });
+const defaultBanks = [
+  'Ziraat Bankası',
+  'İş Bankası', 
+  'Garanti BBVA',
+  'Yapı Kredi',
+  'Akbank',
+  'Halkbank',
+  'Vakıfbank',
+  'QNB Finansbank',
+  'DenizBank',
+  'TEB'
+];
 
-  const handleBankAmountChange = (bank: string, amount: string) => {
-    setBankAmounts(prev => ({ ...prev, [bank]: amount }));
+export const BankSelectionDialog = ({ isOpen, onOpenChange, onBankDetailsUpdate, currentDetails }: BankSelectionDialogProps) => {
+  const [bankDetails, setBankDetails] = useState<BankDetail[]>(currentDetails);
+
+  useEffect(() => {
+    setBankDetails(currentDetails);
+  }, [currentDetails]);
+
+  const addBankDetail = () => {
+    setBankDetails(prev => [...prev, { bank_name: '', amount: 0 }]);
   };
 
-  const calculateTotal = () => {
-    return Object.values(bankAmounts).reduce((sum, amount) => {
-      return sum + (parseFloat(amount) || 0);
-    }, 0);
+  const removeBankDetail = (index: number) => {
+    setBankDetails(prev => prev.filter((_, i) => i !== index));
   };
 
-  const getActiveBanks = () => {
-    return Object.entries(bankAmounts).filter(([_, amount]) => parseFloat(amount) > 0);
-  };
-
-  const clearAllAmounts = () => {
-    setBankAmounts({});
+  const updateBankDetail = (index: number, field: keyof BankDetail, value: string | number) => {
+    setBankDetails(prev => prev.map((detail, i) => 
+      i === index ? { ...detail, [field]: value } : detail
+    ));
   };
 
   const handleSave = () => {
-    const details = Object.entries(bankAmounts)
-      .filter(([_, amount]) => parseFloat(amount) > 0)
-      .map(([bank_name, amount]) => ({
-        bank_name,
-        amount: parseFloat(amount)
-      }));
-    
-    onBankDetailsUpdate(details);
+    const validDetails = bankDetails.filter(detail => detail.bank_name && detail.amount > 0);
+    onBankDetailsUpdate(validDetails);
     onOpenChange(false);
   };
 
+  const totalAmount = bankDetails.reduce((sum, detail) => sum + (detail.amount || 0), 0);
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto bg-white">
-        <DialogHeader className="pb-4">
-          <DialogTitle className="flex items-center space-x-2 text-gray-900">
-            <CreditCard className="h-5 w-5 text-gray-700" />
-            <span>Banka Bazında Kart Satışları</span>
-          </DialogTitle>
-          <DialogDescription className="text-gray-600">
-            Her banka için ayrı tutarları girin
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Kart Satış Detayları</DialogTitle>
+          <DialogDescription>
+            Hangi bankalardan ne kadar kart satışı yapıldığını girin
           </DialogDescription>
         </DialogHeader>
-        
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {BANKS.map((bank) => (
-              <div key={bank} className="space-y-2">
-                <Label className="text-gray-700 font-medium">{bank}</Label>
+
+        <div className="space-y-4 max-h-96 overflow-y-auto">
+          {bankDetails.map((detail, index) => (
+            <div key={index} className="flex items-center space-x-4 p-4 border rounded-lg">
+              <div className="flex-1">
+                <Label>Banka Adı</Label>
+                <select
+                  value={detail.bank_name}
+                  onChange={(e) => updateBankDetail(index, 'bank_name', e.target.value)}
+                  className="w-full mt-1 p-2 border rounded-md"
+                >
+                  <option value="">Banka seçin</option>
+                  {defaultBanks.map(bank => (
+                    <option key={bank} value={bank}>{bank}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex-1">
+                <Label>Tutar (₺)</Label>
                 <Input
                   type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={bankAmounts[bank] || ''}
-                  onChange={(e) => handleBankAmountChange(bank, e.target.value)}
-                  className="h-11 border-gray-300"
+                  step="0.001"
+                  value={detail.amount}
+                  onChange={(e) => updateBankDetail(index, 'amount', parseFloat(e.target.value) || 0)}
+                  className="mt-1"
                 />
               </div>
-            ))}
-          </div>
-          
-          <div className="p-4 bg-gray-50 rounded-lg border space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="font-semibold text-gray-900">Toplam:</span>
-              <span className="font-bold text-xl text-gray-900">₺{calculateTotal().toFixed(2)}</span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => removeBankDetail(index)}
+                className="mt-6"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
             </div>
-            
-            {getActiveBanks().length > 0 && (
-              <div className="border-t pt-4 space-y-2">
-                <p className="text-sm font-medium text-gray-900">Aktif Bankalar:</p>
-                <div className="space-y-2">
-                  {getActiveBanks().map(([bank, amount]) => (
-                    <div key={bank} className="flex justify-between text-sm p-2 bg-white rounded border">
-                      <span className="text-gray-700 font-medium">{bank}:</span>
-                      <span className="text-gray-900 font-semibold">₺{parseFloat(amount).toFixed(2)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          ))}
 
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button 
-              variant="outline" 
-              onClick={clearAllAmounts} 
-              className="flex-1 h-11 border-gray-300 hover:bg-gray-50"
-            >
-              Temizle
+          <Button
+            type="button"
+            variant="outline"
+            onClick={addBankDetail}
+            className="w-full"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Banka Ekle
+          </Button>
+        </div>
+
+        <div className="flex justify-between items-center pt-4 border-t">
+          <div className="text-lg font-semibold">
+            Toplam: ₺{totalAmount.toFixed(2)}
+          </div>
+          <div className="space-x-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              İptal
             </Button>
-            <Button 
-              onClick={handleSave} 
-              className="flex-1 h-11 bg-gray-900 hover:bg-gray-800 text-white"
-            >
-              Tamam
+            <Button onClick={handleSave}>
+              Kaydet
             </Button>
           </div>
         </div>

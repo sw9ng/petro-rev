@@ -248,6 +248,7 @@ export type Database = {
           loyalty_card: number | null
           over_short: number | null
           personnel_id: string
+          shift_number: string | null
           start_time: string
           station_id: string
           status: string
@@ -267,6 +268,7 @@ export type Database = {
           loyalty_card?: number | null
           over_short?: number | null
           personnel_id: string
+          shift_number?: string | null
           start_time: string
           station_id: string
           status?: string
@@ -286,6 +288,7 @@ export type Database = {
           loyalty_card?: number | null
           over_short?: number | null
           personnel_id?: string
+          shift_number?: string | null
           start_time?: string
           station_id?: string
           status?: string
