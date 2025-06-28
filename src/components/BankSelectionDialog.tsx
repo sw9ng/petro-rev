@@ -28,7 +28,9 @@ const defaultBanks = [
   'Vakıfbank',
   'QNB Finansbank',
   'DenizBank',
-  'TEB'
+  'TEB',
+  'Şekerbank',
+  'Diğer'
 ];
 
 export const BankSelectionDialog = ({ isOpen, onOpenChange, onBankDetailsUpdate, currentDetails }: BankSelectionDialogProps) => {
