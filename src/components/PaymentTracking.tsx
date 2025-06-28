@@ -7,9 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { CreditCard, Plus, DollarSign, Calendar, Filter } from 'lucide-react';
+import { CreditCard, Plus, DollarSign, Filter } from 'lucide-react';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
+import { usePersonnel } from '@/hooks/usePersonnel';
 import { useShifts } from '@/hooks/useShifts';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/numberUtils';
@@ -17,7 +18,8 @@ import { formatCurrency } from '@/lib/numberUtils';
 export const PaymentTracking = () => {
   const { toast } = useToast();
   const { customers } = useCustomers();
-  const { allShifts, getShiftDisplayName } = useShifts();
+  const { personnel } = usePersonnel();
+  const { getShiftDisplayName } = useShifts();
   const { transactions, loading, addPayment, addVeresiye, getCustomerDebts, getTransactionsByDateRange } = useCustomerTransactions();
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showDebtDialog, setShowDebtDialog] = useState(false);
@@ -26,42 +28,46 @@ export const PaymentTracking = () => {
   
   const [paymentData, setPaymentData] = useState({
     customer_id: '',
-    shift_id: '',
+    personnel_id: '',
     amount: 0,
     payment_method: '' as 'nakit' | 'kredi_karti' | 'havale' | '',
-    description: ''
+    description: '',
+    transaction_date: new Date().toISOString().split('T')[0]
   });
 
   const [debtData, setDebtData] = useState({
     customer_id: '',
-    shift_id: '',
+    personnel_id: '',
     amount: 0,
-    description: ''
+    description: '',
+    transaction_date: new Date().toISOString().split('T')[0]
   });
 
   const resetPaymentForm = () => {
     setPaymentData({
       customer_id: '',
-      shift_id: '',
+      personnel_id: '',
       amount: 0,
       payment_method: '' as any,
-      description: ''
+      description: '',
+      transaction_date: new Date().toISOString().split('T')[0]
     });
   };
 
   const resetDebtForm = () => {
     setDebtData({
       customer_id: '',
-      shift_id: '',
+      personnel_id: '',
       amount: 0,
-      description: ''
+      description: '',
+      transaction_date: new Date().toISOString().split('T')[0]
     });
   };
 
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!paymentData.customer_id || !paymentData.payment_method || paymentData.amount <= 0) {
+    if (!paymentData.customer_id || !paymentData.personnel_id || !paymentData.payment_method || paymentData.amount <= 0) {
       toast({
         title: "Hata",
         description: "Lütfen tüm zorunlu alanları doldurun.",
@@ -70,22 +76,9 @@ export const PaymentTracking = () => {
       return;
     }
 
-    const selectedShift = allShifts.find(shift => shift.id === paymentData.shift_id);
-    const personnelId = selectedShift?.personnel_id || '';
-
-    if (!personnelId) {
-      toast({
-        title: "Hata",
-        description: "Seçilen vardiya için personel bilgisi bulunamadı.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     const { error } = await addPayment({
       ...paymentData,
-      personnel_id: personnelId,
-      shift_id: paymentData.shift_id || undefined
+      transaction_date: new Date(paymentData.transaction_date).toISOString()
     } as any);
 
     if (error) {
@@ -108,22 +101,10 @@ export const PaymentTracking = () => {
   const handleDebtSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!debtData.customer_id || debtData.amount <= 0) {
+    if (!debtData.customer_id || !debtData.personnel_id || debtData.amount <= 0) {
       toast({
         title: "Hata",
-        description: "Lütfen müşteri seçin ve geçerli bir tutar girin.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const selectedShift = allShifts.find(shift => shift.id === debtData.shift_id);
-    const personnelId = selectedShift?.personnel_id || '';
-
-    if (!personnelId) {
-      toast({
-        title: "Hata",
-        description: "Seçilen vardiya için personel bilgisi bulunamadı.",
+        description: "Lütfen müşteri seçin, personel seçin ve geçerli bir tutar girin.",
         variant: "destructive"
       });
       return;
@@ -131,8 +112,7 @@ export const PaymentTracking = () => {
 
     const { error } = await addVeresiye({
       ...debtData,
-      personnel_id: personnelId,
-      shift_id: debtData.shift_id || undefined
+      transaction_date: new Date(debtData.transaction_date).toISOString()
     });
 
     if (error) {
@@ -234,19 +214,28 @@ export const PaymentTracking = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>İlgili Vardiya</Label>
-                  <Select value={debtData.shift_id} onValueChange={(value) => setDebtData(prev => ({ ...prev, shift_id: value }))}>
+                  <Label>Personel *</Label>
+                  <Select value={debtData.personnel_id} onValueChange={(value) => setDebtData(prev => ({ ...prev, personnel_id: value }))}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Vardiya seçin (opsiyonel)" />
+                      <SelectValue placeholder="Personel seçin" />
                     </SelectTrigger>
                     <SelectContent className="bg-white border shadow-lg">
-                      {allShifts.map((shift) => (
-                        <SelectItem key={shift.id} value={shift.id}>
-                          {getShiftDisplayName(shift)} - {shift.personnel.name}
+                      {personnel.map((person) => (
+                        <SelectItem key={person.id} value={person.id}>
+                          {person.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Tarih *</Label>
+                  <Input
+                    type="date"
+                    value={debtData.transaction_date}
+                    onChange={(e) => setDebtData(prev => ({ ...prev, transaction_date: e.target.value }))}
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Tutar (₺) *</Label>
@@ -312,19 +301,28 @@ export const PaymentTracking = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>İlgili Vardiya</Label>
-                  <Select value={paymentData.shift_id} onValueChange={(value) => setPaymentData(prev => ({ ...prev, shift_id: value }))}>
+                  <Label>Personel *</Label>
+                  <Select value={paymentData.personnel_id} onValueChange={(value) => setPaymentData(prev => ({ ...prev, personnel_id: value }))}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Vardiya seçin (opsiyonel)" />
+                      <SelectValue placeholder="Personel seçin" />
                     </SelectTrigger>
                     <SelectContent className="bg-white border shadow-lg">
-                      {allShifts.map((shift) => (
-                        <SelectItem key={shift.id} value={shift.id}>
-                          {getShiftDisplayName(shift)} - {shift.personnel.name}
+                      {personnel.map((person) => (
+                        <SelectItem key={person.id} value={person.id}>
+                          {person.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Tarih *</Label>
+                  <Input
+                    type="date"
+                    value={paymentData.transaction_date}
+                    onChange={(e) => setPaymentData(prev => ({ ...prev, transaction_date: e.target.value }))}
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Tutar (₺) *</Label>

@@ -63,7 +63,7 @@ export const useCustomerTransactions = () => {
           : { name: 'Unknown Customer' };
         
         const personnel = item.personnel && typeof item.personnel === 'object' && item.personnel !== null && 'name' in item.personnel
-          ? { name: item.personnel.name }
+          ? { name: (item.personnel as any).name }
           : { name: 'Unknown Personnel' };
 
         // Handle shift data safely
@@ -72,7 +72,7 @@ export const useCustomerTransactions = () => {
               start_time: item.shift.start_time || '',
               shift_number: item.shift.shift_number || undefined,
               personnel: item.shift.personnel && typeof item.shift.personnel === 'object' && item.shift.personnel !== null && 'name' in item.shift.personnel
-                ? { name: item.shift.personnel.name }
+                ? { name: (item.shift.personnel as any).name }
                 : { name: 'Unknown Personnel' }
             }
           : undefined;
@@ -95,10 +95,10 @@ export const useCustomerTransactions = () => {
 
   const addVeresiye = async (transactionData: {
     customer_id: string;
-    shift_id?: string;
     personnel_id: string;
     amount: number;
     description?: string;
+    transaction_date?: string;
   }) => {
     if (!user) return { error: 'Kullanıcı doğrulanmadı' };
 
@@ -108,7 +108,8 @@ export const useCustomerTransactions = () => {
         {
           ...transactionData,
           transaction_type: 'veresiye',
-          station_id: user.id
+          station_id: user.id,
+          transaction_date: transactionData.transaction_date || new Date().toISOString()
         }
       ])
       .select(`
@@ -129,7 +130,7 @@ export const useCustomerTransactions = () => {
         : { name: 'Unknown Customer' };
       
       const personnel = data.personnel && typeof data.personnel === 'object' && data.personnel !== null && 'name' in data.personnel
-        ? { name: data.personnel.name }
+        ? { name: (data.personnel as any).name }
         : { name: 'Unknown Personnel' };
 
       const shift = data.shift && typeof data.shift === 'object' 
@@ -137,7 +138,7 @@ export const useCustomerTransactions = () => {
             start_time: data.shift.start_time || '',
             shift_number: data.shift.shift_number || undefined,
             personnel: data.shift.personnel && typeof data.shift.personnel === 'object' && data.shift.personnel !== null && 'name' in data.shift.personnel
-              ? { name: data.shift.personnel.name }
+              ? { name: (data.shift.personnel as any).name }
               : { name: 'Unknown Personnel' }
           }
         : undefined;
@@ -160,11 +161,11 @@ export const useCustomerTransactions = () => {
 
   const addPayment = async (transactionData: {
     customer_id: string;
-    shift_id?: string;
     personnel_id: string;
     amount: number;
     payment_method: 'nakit' | 'kredi_karti' | 'havale';
     description?: string;
+    transaction_date?: string;
   }) => {
     if (!user) return { error: 'Kullanıcı doğrulanmadı' };
 
@@ -175,7 +176,8 @@ export const useCustomerTransactions = () => {
           ...transactionData,
           transaction_type: 'payment',
           status: 'collected',
-          station_id: user.id
+          station_id: user.id,
+          transaction_date: transactionData.transaction_date || new Date().toISOString()
         }
       ])
       .select(`
@@ -196,7 +198,7 @@ export const useCustomerTransactions = () => {
         : { name: 'Unknown Customer' };
       
       const personnel = data.personnel && typeof data.personnel === 'object' && data.personnel !== null && 'name' in data.personnel
-        ? { name: data.personnel.name }
+        ? { name: (data.personnel as any).name }
         : { name: 'Unknown Personnel' };
 
       const shift = data.shift && typeof data.shift === 'object' 
@@ -204,7 +206,7 @@ export const useCustomerTransactions = () => {
             start_time: data.shift.start_time || '',
             shift_number: data.shift.shift_number || undefined,
             personnel: data.shift.personnel && typeof data.shift.personnel === 'object' && data.shift.personnel !== null && 'name' in data.shift.personnel
-              ? { name: data.shift.personnel.name }
+              ? { name: (data.shift.personnel as any).name }
               : { name: 'Unknown Personnel' }
           }
         : undefined;
@@ -291,7 +293,7 @@ export const useCustomerTransactions = () => {
         : { name: 'Unknown Customer' };
       
       const personnel = item.personnel && typeof item.personnel === 'object' && item.personnel !== null && 'name' in item.personnel
-        ? { name: item.personnel.name }
+        ? { name: (item.personnel as any).name }
         : { name: 'Unknown Personnel' };
 
       const shift = item.shift && typeof item.shift === 'object' 
@@ -299,7 +301,7 @@ export const useCustomerTransactions = () => {
             start_time: item.shift.start_time || '',
             shift_number: item.shift.shift_number || undefined,
             personnel: item.shift.personnel && typeof item.shift.personnel === 'object' && item.shift.personnel !== null && 'name' in item.shift.personnel
-              ? { name: item.shift.personnel.name }
+              ? { name: (item.shift.personnel as any).name }
               : { name: 'Unknown Personnel' }
           }
         : undefined;
