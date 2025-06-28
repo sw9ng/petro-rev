@@ -9,6 +9,99 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      customer_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          customer_id: string
+          description: string | null
+          id: string
+          payment_method: string | null
+          personnel_id: string
+          shift_id: string | null
+          station_id: string
+          status: string
+          transaction_date: string
+          transaction_type: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          customer_id: string
+          description?: string | null
+          id?: string
+          payment_method?: string | null
+          personnel_id: string
+          shift_id?: string | null
+          station_id: string
+          status?: string
+          transaction_date?: string
+          transaction_type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          customer_id?: string
+          description?: string | null
+          id?: string
+          payment_method?: string | null
+          personnel_id?: string
+          shift_id?: string | null
+          station_id?: string
+          status?: string
+          transaction_date?: string
+          transaction_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_transactions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_transactions_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          address: string | null
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          station_id: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          station_id: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          station_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fuel_sales: {
         Row: {
           amount: number
@@ -148,6 +241,7 @@ export type Database = {
           card_sales: number | null
           cash_sales: number | null
           created_at: string | null
+          customer_id: string | null
           end_time: string | null
           expected_amount: number | null
           id: string
@@ -166,6 +260,7 @@ export type Database = {
           card_sales?: number | null
           cash_sales?: number | null
           created_at?: string | null
+          customer_id?: string | null
           end_time?: string | null
           expected_amount?: number | null
           id?: string
@@ -184,6 +279,7 @@ export type Database = {
           card_sales?: number | null
           cash_sales?: number | null
           created_at?: string | null
+          customer_id?: string | null
           end_time?: string | null
           expected_amount?: number | null
           id?: string
@@ -196,6 +292,13 @@ export type Database = {
           veresiye?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "shifts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "shifts_personnel_id_fkey"
             columns: ["personnel_id"]

@@ -1,143 +1,148 @@
 
 import { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { FuelStationDashboard } from '@/components/FuelStationDashboard';
-import { PersonnelManagement } from '@/components/PersonnelManagement';
-import { ShiftManagement } from '@/components/ShiftManagement';
-import { ShiftList } from '@/components/ShiftList';
-import { ReportsView } from '@/components/ReportsView';
-import { FuelSalesManagement } from '@/components/FuelSalesManagement';
-import { useAuth } from '@/contexts/AuthContext';
-import { LogOut, User } from 'lucide-react';
-import Auth from './Auth';
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { 
+  LayoutDashboard, 
+  Users, 
+  Clock, 
+  BarChart3, 
+  FileText,
+  Fuel,
+  UserPlus,
+  CreditCard,
+  LogOut
+} from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { FuelStationDashboard } from "@/components/FuelStationDashboard";
+import { PersonnelManagement } from "@/components/PersonnelManagement";
+import { ShiftManagement } from "@/components/ShiftManagement";
+import { ShiftList } from "@/components/ShiftList";
+import { ReportsView } from "@/components/ReportsView";
+import { FuelSalesManagement } from "@/components/FuelSalesManagement";
+import { CustomerManagement } from "@/components/CustomerManagement";
+import { PaymentTracking } from "@/components/PaymentTracking";
 
 const Index = () => {
   const { user, signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState('dashboard');
-
-  const handleLogout = async () => {
-    await signOut();
-  };
+  const [activeTab, setActiveTab] = useState("dashboard");
 
   if (!user) {
-    return <Auth />;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle>Giriş Yapınız</CardTitle>
+            <CardDescription>Akaryakıt istasyonu yönetim sistemine erişmek için giriş yapın</CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <Button onClick={() => window.location.href = '/auth'}>
+              Giriş Yap
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-4 max-w-7xl">
-        {/* Header */}
-        <div className="mb-6 bg-white rounded-xl shadow-sm border p-4 lg:p-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 rounded-lg flex items-center justify-center overflow-hidden">
-                <img 
-                  src="/lovable-uploads/6b443a64-706a-401f-bdc5-fd18b2bcb790.png" 
-                  alt="PetroRev Logo" 
-                  className="w-full h-full object-contain"
-                />
-              </div>
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-3">
+              <Fuel className="h-8 w-8 text-blue-600" />
               <div>
-                <h1 className="text-3xl lg:text-4xl font-bold text-gray-900">
-                  PetroRev
-                </h1>
-                <p className="text-gray-600 text-base">Akaryakıt İstasyonu Yönetim Sistemi</p>
+                <h1 className="text-xl font-bold text-gray-900">Akaryakıt İstasyonu</h1>
+                <p className="text-sm text-gray-600">Yönetim Sistemi</p>
               </div>
             </div>
-            
-            <div className="flex items-center space-x-3 w-full sm:w-auto">
-              <div className="flex items-center space-x-2 px-3 py-2 bg-gray-100 rounded-lg flex-1 sm:flex-none">
-                <User className="h-4 w-4 text-gray-600" />
-                <span className="text-gray-700 text-sm font-medium truncate">{user.email}</span>
-              </div>
-              <Button 
-                onClick={handleLogout}
-                variant="outline" 
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">Hoşgeldiniz!</span>
+              <Button
+                variant="outline"
                 size="sm"
-                className="flex items-center space-x-2 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors whitespace-nowrap"
+                onClick={signOut}
+                className="flex items-center space-x-2"
               >
                 <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline">Çıkış</span>
+                <span>Çıkış</span>
               </Button>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Main Content */}
-        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-0">
-            <div className="bg-white border-b px-4 lg:px-6 pt-4">
-              <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 bg-gray-100 p-1 rounded-lg">
-                <TabsTrigger 
-                  value="dashboard" 
-                  className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-xs lg:text-sm px-2 lg:px-4"
-                >
-                  Panel
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="personnel" 
-                  className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-xs lg:text-sm px-2 lg:px-4"
-                >
-                  Personel
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="shifts" 
-                  className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-xs lg:text-sm px-2 lg:px-4"
-                >
-                  <span className="hidden sm:inline">Vardiya Kaydet</span>
-                  <span className="sm:hidden">Kaydet</span>
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="shift-list" 
-                  className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-xs lg:text-sm px-2 lg:px-4"
-                >
-                  <span className="hidden sm:inline">Vardiya Listesi</span>
-                  <span className="sm:hidden">Liste</span>
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="fuel-sales" 
-                  className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-xs lg:text-sm px-2 lg:px-4"
-                >
-                  <span className="hidden sm:inline">Akaryakıt</span>
-                  <span className="sm:hidden">Yakıt</span>
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="reports" 
-                  className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-xs lg:text-sm px-2 lg:px-4"
-                >
-                  Raporlar
-                </TabsTrigger>
-              </TabsList>
-            </div>
+      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 bg-white border shadow-sm">
+            <TabsTrigger value="dashboard" className="flex items-center space-x-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
+              <LayoutDashboard className="h-4 w-4" />
+              <span className="hidden sm:inline">Özet</span>
+            </TabsTrigger>
+            <TabsTrigger value="shifts" className="flex items-center space-x-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
+              <Clock className="h-4 w-4" />
+              <span className="hidden sm:inline">Vardiya</span>
+            </TabsTrigger>
+            <TabsTrigger value="shift-list" className="flex items-center space-x-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
+              <FileText className="h-4 w-4" />
+              <span className="hidden sm:inline">Liste</span>
+            </TabsTrigger>
+            <TabsTrigger value="personnel" className="flex items-center space-x-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">Personel</span>
+            </TabsTrigger>
+            <TabsTrigger value="customers" className="flex items-center space-x-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
+              <UserPlus className="h-4 w-4" />
+              <span className="hidden sm:inline">Müşteri</span>
+            </TabsTrigger>
+            <TabsTrigger value="payments" className="flex items-center space-x-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
+              <CreditCard className="h-4 w-4" />
+              <span className="hidden sm:inline">Tahsilat</span>
+            </TabsTrigger>
+            <TabsTrigger value="fuel" className="flex items-center space-x-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
+              <Fuel className="h-4 w-4" />
+              <span className="hidden sm:inline">Yakıt</span>
+            </TabsTrigger>
+            <TabsTrigger value="reports" className="flex items-center space-x-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Rapor</span>
+            </TabsTrigger>
+          </TabsList>
 
-            <div className="p-4 lg:p-6">
-              <TabsContent value="dashboard" className="mt-0">
-                <FuelStationDashboard />
-              </TabsContent>
+          <TabsContent value="dashboard" className="space-y-6">
+            <FuelStationDashboard />
+          </TabsContent>
 
-              <TabsContent value="personnel" className="mt-0">
-                <PersonnelManagement />
-              </TabsContent>
+          <TabsContent value="shifts" className="space-y-6">
+            <ShiftManagement />
+          </TabsContent>
 
-              <TabsContent value="shifts" className="mt-0">
-                <ShiftManagement />
-              </TabsContent>
+          <TabsContent value="shift-list" className="space-y-6">
+            <ShiftList />
+          </TabsContent>
 
-              <TabsContent value="shift-list" className="mt-0">
-                <ShiftList />
-              </TabsContent>
+          <TabsContent value="personnel" className="space-y-6">
+            <PersonnelManagement />
+          </TabsContent>
 
-              <TabsContent value="fuel-sales" className="mt-0">
-                <FuelSalesManagement />
-              </TabsContent>
+          <TabsContent value="customers" className="space-y-6">
+            <CustomerManagement />
+          </TabsContent>
 
-              <TabsContent value="reports" className="mt-0">
-                <ReportsView />
-              </TabsContent>
-            </div>
-          </Tabs>
-        </div>
+          <TabsContent value="payments" className="space-y-6">
+            <PaymentTracking />
+          </TabsContent>
+
+          <TabsContent value="fuel" className="space-y-6">
+            <FuelSalesManagement />
+          </TabsContent>
+
+          <TabsContent value="reports" className="space-y-6">
+            <ReportsView />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

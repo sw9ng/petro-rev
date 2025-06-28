@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,15 +7,35 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar, Clock, DollarSign, Users, AlertCircle, CreditCard } from 'lucide-react';
 import { useShifts } from '@/hooks/useShifts';
 import { usePersonnel } from '@/hooks/usePersonnel';
+import { useCustomers } from '@/hooks/useCustomers';
+import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { BankSelectionDialog } from './BankSelectionDialog';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/numberUtils';
 import { Textarea } from '@/components/ui/textarea';
 
+// Function to determine shift date based on start time
+const getShiftDate = (startDateTime: string) => {
+  const startTime = new Date(startDateTime);
+  const hour = startTime.getHours();
+  const minute = startTime.getMinutes();
+  
+  // If shift starts after 22:55, it belongs to the next day
+  if (hour > 22 || (hour === 22 && minute >= 55)) {
+    const nextDay = new Date(startTime);
+    nextDay.setDate(nextDay.getDate() + 1);
+    return nextDay.toISOString().split('T')[0];
+  }
+  
+  return startTime.toISOString().split('T')[0];
+};
+
 export const ShiftManagement = () => {
   const { toast } = useToast();
   const { addShift } = useShifts();
   const { personnel } = usePersonnel();
+  const { customers } = useCustomers();
+  const { addVeresiye } = useCustomerTransactions();
   const [showBankDialog, setShowBankDialog] = useState(false);
   const [bankDetails, setBankDetails] = useState<Array<{bank_name: string, amount: number}>>([]);
   
@@ -30,6 +49,7 @@ export const ShiftManagement = () => {
     card_sales: 0,
     otomasyon_satis: 0,
     veresiye: 0,
+    customer_id: '',
     bank_transfers: 0,
     loyalty_card: 0,
     bank_transfer_description: ''
@@ -38,7 +58,7 @@ export const ShiftManagement = () => {
   // Set default date to today
   useEffect(() => {
     const today = new Date();
-    const dateStr = today.toISOString().split('T')[0]; // Get YYYY-MM-DD format
+    const dateStr = today.toISOString().split('T')[0];
     setShiftData(prev => ({
       ...prev,
       start_date: dateStr,
@@ -74,6 +94,15 @@ export const ShiftManagement = () => {
       return;
     }
 
+    if (shiftData.veresiye > 0 && !shiftData.customer_id) {
+      toast({
+        title: "Hata",
+        description: "Veresiye tutarı girildiğinde müşteri seçimi zorunludur.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     // Create datetime strings without timezone conversion - store exactly as entered
     const startDateTime = `${shiftData.start_date}T${shiftData.start_time}:00`;
     const endDateTime = `${shiftData.end_date}T${shiftData.end_time}:00`;
@@ -86,13 +115,14 @@ export const ShiftManagement = () => {
       card_sales: shiftData.card_sales,
       otomasyon_satis: shiftData.otomasyon_satis,
       veresiye: shiftData.veresiye,
+      customer_id: shiftData.customer_id || null,
       bank_transfers: shiftData.bank_transfers,
       loyalty_card: shiftData.loyalty_card,
       bank_transfer_description: shiftData.bank_transfer_description,
       bank_details: bankDetails
     };
 
-    const { error } = await addShift(shiftPayload);
+    const { data: shiftResult, error } = await addShift(shiftPayload);
 
     if (error) {
       toast({
@@ -100,39 +130,64 @@ export const ShiftManagement = () => {
         description: "Vardiya kaydedilirken bir hata oluştu.",
         variant: "destructive"
       });
-    } else {
-      toast({
-        title: "Vardiya Kaydedildi",
-        description: "Vardiya başarıyla kaydedildi.",
-      });
-      
-      // Reset form
-      setShiftData({
-        personnel_id: '',
-        start_date: new Date().toISOString().split('T')[0],
-        start_time: '',
-        end_date: new Date().toISOString().split('T')[0],
-        end_time: '',
-        cash_sales: 0,
-        card_sales: 0,
-        otomasyon_satis: 0,
-        veresiye: 0,
-        bank_transfers: 0,
-        loyalty_card: 0,
-        bank_transfer_description: ''
-      });
-      setBankDetails([]);
+      return;
     }
+
+    // If there's a veresiye amount, record it in customer transactions
+    if (shiftData.veresiye > 0 && shiftData.customer_id && shiftResult) {
+      await addVeresiye({
+        customer_id: shiftData.customer_id,
+        shift_id: shiftResult.id,
+        personnel_id: shiftData.personnel_id,
+        amount: shiftData.veresiye,
+        description: `Vardiya veresiye satışı - ${new Date(startDateTime).toLocaleDateString('tr-TR')}`
+      });
+    }
+
+    toast({
+      title: "Vardiya Kaydedildi",
+      description: `Vardiya başarıyla kaydedildi. Shift tarihi: ${getShiftDate(startDateTime)}`,
+    });
+    
+    // Reset form
+    setShiftData({
+      personnel_id: '',
+      start_date: new Date().toISOString().split('T')[0],
+      start_time: '',
+      end_date: new Date().toISOString().split('T')[0],
+      end_time: '',
+      cash_sales: 0,
+      card_sales: 0,
+      otomasyon_satis: 0,
+      veresiye: 0,
+      customer_id: '',
+      bank_transfers: 0,
+      loyalty_card: 0,
+      bank_transfer_description: ''
+    });
+    setBankDetails([]);
   };
 
   const totalExpenses = shiftData.cash_sales + shiftData.card_sales + shiftData.veresiye + shiftData.bank_transfers + shiftData.loyalty_card;
   const overShort = totalExpenses - shiftData.otomasyon_satis;
+
+  // Calculate effective shift date for display
+  const effectiveShiftDate = shiftData.start_date && shiftData.start_time 
+    ? getShiftDate(`${shiftData.start_date}T${shiftData.start_time}:00`)
+    : shiftData.start_date;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col space-y-2">
         <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Vardiya Kaydet</h2>
         <p className="text-sm lg:text-base text-gray-600">Yeni vardiya bilgilerini girin</p>
+        {effectiveShiftDate && effectiveShiftDate !== shiftData.start_date && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-sm text-blue-800">
+              <strong>Dikkat:</strong> Bu vardiya {effectiveShiftDate} tarihine kaydedilecek (22:55 sonrası başladığı için)
+            </p>
+          </div>
+        )}
       </div>
 
       <Card className="shadow-sm border">
@@ -294,6 +349,21 @@ export const ShiftManagement = () => {
                       className="h-11 border-gray-300"
                     />
                   </div>
+                  {shiftData.veresiye > 0 && (
+                    <div className="space-y-2 md:col-span-2">
+                      <Label>Veresiye Müşterisi *</Label>
+                      <Select value={shiftData.customer_id} onValueChange={(value) => handleInputChange('customer_id', value)}>
+                        <SelectTrigger className="h-11 border-gray-300">
+                          <SelectValue placeholder="Müşteri seçin" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border shadow-lg">
+                          {customers.map((customer) => (
+                            <SelectItem key={customer.id} value={customer.id}>{customer.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label>Banka Havale (₺)</Label>
                     <Input 
