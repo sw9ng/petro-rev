@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -63,7 +62,7 @@ export const useCustomerTransactions = () => {
           ? { name: item.customer.name }
           : { name: 'Unknown Customer' };
         
-        const personnel = item.personnel && typeof item.personnel === 'object' && 'name' in item.personnel
+        const personnel = item.personnel && typeof item.personnel === 'object' && item.personnel !== null && 'name' in item.personnel
           ? { name: item.personnel.name }
           : { name: 'Unknown Personnel' };
 
@@ -72,7 +71,7 @@ export const useCustomerTransactions = () => {
           ? {
               start_time: item.shift.start_time || '',
               shift_number: item.shift.shift_number || undefined,
-              personnel: item.shift.personnel && typeof item.shift.personnel === 'object' && 'name' in item.shift.personnel
+              personnel: item.shift.personnel && typeof item.shift.personnel === 'object' && item.shift.personnel !== null && 'name' in item.shift.personnel
                 ? { name: item.shift.personnel.name }
                 : { name: 'Unknown Personnel' }
             }
@@ -129,7 +128,7 @@ export const useCustomerTransactions = () => {
         ? { name: data.customer.name }
         : { name: 'Unknown Customer' };
       
-      const personnel = data.personnel && typeof data.personnel === 'object' && 'name' in data.personnel
+      const personnel = data.personnel && typeof data.personnel === 'object' && data.personnel !== null && 'name' in data.personnel
         ? { name: data.personnel.name }
         : { name: 'Unknown Personnel' };
 
@@ -137,7 +136,7 @@ export const useCustomerTransactions = () => {
         ? {
             start_time: data.shift.start_time || '',
             shift_number: data.shift.shift_number || undefined,
-            personnel: data.shift.personnel && typeof data.shift.personnel === 'object' && 'name' in data.shift.personnel
+            personnel: data.shift.personnel && typeof data.shift.personnel === 'object' && data.shift.personnel !== null && 'name' in data.shift.personnel
               ? { name: data.shift.personnel.name }
               : { name: 'Unknown Personnel' }
           }
@@ -196,7 +195,7 @@ export const useCustomerTransactions = () => {
         ? { name: data.customer.name }
         : { name: 'Unknown Customer' };
       
-      const personnel = data.personnel && typeof data.personnel === 'object' && 'name' in data.personnel
+      const personnel = data.personnel && typeof data.personnel === 'object' && data.personnel !== null && 'name' in data.personnel
         ? { name: data.personnel.name }
         : { name: 'Unknown Personnel' };
 
@@ -204,7 +203,7 @@ export const useCustomerTransactions = () => {
         ? {
             start_time: data.shift.start_time || '',
             shift_number: data.shift.shift_number || undefined,
-            personnel: data.shift.personnel && typeof data.shift.personnel === 'object' && 'name' in data.shift.personnel
+            personnel: data.shift.personnel && typeof data.shift.personnel === 'object' && data.shift.personnel !== null && 'name' in data.shift.personnel
               ? { name: data.shift.personnel.name }
               : { name: 'Unknown Personnel' }
           }
@@ -291,7 +290,7 @@ export const useCustomerTransactions = () => {
         ? { name: item.customer.name }
         : { name: 'Unknown Customer' };
       
-      const personnel = item.personnel && typeof item.personnel === 'object' && 'name' in item.personnel
+      const personnel = item.personnel && typeof item.personnel === 'object' && item.personnel !== null && 'name' in item.personnel
         ? { name: item.personnel.name }
         : { name: 'Unknown Personnel' };
 
@@ -299,7 +298,7 @@ export const useCustomerTransactions = () => {
         ? {
             start_time: item.shift.start_time || '',
             shift_number: item.shift.shift_number || undefined,
-            personnel: item.shift.personnel && typeof item.shift.personnel === 'object' && 'name' in item.shift.personnel
+            personnel: item.shift.personnel && typeof item.shift.personnel === 'object' && item.shift.personnel !== null && 'name' in item.shift.personnel
               ? { name: item.shift.personnel.name }
               : { name: 'Unknown Personnel' }
           }
