@@ -36,9 +36,6 @@ export const useCustomerTransactions = () => {
         *,
         customer:customer_id (
           name
-        ),
-        personnel:personnel_id (
-          name
         )
       `)
       .eq('station_id', user.id)
@@ -47,18 +44,30 @@ export const useCustomerTransactions = () => {
     if (error) {
       console.error('Error fetching customer transactions:', error);
     } else {
+      // Fetch personnel data separately
+      const personnelIds = [...new Set((data || []).map(item => item.personnel_id))];
+      const { data: personnelData } = await supabase
+        .from('personnel')
+        .select('id, name')
+        .in('id', personnelIds);
+
+      const personnelMap = (personnelData || []).reduce((acc, p) => {
+        acc[p.id] = p;
+        return acc;
+      }, {} as Record<string, { id: string; name: string }>);
+
       const mappedData = (data || []).map(item => ({
         id: item.id,
         customer_id: item.customer_id,
         personnel_id: item.personnel_id,
         amount: item.amount,
         transaction_date: item.transaction_date,
-        transaction_type: item.transaction_type,
-        status: item.status,
+        transaction_type: item.transaction_type as 'debt' | 'payment',
+        status: item.status as 'pending' | 'completed',
         payment_method: item.payment_method,
         description: item.description,
         customer: item.customer,
-        personnel: item.personnel ? { name: item.personnel.name } : { name: 'Bilinmeyen Personel' }
+        personnel: personnelMap[item.personnel_id] ? { name: personnelMap[item.personnel_id].name } : { name: 'Bilinmeyen Personel' }
       }));
       setTransactions(mappedData);
     }
@@ -94,14 +103,18 @@ export const useCustomerTransactions = () => {
         *,
         customer:customer_id (
           name
-        ),
-        personnel:personnel_id (
-          name
         )
       `)
       .single();
 
     if (!error && data) {
+      // Fetch personnel data
+      const { data: personnelData } = await supabase
+        .from('personnel')
+        .select('name')
+        .eq('id', data.personnel_id)
+        .single();
+
       const mappedTransaction = {
         id: data.id,
         customer_id: data.customer_id,
@@ -113,7 +126,7 @@ export const useCustomerTransactions = () => {
         payment_method: data.payment_method,
         description: data.description,
         customer: data.customer,
-        personnel: data.personnel ? { name: data.personnel.name } : { name: 'Bilinmeyen Personel' }
+        personnel: personnelData ? { name: personnelData.name } : { name: 'Bilinmeyen Personel' }
       };
       
       setTransactions(prev => [mappedTransaction, ...prev]);
@@ -149,14 +162,18 @@ export const useCustomerTransactions = () => {
         *,
         customer:customer_id (
           name
-        ),
-        personnel:personnel_id (
-          name
         )
       `)
       .single();
 
     if (!error && data) {
+      // Fetch personnel data
+      const { data: personnelData } = await supabase
+        .from('personnel')
+        .select('name')
+        .eq('id', data.personnel_id)
+        .single();
+
       const mappedTransaction = {
         id: data.id,
         customer_id: data.customer_id,
@@ -168,7 +185,7 @@ export const useCustomerTransactions = () => {
         payment_method: data.payment_method,
         description: data.description,
         customer: data.customer,
-        personnel: data.personnel ? { name: data.personnel.name } : { name: 'Bilinmeyen Personel' }
+        personnel: personnelData ? { name: personnelData.name } : { name: 'Bilinmeyen Personel' }
       };
       
       setTransactions(prev => [mappedTransaction, ...prev]);
@@ -190,6 +207,80 @@ export const useCustomerTransactions = () => {
 
   const getCustomerTransactions = (customerId: string) => {
     return transactions.filter(t => t.customer_id === customerId);
+  };
+
+  const getCustomerDebts = () => {
+    // Group by customer and calculate each customer's balance
+    const customerBalances: { [key: string]: { customerId: string, customer: string, balance: number } } = {};
+    
+    transactions.forEach(transaction => {
+      if (!customerBalances[transaction.customer_id]) {
+        customerBalances[transaction.customer_id] = {
+          customerId: transaction.customer_id,
+          customer: transaction.customer.name,
+          balance: 0
+        };
+      }
+      
+      if (transaction.transaction_type === 'debt') {
+        customerBalances[transaction.customer_id].balance += transaction.amount;
+      } else {
+        customerBalances[transaction.customer_id].balance -= transaction.amount;
+      }
+    });
+    
+    // Return only customers with positive balances (debts)
+    return Object.values(customerBalances).filter(customer => customer.balance > 0);
+  };
+
+  const getTransactionsByDateRange = async (startDate: string, endDate: string) => {
+    if (!user) return [];
+    
+    const { data, error } = await supabase
+      .from('customer_transactions')
+      .select(`
+        *,
+        customer:customer_id (
+          name
+        )
+      `)
+      .eq('station_id', user.id)
+      .gte('transaction_date', startDate)
+      .lte('transaction_date', endDate)
+      .order('transaction_date', { ascending: false });
+
+    if (error) {
+      console.error('Error searching transactions:', error);
+      return [];
+    }
+    
+    // Fetch personnel data separately
+    const personnelIds = [...new Set((data || []).map(item => item.personnel_id))];
+    const { data: personnelData } = await supabase
+      .from('personnel')
+      .select('id, name')
+      .in('id', personnelIds);
+
+    const personnelMap = (personnelData || []).reduce((acc, p) => {
+      acc[p.id] = p;
+      return acc;
+    }, {} as Record<string, { id: string; name: string }>);
+
+    const mappedData = (data || []).map(item => ({
+      id: item.id,
+      customer_id: item.customer_id,
+      personnel_id: item.personnel_id,
+      amount: item.amount,
+      transaction_date: item.transaction_date,
+      transaction_type: item.transaction_type as 'debt' | 'payment',
+      status: item.status as 'pending' | 'completed',
+      payment_method: item.payment_method,
+      description: item.description,
+      customer: item.customer,
+      personnel: personnelMap[item.personnel_id] ? { name: personnelMap[item.personnel_id].name } : { name: 'Bilinmeyen Personel' }
+    }));
+    
+    return mappedData;
   };
 
   const getTotalOutstandingDebt = () => {
@@ -251,9 +342,6 @@ export const useCustomerTransactions = () => {
         *,
         customer:customer_id (
           name
-        ),
-        personnel:personnel_id (
-          name
         )
       `)
       .eq('station_id', user.id)
@@ -266,18 +354,30 @@ export const useCustomerTransactions = () => {
       return [];
     }
     
+    // Fetch personnel data separately
+    const personnelIds = [...new Set((data || []).map(item => item.personnel_id))];
+    const { data: personnelData } = await supabase
+      .from('personnel')
+      .select('id, name')
+      .in('id', personnelIds);
+
+    const personnelMap = (personnelData || []).reduce((acc, p) => {
+      acc[p.id] = p;
+      return acc;
+    }, {} as Record<string, { id: string; name: string }>);
+
     const mappedData = (data || []).map(item => ({
       id: item.id,
       customer_id: item.customer_id,
       personnel_id: item.personnel_id,
       amount: item.amount,
       transaction_date: item.transaction_date,
-      transaction_type: item.transaction_type,
-      status: item.status,
+      transaction_type: item.transaction_type as 'debt' | 'payment',
+      status: item.status as 'pending' | 'completed',
       payment_method: item.payment_method,
       description: item.description,
       customer: item.customer,
-      personnel: item.personnel ? { name: item.personnel.name } : { name: 'Bilinmeyen Personel' }
+      personnel: personnelMap[item.personnel_id] ? { name: personnelMap[item.personnel_id].name } : { name: 'Bilinmeyen Personel' }
     }));
     
     return mappedData;
@@ -294,6 +394,8 @@ export const useCustomerTransactions = () => {
     addVeresiye,
     getCustomerBalance,
     getCustomerTransactions,
+    getCustomerDebts,
+    getTransactionsByDateRange,
     getTotalOutstandingDebt,
     getAllTransactionsGroupedByCustomer,
     findTransactionsByDate,

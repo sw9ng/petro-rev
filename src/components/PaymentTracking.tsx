@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +10,6 @@ import { CreditCard, Plus, DollarSign, Filter } from 'lucide-react';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { usePersonnel } from '@/hooks/usePersonnel';
-import { useShifts } from '@/hooks/useShifts';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/numberUtils';
 
@@ -19,7 +17,6 @@ export const PaymentTracking = () => {
   const { toast } = useToast();
   const { customers } = useCustomers();
   const { personnel } = usePersonnel();
-  const { getShiftDisplayName } = useShifts();
   const { transactions, loading, addPayment, addVeresiye, getCustomerDebts, getTransactionsByDateRange } = useCustomerTransactions();
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showDebtDialog, setShowDebtDialog] = useState(false);
@@ -433,13 +430,8 @@ export const PaymentTracking = () => {
                   <div>
                     <p className="font-medium">{transaction.customer.name}</p>
                     <p className="text-sm text-gray-600">
-                      {transaction.transaction_type === 'payment' ? 'Ödeme' : 'Veresiye'} - {transaction.personnel.name}
+                      {transaction.transaction_type === 'payment' ? 'Ödeme' : 'Veresiye'} - {transaction.personnel?.name || 'Bilinmeyen Personel'}
                     </p>
-                    {transaction.shift && (
-                      <p className="text-xs text-gray-500">
-                        Vardiya: {getShiftDisplayName(transaction.shift as any)}
-                      </p>
-                    )}
                     <p className="text-xs text-gray-500">
                       {new Date(transaction.transaction_date).toLocaleDateString('tr-TR')} {new Date(transaction.transaction_date).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
                     </p>
