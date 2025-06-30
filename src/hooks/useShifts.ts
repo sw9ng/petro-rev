@@ -183,6 +183,48 @@ export const useShifts = () => {
     return { data, error };
   };
 
+  const updateShift = async (shiftId: string, updateData: any) => {
+    if (!user) return { error: 'Kullanıcı doğrulanmadı' };
+
+    const { data, error } = await supabase
+      .from('shifts')
+      .update(updateData)
+      .eq('id', shiftId)
+      .eq('station_id', user.id)
+      .select(`
+        *,
+        personnel:personnel_id (
+          name
+        )
+      `)
+      .single();
+
+    if (!error && data) {
+      const mappedShift = {
+        id: data.id,
+        personnel_id: data.personnel_id,
+        start_time: data.start_time,
+        end_time: data.end_time,
+        cash_sales: data.cash_sales || 0,
+        card_sales: data.card_sales || 0,
+        otomasyon_satis: data.actual_amount || 0,
+        over_short: data.over_short || 0,
+        status: data.status,
+        veresiye: data.veresiye || 0,
+        bank_transfers: data.bank_transfers || 0,
+        loyalty_card: data.loyalty_card || 0,
+        bank_transfer_description: data.bank_transfer_description || '',
+        shift_number: (data.shift_number as 'V1' | 'V2') || undefined,
+        personnel: data.personnel
+      };
+      
+      setShifts(prev => prev.map(shift => shift.id === shiftId ? mappedShift : shift));
+      setAllShifts(prev => prev.map(shift => shift.id === shiftId ? mappedShift : shift));
+    }
+
+    return { data, error };
+  };
+
   const deleteShift = async (shiftId: string) => {
     if (!user) return { error: 'Kullanıcı doğrulanmadı' };
 
@@ -291,6 +333,7 @@ export const useShifts = () => {
     allShifts,
     loading,
     addShift,
+    updateShift,
     deleteShift,
     getWeeklyStats,
     getLatestShift,

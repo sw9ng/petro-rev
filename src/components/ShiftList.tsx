@@ -4,10 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Calculator, Search, Eye, Trash2, Clock, Filter } from 'lucide-react';
+import { Calendar, Calculator, Search, Eye, Trash2, Clock, Filter, Edit, CalendarRange } from 'lucide-react';
 import { useShifts } from '@/hooks/useShifts';
 import { usePersonnel } from '@/hooks/usePersonnel';
 import { ShiftDetailDialog } from './ShiftDetailDialog';
+import { ShiftEditDialog } from './ShiftEditDialog';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -22,10 +23,13 @@ export const ShiftList = () => {
   const { personnel } = usePersonnel();
   const [shifts, setShifts] = useState<any[]>([]);
   const [filteredShifts, setFilteredShifts] = useState<any[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date>();
+  const [startDate, setStartDate] = useState<Date>();
+  const [endDate, setEndDate] = useState<Date>();
   const [selectedPersonnel, setSelectedPersonnel] = useState('');
   const [selectedShift, setSelectedShift] = useState<any>(null);
+  const [editingShift, setEditingShift] = useState<any>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -43,14 +47,25 @@ export const ShiftList = () => {
   useEffect(() => {
     let filtered = shifts;
 
-    if (selectedDate) {
+    // Filter by date range
+    if (startDate || endDate) {
       filtered = filtered.filter(shift => {
-        // Use the corrected date parsing to avoid timezone offset
         const shiftDate = formatDateTimeForDisplay(shift.start_time);
-        const selectedDateString = format(selectedDate, 'yyyy-MM-dd');
         const shiftDateString = format(shiftDate, 'yyyy-MM-dd');
         
-        return shiftDateString === selectedDateString;
+        if (startDate && endDate) {
+          const startDateString = format(startDate, 'yyyy-MM-dd');
+          const endDateString = format(endDate, 'yyyy-MM-dd');
+          return shiftDateString >= startDateString && shiftDateString <= endDateString;
+        } else if (startDate) {
+          const startDateString = format(startDate, 'yyyy-MM-dd');
+          return shiftDateString >= startDateString;
+        } else if (endDate) {
+          const endDateString = format(endDate, 'yyyy-MM-dd');
+          return shiftDateString <= endDateString;
+        }
+        
+        return true;
       });
     }
 
@@ -59,16 +74,22 @@ export const ShiftList = () => {
     }
 
     setFilteredShifts(filtered);
-  }, [selectedDate, selectedPersonnel, shifts]);
+  }, [startDate, endDate, selectedPersonnel, shifts]);
 
   const clearFilters = () => {
-    setSelectedDate(undefined);
+    setStartDate(undefined);
+    setEndDate(undefined);
     setSelectedPersonnel('');
   };
 
   const handleShiftDetail = (shift: any) => {
     setSelectedShift(shift);
     setDetailDialogOpen(true);
+  };
+
+  const handleEditShift = (shift: any) => {
+    setEditingShift(shift);
+    setEditDialogOpen(true);
   };
 
   const handleDeleteShift = async (shiftId: string) => {
@@ -91,6 +112,16 @@ export const ShiftList = () => {
         setShifts(allShifts);
       }
     }
+  };
+
+  const handleShiftUpdated = async () => {
+    const allShifts = await fetchAllShifts();
+    setShifts(allShifts);
+    setEditDialogOpen(false);
+    toast({
+      title: "Vardiya Güncellendi",
+      description: "Vardiya başarıyla güncellendi.",
+    });
   };
 
   const calculateDuration = (startTime: string, endTime: string | null) => {
@@ -120,7 +151,7 @@ export const ShiftList = () => {
     <div className="space-y-6">
       <div className="flex flex-col space-y-2">
         <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Vardiya Geçmişi</h2>
-        <p className="text-sm lg:text-base text-gray-600">Geçmiş vardiyaları görüntüle ve filtrele</p>
+        <p className="text-sm lg:text-base text-gray-600">Geçmiş vardiyaları görüntüle, filtrele ve düzenle</p>
       </div>
 
       {/* Filters */}
@@ -132,27 +163,54 @@ export const ShiftList = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Tarih Seçin</label>
+              <label className="text-sm font-medium text-gray-700">Başlangıç Tarihi</label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal h-11 border-gray-300",
-                      !selectedDate && "text-gray-500"
+                      !startDate && "text-gray-500"
                     )}
                   >
                     <Calendar className="mr-2 h-4 w-4" />
-                    {selectedDate ? format(selectedDate, "dd MMM yyyy", { locale: tr }) : "Tarih seçin"}
+                    {startDate ? format(startDate, "dd MMM yyyy", { locale: tr }) : "Başlangıç"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 bg-white border shadow-lg" align="start">
                   <CalendarComponent
                     mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
+                    selected={startDate}
+                    onSelect={setStartDate}
+                    initialFocus
+                    locale={tr}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Bitiş Tarihi</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal h-11 border-gray-300",
+                      !endDate && "text-gray-500"
+                    )}
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {endDate ? format(endDate, "dd MMM yyyy", { locale: tr }) : "Bitiş"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 bg-white border shadow-lg" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={endDate}
+                    onSelect={setEndDate}
                     initialFocus
                     locale={tr}
                   />
@@ -193,7 +251,7 @@ export const ShiftList = () => {
             <div className="space-y-2">
               <Search className="h-12 w-12 text-gray-400 mx-auto" />
               <p className="text-gray-600 font-medium">
-                {selectedDate || selectedPersonnel ? 'Seçilen kriterlere uygun vardiya bulunamadı.' : 'Henüz vardiya geçmişi bulunmuyor.'}
+                {startDate || endDate || selectedPersonnel ? 'Seçilen kriterlere uygun vardiya bulunamadı.' : 'Henüz vardiya geçmişi bulunmuyor.'}
               </p>
               <p className="text-gray-500 text-sm">
                 Filtreleri değiştirmeyi deneyin veya yeni vardiya ekleyin.
@@ -251,6 +309,15 @@ export const ShiftList = () => {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => handleEditShift(shift)}
+                          className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-8 px-2"
+                        >
+                          <Edit className="h-3 w-3" />
+                          <span className="hidden sm:inline text-xs">Düzenle</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => handleDeleteShift(shift.id)}
                           className="flex items-center space-x-1 text-red-600 hover:text-red-700 hover:bg-red-50 h-8 px-2"
                         >
@@ -289,7 +356,6 @@ export const ShiftList = () => {
                     </div>
                   </div>
 
-                  {/* Açık/Fazla Hesaplama */}
                   <div className="p-4 border rounded-lg bg-white">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-gray-700">Açık/Fazla</span>
@@ -310,6 +376,13 @@ export const ShiftList = () => {
         shift={selectedShift}
         isOpen={detailDialogOpen}
         onOpenChange={setDetailDialogOpen}
+      />
+
+      <ShiftEditDialog
+        shift={editingShift}
+        isOpen={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onShiftUpdated={handleShiftUpdated}
       />
     </div>
   );
