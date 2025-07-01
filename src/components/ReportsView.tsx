@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CalendarIcon, TrendingUp, DollarSign, Users, Fuel, CreditCard } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -342,34 +343,79 @@ export const ReportsView = () => {
 
       {/* Credit Card Processing by Bank */}
       {creditCardData.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <CreditCard className="h-5 w-5 text-blue-500" />
-              <span>Kredi Kartı Satış Dağılımı</span>
-            </CardTitle>
-            <CardDescription>Kredi kartı satış tutarları</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {creditCardData.map((item, index) => (
-                <Card key={item.bank} className="border-l-4" style={{borderLeftColor: COLORS[index % COLORS.length]}}>
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-medium text-gray-900">{item.bank}</p>
-                        <p className="text-sm text-gray-600">Satış Tutarı</p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Summary Cards */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <CreditCard className="h-5 w-5 text-blue-500" />
+                <span>Kredi Kartı Satış Dağılımı</span>
+              </CardTitle>
+              <CardDescription>Kredi kartı satış tutarları</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 gap-4">
+                {creditCardData.map((item, index) => (
+                  <Card key={item.bank} className="border-l-4" style={{borderLeftColor: COLORS[index % COLORS.length]}}>
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-medium text-gray-900">{item.bank}</p>
+                          <p className="text-sm text-gray-600">Satış Tutarı</p>
+                        </div>
+                        <p className="text-lg font-bold" style={{color: COLORS[index % COLORS.length]}}>
+                          {formatCurrency(item.amount)}
+                        </p>
                       </div>
-                      <p className="text-lg font-bold" style={{color: COLORS[index % COLORS.length]}}>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Detailed Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Banka Bazında Detay</CardTitle>
+              <CardDescription>Kredi kartı satışlarının banka bazında detayları</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Banka</TableHead>
+                    <TableHead className="text-right">Tutar</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {creditCardData.map((item, index) => (
+                    <TableRow key={item.bank}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center space-x-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{backgroundColor: COLORS[index % COLORS.length]}}
+                          />
+                          <span>{item.bank}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right font-bold">
                         {formatCurrency(item.amount)}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow className="border-t-2 font-bold">
+                    <TableCell>Toplam</TableCell>
+                    <TableCell className="text-right">
+                      {formatCurrency(creditCardData.reduce((sum, item) => sum + item.amount, 0))}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* Charts */}
@@ -392,7 +438,7 @@ export const ReportsView = () => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
                   <YAxis />
-                  <Tooltip formatter={(value) => [formatCurrency(typeof value === 'number' ? value : 0), 'Ciro']} />
+                  <Tooltip formatter={(value: unknown) => [formatCurrency(typeof value === 'number' ? value : 0), 'Ciro']} />
                   <Legend />
                   <Bar dataKey="revenue" fill="#8884d8" name="Günlük Ciro" />
                 </BarChart>
@@ -424,7 +470,7 @@ export const ReportsView = () => {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => [formatCurrency(typeof value === 'number' ? value : 0), 'Tutar']} />
+                  <Tooltip formatter={(value: unknown) => [formatCurrency(typeof value === 'number' ? value : 0), 'Tutar']} />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
@@ -443,7 +489,7 @@ export const ReportsView = () => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="bank" />
                   <YAxis />
-                  <Tooltip formatter={(value) => [formatCurrency(typeof value === 'number' ? value : 0), 'Tutar']} />
+                  <Tooltip formatter={(value: unknown) => [formatCurrency(typeof value === 'number' ? value : 0), 'Tutar']} />
                   <Legend />
                   <Bar dataKey="amount" fill="#82ca9d" name="Kredi Kartı Satışı" />
                 </BarChart>
