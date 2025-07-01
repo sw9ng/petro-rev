@@ -14,13 +14,16 @@ import { formatCurrency } from '@/lib/numberUtils';
 import { useShifts } from '@/hooks/useShifts';
 import { usePersonnel } from '@/hooks/usePersonnel';
 import { useFuelSales } from '@/hooks/useFuelSales';
+import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 export const ReportsView = () => {
   const { fetchAllShifts } = useShifts();
   const { personnel } = usePersonnel();
   const { fuelSales } = useFuelSales();
+  const { getTransactionsByDateRange, getTotalOutstandingDebt } = useCustomerTransactions();
   const [shifts, setShifts] = useState<any[]>([]);
+  const [customerTransactions, setCustomerTransactions] = useState<any[]>([]);
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
   const [selectedPersonnel, setSelectedPersonnel] = useState('');
@@ -33,9 +36,23 @@ export const ReportsView = () => {
     setLoading(false);
   };
 
+  const loadCustomerTransactions = async () => {
+    if (startDate && endDate) {
+      const transactions = await getTransactionsByDateRange(
+        startDate.toISOString(),
+        endDate.toISOString()
+      );
+      setCustomerTransactions(transactions);
+    }
+  };
+
   useEffect(() => {
     loadShifts();
   }, []);
+
+  useEffect(() => {
+    loadCustomerTransactions();
+  }, [startDate, endDate]);
 
   const filteredShifts = shifts.filter(shift => {
     let include = true;
@@ -89,6 +106,37 @@ export const ReportsView = () => {
   // Calculate total veresiye
   const totalVeresiye = filteredShifts.reduce((sum, shift) => sum + (shift.veresiye || 0), 0);
 
+  // Calculate customer transaction totals
+  const customerDebtTotal = customerTransactions
+    .filter(t => t.transaction_type === 'debt')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const customerPaymentTotal = customerTransactions
+    .filter(t => t.transaction_type === 'payment')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const totalOutstandingDebt = getTotalOutstandingDebt();
+
+  // Calculate credit card totals by bank (from bank transfers)
+  const creditCardByBank = filteredShifts.reduce((acc, shift) => {
+    if (shift.bank_transfers > 0 && shift.bank_transfer_description) {
+      // Parse bank information from description or use a default grouping
+      const bankName = shift.bank_transfer_description.toLowerCase().includes('ziraat') ? 'Ziraat Bankası' :
+                      shift.bank_transfer_description.toLowerCase().includes('vakıf') ? 'Vakıfbank' :
+                      shift.bank_transfer_description.toLowerCase().includes('garanti') ? 'Garanti BBVA' :
+                      shift.bank_transfer_description.toLowerCase().includes('akbank') ? 'Akbank' :
+                      shift.bank_transfer_description.toLowerCase().includes('yapı') ? 'Yapı Kredi' :
+                      shift.bank_transfer_description.toLowerCase().includes('şeker') ? 'Şekerbank' :
+                      'Diğer';
+      
+      if (!acc[bankName]) {
+        acc[bankName] = 0;
+      }
+      acc[bankName] += shift.bank_transfers;
+    }
+    return acc;
+  }, {} as Record<string, number>);
+
   // Prepare chart data
   const dailyRevenue = filteredShifts.reduce((acc, shift) => {
     const date = format(new Date(shift.start_time), 'yyyy-MM-dd');
@@ -120,7 +168,13 @@ export const ReportsView = () => {
     value: amount
   }));
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+  // Credit card data for chart
+  const creditCardData = Object.entries(creditCardByBank).map(([bank, amount]) => ({
+    bank,
+    amount
+  }));
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
   const clearFilters = () => {
     setStartDate(undefined);
@@ -222,7 +276,7 @@ export const ReportsView = () => {
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Toplam Ciro</CardTitle>
@@ -249,7 +303,17 @@ export const ReportsView = () => {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalVeresiye)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalVeresiye + customerDebtTotal)}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Müşteri Borçları</CardTitle>
+            <CreditCard className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{formatCurrency(totalOutstandingDebt)}</div>
           </CardContent>
         </Card>
 
@@ -276,11 +340,44 @@ export const ReportsView = () => {
         </Card>
       </div>
 
+      {/* Credit Card Processing by Bank */}
+      {creditCardData.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <CreditCard className="h-5 w-5 text-blue-500" />
+              <span>Banka Havalesi Dağılımı</span>
+            </CardTitle>
+            <CardDescription>Bankalara göre havale tutarları</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {creditCardData.map((item, index) => (
+                <Card key={item.bank} className="border-l-4" style={{borderLeftColor: COLORS[index % COLORS.length]}}>
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-medium text-gray-900">{item.bank}</p>
+                        <p className="text-sm text-gray-600">Havale Tutarı</p>
+                      </div>
+                      <p className="text-lg font-bold" style={{color: COLORS[index % COLORS.length]}}>
+                        {formatCurrency(item.amount)}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Charts */}
       <Tabs defaultValue="revenue" className="space-y-4">
         <TabsList>
           <TabsTrigger value="revenue">Günlük Ciro</TabsTrigger>
           <TabsTrigger value="fuel">Akaryakıt Türü</TabsTrigger>
+          <TabsTrigger value="creditcard">Banka Havalesi</TabsTrigger>
         </TabsList>
 
         <TabsContent value="revenue">
@@ -329,6 +426,27 @@ export const ReportsView = () => {
                   </Pie>
                   <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Tutar']} />
                 </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="creditcard">
+          <Card>
+            <CardHeader>
+              <CardTitle>Banka Havalesi Analizi</CardTitle>
+              <CardDescription>Bankalara göre havale tutarları</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={creditCardData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="bank" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Tutar']} />
+                  <Legend />
+                  <Bar dataKey="amount" fill="#82ca9d" name="Havale Tutarı" />
+                </BarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>

@@ -6,7 +6,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { CreditCard, Plus, DollarSign, Filter } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CreditCard, Plus, DollarSign, Filter, CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { tr } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { usePersonnel } from '@/hooks/usePersonnel';
@@ -21,7 +26,8 @@ export const PaymentTracking = () => {
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showDebtDialog, setShowDebtDialog] = useState(false);
   const [filteredTransactions, setFilteredTransactions] = useState(transactions);
-  const [selectedDate, setSelectedDate] = useState('');
+  const [startDate, setStartDate] = useState<Date>();
+  const [endDate, setEndDate] = useState<Date>();
   
   const [paymentData, setPaymentData] = useState({
     customer_id: '',
@@ -130,19 +136,25 @@ export const PaymentTracking = () => {
   };
 
   const handleDateFilter = async () => {
-    if (!selectedDate) {
+    if (!startDate || !endDate) {
       setFilteredTransactions(transactions);
       return;
     }
 
-    const startDate = selectedDate;
-    const endDate = selectedDate + 'T23:59:59';
-    
-    const filtered = await getTransactionsByDateRange(startDate, endDate);
+    const filtered = await getTransactionsByDateRange(
+      startDate.toISOString(),
+      endDate.toISOString()
+    );
     setFilteredTransactions(filtered);
   };
 
-  const displayTransactions = selectedDate ? filteredTransactions : transactions;
+  const clearFilters = () => {
+    setStartDate(undefined);
+    setEndDate(undefined);
+    setFilteredTransactions(transactions);
+  };
+
+  const displayTransactions = (startDate || endDate) ? filteredTransactions : transactions;
   const customerDebts = getCustomerDebts();
 
   if (loading) {
@@ -156,26 +168,69 @@ export const PaymentTracking = () => {
         <p className="text-sm lg:text-base text-gray-600">Müşteri ödemelerini ve borçlarını takip edin</p>
       </div>
 
-      <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-2">
-          <Input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="w-auto"
-          />
-          <Button onClick={handleDateFilter} variant="outline">
-            <Filter className="h-4 w-4 mr-2" />
-            Filtrele
-          </Button>
-          {selectedDate && (
-            <Button onClick={() => {
-              setSelectedDate('');
-              setFilteredTransactions(transactions);
-            }} variant="outline">
-              Temizle
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+          <div className="flex items-center space-x-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-[240px] justify-start text-left font-normal",
+                    !startDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {startDate ? format(startDate, "PPP", { locale: tr }) : "Başlangıç tarihi"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={startDate}
+                  onSelect={setStartDate}
+                  initialFocus
+                  locale={tr}
+                />
+              </PopoverContent>
+            </Popover>
+            
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-[240px] justify-start text-left font-normal",
+                    !endDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {endDate ? format(endDate, "PPP", { locale: tr }) : "Bitiş tarihi"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={endDate}
+                  onSelect={setEndDate}
+                  initialFocus
+                  locale={tr}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+          
+          <div className="flex space-x-2">
+            <Button onClick={handleDateFilter} variant="outline">
+              <Filter className="h-4 w-4 mr-2" />
+              Filtrele
             </Button>
-          )}
+            {(startDate || endDate) && (
+              <Button onClick={clearFilters} variant="outline">
+                Temizle
+              </Button>
+            )}
+          </div>
         </div>
         
         <div className="flex space-x-2">
@@ -409,8 +464,10 @@ export const PaymentTracking = () => {
           <CardTitle className="flex items-center space-x-2">
             <CreditCard className="h-5 w-5 text-green-500" />
             <span>İşlem Geçmişi</span>
-            {selectedDate && (
-              <span className="text-sm text-gray-500">({new Date(selectedDate).toLocaleDateString('tr-TR')})</span>
+            {(startDate || endDate) && (
+              <span className="text-sm text-gray-500">
+                ({startDate && format(startDate, 'dd/MM/yyyy', { locale: tr })} - {endDate && format(endDate, 'dd/MM/yyyy', { locale: tr })})
+              </span>
             )}
           </CardTitle>
           <CardDescription>Müşteri işlem geçmişi</CardDescription>
@@ -453,10 +510,10 @@ export const PaymentTracking = () => {
               <div className="text-center py-8">
                 <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {selectedDate ? 'Bu tarihte işlem yok' : 'Henüz işlem yok'}
+                  {(startDate || endDate) ? 'Bu tarih aralığında işlem yok' : 'Henüz işlem yok'}
                 </h3>
                 <p className="text-gray-600">
-                  {selectedDate ? 'Seçilen tarihte herhangi bir işlem bulunamadı' : 'İlk işlem kaydını ekleyin'}
+                  {(startDate || endDate) ? 'Seçilen tarih aralığında herhangi bir işlem bulunamadı' : 'İlk işlem kaydını ekleyin'}
                 </p>
               </div>
             )}
