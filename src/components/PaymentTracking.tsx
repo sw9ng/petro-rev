@@ -90,9 +90,10 @@ export const PaymentTracking = () => {
 
     if (error) {
       console.error('Payment error:', error);
+      const errorMessage = typeof error === 'string' ? error : error.message || 'Bilinmeyen hata';
       toast({
         title: "Hata",
-        description: "Ödeme kaydedilirken bir hata oluştu: " + (error.message || error),
+        description: "Ödeme kaydedilirken bir hata oluştu: " + errorMessage,
         variant: "destructive"
       });
     } else {
@@ -129,9 +130,10 @@ export const PaymentTracking = () => {
 
     if (error) {
       console.error('Debt error:', error);
+      const errorMessage = typeof error === 'string' ? error : error.message || 'Bilinmeyen hata';
       toast({
         title: "Hata",
-        description: "Borç kaydedilirken bir hata oluştu: " + (error.message || error),
+        description: "Borç kaydedilirken bir hata oluştu: " + errorMessage,
         variant: "destructive"
       });
     } else {

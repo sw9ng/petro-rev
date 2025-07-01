@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -62,7 +61,7 @@ export const useCustomerTransactions = () => {
         personnel_id: item.personnel_id,
         amount: item.amount,
         transaction_date: item.transaction_date,
-        transaction_type: item.transaction_type as 'debt' | 'payment',
+        transaction_type: item.transaction_type === 'veresiye' ? 'debt' as const : item.transaction_type as 'debt' | 'payment',
         status: item.status as 'pending' | 'completed',
         payment_method: item.payment_method,
         description: item.description,
@@ -180,7 +179,7 @@ export const useCustomerTransactions = () => {
         personnel_id: data.personnel_id,
         amount: data.amount,
         transaction_date: data.transaction_date,
-        transaction_type: data.transaction_type as 'debt' | 'payment',
+        transaction_type: data.transaction_type === 'veresiye' ? 'debt' as const : data.transaction_type as 'debt' | 'payment',
         status: data.status as 'pending' | 'completed',
         payment_method: data.payment_method,
         description: data.description,

@@ -17,12 +17,12 @@ CREATE TABLE public.customer_transactions (
   customer_id UUID NOT NULL REFERENCES public.customers(id) ON DELETE CASCADE,
   shift_id UUID REFERENCES public.shifts(id) ON DELETE SET NULL,
   personnel_id UUID NOT NULL,
-  transaction_type TEXT NOT NULL CHECK (transaction_type IN ('veresiye', 'payment')),
+  transaction_type TEXT NOT NULL CHECK (transaction_type IN ('veresiye', 'payment', 'debt')),
   amount NUMERIC NOT NULL,
   payment_method TEXT CHECK (payment_method IN ('nakit', 'kredi_karti', 'havale')),
   description TEXT,
   transaction_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'collected')),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'collected', 'completed')),
   station_id UUID NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
