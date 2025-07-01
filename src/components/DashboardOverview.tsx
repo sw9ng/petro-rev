@@ -1,5 +1,6 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Fuel, Users, TrendingUp, Clock, Calendar as CalendarIcon } from 'lucide-react';
+import { Fuel, Users, TrendingUp, Clock, Calendar as CalendarIcon, Calculator } from 'lucide-react';
 import { useFuelSales } from '@/hooks/useFuelSales';
 import { usePersonnel } from '@/hooks/usePersonnel';
 import { useShifts } from '@/hooks/useShifts';
@@ -10,14 +11,14 @@ import { tr } from 'date-fns/locale';
 export const DashboardOverview = () => {
   const { fuelSales, loading: fuelLoading } = useFuelSales();
   const { personnel, loading: personnelLoading } = usePersonnel();
-  const { shifts, loading: shiftsLoading } = useShifts();
+  const { shifts, allShifts, loading: shiftsLoading } = useShifts();
 
   const loading = fuelLoading || personnelLoading || shiftsLoading;
 
   if (loading) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[1, 2, 3, 4].map((i) => (
+        {[1, 2, 3, 4, 5].map((i) => (
           <Card key={i} className="animate-pulse">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div className="h-4 bg-gray-200 rounded w-24"></div>
@@ -39,6 +40,12 @@ export const DashboardOverview = () => {
   const activeShifts = shifts.filter(shift => shift.status === 'active').length;
   const totalShifts = shifts.length;
 
+  // Calculate total over/short from all shifts
+  const totalOverShort = allShifts.reduce((sum, shift) => {
+    const overShort = shift.over_short || 0;
+    return sum + overShort;
+  }, 0);
+
   // Get recent fuel sales (last 5)
   const recentFuelSales = fuelSales
     .sort((a, b) => new Date(b.sale_time).getTime() - new Date(a.sale_time).getTime())
@@ -47,7 +54,7 @@ export const DashboardOverview = () => {
   return (
     <div className="space-y-8">
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-blue-700">Toplam Akaryakıt Satışı</CardTitle>
@@ -89,6 +96,23 @@ export const DashboardOverview = () => {
           <CardContent>
             <div className="text-2xl font-bold text-purple-900">{totalShifts}</div>
             <p className="text-xs text-purple-600 mt-1">Tüm vardiya kayıtları</p>
+          </CardContent>
+        </Card>
+
+        <Card className={`bg-gradient-to-br ${totalOverShort >= 0 ? 'from-green-50 to-green-100 border-green-200' : 'from-red-50 to-red-100 border-red-200'}`}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className={`text-sm font-medium ${totalOverShort >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+              Toplam Açık/Fazla
+            </CardTitle>
+            <Calculator className={`h-4 w-4 ${totalOverShort >= 0 ? 'text-green-600' : 'text-red-600'}`} />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${totalOverShort >= 0 ? 'text-green-900' : 'text-red-900'}`}>
+              {formatCurrency(totalOverShort)}
+            </div>
+            <p className={`text-xs mt-1 ${totalOverShort >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {totalOverShort >= 0 ? 'Fazla tutar' : 'Açık tutar'}
+            </p>
           </CardContent>
         </Card>
       </div>

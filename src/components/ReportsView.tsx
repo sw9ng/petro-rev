@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,6 +17,7 @@ import { usePersonnel } from '@/hooks/usePersonnel';
 import { useFuelSales } from '@/hooks/useFuelSales';
 import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { supabase } from '@/integrations/supabase/client';
 
 export const ReportsView = () => {
   const { fetchAllShifts } = useShifts();
@@ -24,6 +26,7 @@ export const ReportsView = () => {
   const { getTransactionsByDateRange, getTotalOutstandingDebt } = useCustomerTransactions();
   const [shifts, setShifts] = useState<any[]>([]);
   const [customerTransactions, setCustomerTransactions] = useState<any[]>([]);
+  const [bankDetails, setBankDetails] = useState<any[]>([]);
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
   const [selectedPersonnel, setSelectedPersonnel] = useState('');
@@ -34,6 +37,24 @@ export const ReportsView = () => {
     const allShifts = await fetchAllShifts();
     setShifts(allShifts);
     setLoading(false);
+  };
+
+  const loadBankDetails = async () => {
+    const { data, error } = await supabase
+      .from('shift_bank_details')
+      .select(`
+        *,
+        shifts!inner(
+          station_id,
+          start_time
+        )
+      `);
+
+    if (error) {
+      console.error('Error fetching bank details:', error);
+    } else {
+      setBankDetails(data || []);
+    }
   };
 
   const loadCustomerTransactions = async () => {
@@ -48,6 +69,7 @@ export const ReportsView = () => {
 
   useEffect(() => {
     loadShifts();
+    loadBankDetails();
   }, []);
 
   useEffect(() => {
@@ -95,6 +117,27 @@ export const ReportsView = () => {
     return include;
   });
 
+  // Filter bank details by date range
+  const filteredBankDetails = bankDetails.filter(detail => {
+    if (!startDate && !endDate) return true;
+    
+    const shiftDate = new Date(detail.shifts.start_time);
+    
+    if (startDate && endDate) {
+      const endDateWithTime = new Date(endDate);
+      endDateWithTime.setHours(23, 59, 59, 999);
+      return shiftDate >= startDate && shiftDate <= endDateWithTime;
+    } else if (startDate) {
+      return shiftDate >= startDate;
+    } else if (endDate) {
+      const endDateWithTime = new Date(endDate);
+      endDateWithTime.setHours(23, 59, 59, 999);
+      return shiftDate <= endDateWithTime;
+    }
+    
+    return true;
+  });
+
   // Calculate statistics
   const totalRevenue = filteredShifts.reduce((sum, shift) => 
     sum + shift.cash_sales + shift.card_sales + shift.veresiye + shift.bank_transfers, 0);
@@ -121,20 +164,15 @@ export const ReportsView = () => {
 
   const totalOutstandingDebt = getTotalOutstandingDebt();
 
-  // Calculate credit card totals by bank (from card_sales, not bank transfers)
-  const creditCardByBank = filteredShifts.reduce((acc, shift) => {
-    // Use card_sales data instead of bank_transfers
-    if (shift.card_sales > 0) {
-      // For now, we'll need to implement a way to track which bank each card sale belongs to
-      // This might require updating the shift data structure to include bank information for card sales
-      // For demonstration, we'll show the total card sales as "Kredi Kartı Satışları"
-      const bankName = 'Kredi Kartı Satışları';
-      
-      if (!acc[bankName]) {
-        acc[bankName] = 0;
-      }
-      acc[bankName] += shift.card_sales;
+  // Calculate credit card totals by bank from shift_bank_details
+  const creditCardByBank = filteredBankDetails.reduce((acc, detail) => {
+    const bankName = detail.bank_name;
+    const amount = detail.amount;
+    
+    if (!acc[bankName]) {
+      acc[bankName] = 0;
     }
+    acc[bankName] += amount;
     return acc;
   }, {} as Record<string, number>);
 
@@ -349,9 +387,9 @@ export const ReportsView = () => {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <CreditCard className="h-5 w-5 text-blue-500" />
-                <span>Kredi Kartı Satış Dağılımı</span>
+                <span>Banka Bazında Kredi Kartı Satışları</span>
               </CardTitle>
-              <CardDescription>Kredi kartı satış tutarları</CardDescription>
+              <CardDescription>Banka bazında kredi kartı satış tutarları</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 gap-4">
@@ -361,7 +399,7 @@ export const ReportsView = () => {
                       <div className="flex justify-between items-center">
                         <div>
                           <p className="font-medium text-gray-900">{item.bank}</p>
-                          <p className="text-sm text-gray-600">Satış Tutarı</p>
+                          <p className="text-sm text-gray-600">Kredi Kartı Satışı</p>
                         </div>
                         <p className="text-lg font-bold" style={{color: COLORS[index % COLORS.length]}}>
                           {formatCurrency(item.amount)}
@@ -377,15 +415,15 @@ export const ReportsView = () => {
           {/* Detailed Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Banka Bazında Detay</CardTitle>
-              <CardDescription>Kredi kartı satışlarının banka bazında detayları</CardDescription>
+              <CardTitle>Banka Bazında Detay Tablo</CardTitle>
+              <CardDescription>Kredi kartı satışlarının banka bazında detaylı listesi</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Banka</TableHead>
-                    <TableHead className="text-right">Tutar</TableHead>
+                    <TableHead>Banka Adı</TableHead>
+                    <TableHead className="text-right">Satış Tutarı</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -438,7 +476,7 @@ export const ReportsView = () => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
                   <YAxis />
-                  <Tooltip formatter={(value: unknown) => [formatCurrency(typeof value === 'number' ? value : 0), 'Ciro']} />
+                  <Tooltip formatter={(value) => [formatCurrency(typeof value === 'number' ? value : 0), 'Ciro']} />
                   <Legend />
                   <Bar dataKey="revenue" fill="#8884d8" name="Günlük Ciro" />
                 </BarChart>
@@ -470,7 +508,7 @@ export const ReportsView = () => {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: unknown) => [formatCurrency(typeof value === 'number' ? value : 0), 'Tutar']} />
+                  <Tooltip formatter={(value) => [formatCurrency(typeof value === 'number' ? value : 0), 'Tutar']} />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
@@ -481,7 +519,7 @@ export const ReportsView = () => {
           <Card>
             <CardHeader>
               <CardTitle>Kredi Kartı Satış Analizi</CardTitle>
-              <CardDescription>Kredi kartı satış tutarları</CardDescription>
+              <CardDescription>Banka bazında kredi kartı satış tutarları</CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={400}>
@@ -489,7 +527,7 @@ export const ReportsView = () => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="bank" />
                   <YAxis />
-                  <Tooltip formatter={(value: unknown) => [formatCurrency(typeof value === 'number' ? value : 0), 'Tutar']} />
+                  <Tooltip formatter={(value) => [formatCurrency(typeof value === 'number' ? value : 0), 'Tutar']} />
                   <Legend />
                   <Bar dataKey="amount" fill="#82ca9d" name="Kredi Kartı Satışı" />
                 </BarChart>
