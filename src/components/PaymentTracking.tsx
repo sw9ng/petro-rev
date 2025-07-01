@@ -16,7 +16,7 @@ import { useCustomers } from '@/hooks/useCustomers';
 import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { usePersonnel } from '@/hooks/usePersonnel';
 import { useToast } from '@/hooks/use-toast';
-import { formatCurrency } from '@/lib/numberUtils';
+import { formatCurrency, formatDateForInput } from '@/lib/numberUtils';
 
 export const PaymentTracking = () => {
   const { toast } = useToast();
@@ -35,7 +35,7 @@ export const PaymentTracking = () => {
     amount: 0,
     payment_method: '' as 'nakit' | 'kredi_karti' | 'havale' | '',
     description: '',
-    transaction_date: new Date().toISOString().split('T')[0]
+    transaction_date: formatDateForInput(new Date())
   });
 
   const [debtData, setDebtData] = useState({
@@ -43,7 +43,7 @@ export const PaymentTracking = () => {
     personnel_id: '',
     amount: 0,
     description: '',
-    transaction_date: new Date().toISOString().split('T')[0]
+    transaction_date: formatDateForInput(new Date())
   });
 
   const resetPaymentForm = () => {
@@ -53,7 +53,7 @@ export const PaymentTracking = () => {
       amount: 0,
       payment_method: '' as any,
       description: '',
-      transaction_date: new Date().toISOString().split('T')[0]
+      transaction_date: formatDateForInput(new Date())
     });
   };
 
@@ -63,7 +63,7 @@ export const PaymentTracking = () => {
       personnel_id: '',
       amount: 0,
       description: '',
-      transaction_date: new Date().toISOString().split('T')[0]
+      transaction_date: formatDateForInput(new Date())
     });
   };
 
@@ -79,15 +79,20 @@ export const PaymentTracking = () => {
       return;
     }
 
+    // Create the transaction date in the correct format
+    const transactionDate = new Date(paymentData.transaction_date);
+    transactionDate.setHours(new Date().getHours(), new Date().getMinutes(), new Date().getSeconds());
+
     const { error } = await addPayment({
       ...paymentData,
-      transaction_date: new Date(paymentData.transaction_date).toISOString()
+      transaction_date: transactionDate.toISOString()
     } as any);
 
     if (error) {
+      console.error('Payment error:', error);
       toast({
         title: "Hata",
-        description: "Ödeme kaydedilirken bir hata oluştu.",
+        description: "Ödeme kaydedilirken bir hata oluştu: " + (error.message || error),
         variant: "destructive"
       });
     } else {
@@ -113,15 +118,20 @@ export const PaymentTracking = () => {
       return;
     }
 
+    // Create the transaction date in the correct format
+    const transactionDate = new Date(debtData.transaction_date);
+    transactionDate.setHours(new Date().getHours(), new Date().getMinutes(), new Date().getSeconds());
+
     const { error } = await addVeresiye({
       ...debtData,
-      transaction_date: new Date(debtData.transaction_date).toISOString()
+      transaction_date: transactionDate.toISOString()
     });
 
     if (error) {
+      console.error('Debt error:', error);
       toast({
         title: "Hata",
-        description: "Borç kaydedilirken bir hata oluştu.",
+        description: "Borç kaydedilirken bir hata oluştu: " + (error.message || error),
         variant: "destructive"
       });
     } else {
