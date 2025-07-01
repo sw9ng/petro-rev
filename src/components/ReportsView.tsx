@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -393,7 +392,7 @@ export const ReportsView = () => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
                   <YAxis />
-                  <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Ciro']} />
+                  <Tooltip formatter={(value) => [formatCurrency(typeof value === 'number' ? value : 0), 'Ciro']} />
                   <Legend />
                   <Bar dataKey="revenue" fill="#8884d8" name="Günlük Ciro" />
                 </BarChart>
@@ -425,7 +424,7 @@ export const ReportsView = () => {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Tutar']} />
+                  <Tooltip formatter={(value) => [formatCurrency(typeof value === 'number' ? value : 0), 'Tutar']} />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
@@ -444,7 +443,7 @@ export const ReportsView = () => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="bank" />
                   <YAxis />
-                  <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Tutar']} />
+                  <Tooltip formatter={(value) => [formatCurrency(typeof value === 'number' ? value : 0), 'Tutar']} />
                   <Legend />
                   <Bar dataKey="amount" fill="#82ca9d" name="Kredi Kartı Satışı" />
                 </BarChart>
