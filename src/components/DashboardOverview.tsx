@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Fuel, Users, TrendingUp, Clock, Calendar as CalendarIcon, Calculator } from 'lucide-react';
+import { Fuel, Users, TrendingUp, Clock, Calendar as CalendarIcon, Calculator, AlertTriangle } from 'lucide-react';
 import { useFuelSales } from '@/hooks/useFuelSales';
 import { usePersonnel } from '@/hooks/usePersonnel';
 import { useShifts } from '@/hooks/useShifts';
@@ -46,6 +46,16 @@ export const DashboardOverview = () => {
     return sum + overShort;
   }, 0);
 
+  // Calculate significant shortfalls (≥5 TL)
+  const significantShortfalls = allShifts.reduce((sum, shift) => {
+    const overShort = shift.over_short || 0;
+    // Only include shortfalls (negative values) that are -5 TL or less (more negative)
+    if (overShort < 0 && Math.abs(overShort) >= 5) {
+      return sum + overShort;
+    }
+    return sum;
+  }, 0);
+
   // Get recent fuel sales (last 5)
   const recentFuelSales = fuelSales
     .sort((a, b) => new Date(b.sale_time).getTime() - new Date(a.sale_time).getTime())
@@ -54,7 +64,7 @@ export const DashboardOverview = () => {
   return (
     <div className="space-y-8">
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-blue-700">Toplam Akaryakıt Satışı</CardTitle>
@@ -112,6 +122,23 @@ export const DashboardOverview = () => {
             </div>
             <p className={`text-xs mt-1 ${totalOverShort >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {totalOverShort >= 0 ? 'Fazla tutar' : 'Açık tutar'}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-red-700">
+              Önemli Açık (≥5₺)
+            </CardTitle>
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-900">
+              {formatCurrency(significantShortfalls)}
+            </div>
+            <p className="text-xs text-red-600 mt-1">
+              5₺ ve üzeri açık tutarlar
             </p>
           </CardContent>
         </Card>

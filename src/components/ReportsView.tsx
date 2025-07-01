@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -137,20 +138,21 @@ export const ReportsView = () => {
     return true;
   });
 
-  // Calculate statistics
+  // Calculate statistics - removed veresiye
   const totalRevenue = filteredShifts.reduce((sum, shift) => 
-    sum + shift.cash_sales + shift.card_sales + shift.veresiye + shift.bank_transfers, 0);
+    sum + shift.cash_sales + shift.card_sales + shift.bank_transfers, 0);
   
   const totalFuelRevenue = filteredFuelSales.reduce((sum, sale) => sum + sale.total_amount, 0);
   
-  // Fixed açık calculation to include all amounts regardless of value
-  const totalOverShort = filteredShifts.reduce((sum, shift) => {
+  // Calculate açık amounts >= 5 TL
+  const significantOverShort = filteredShifts.reduce((sum, shift) => {
     const overShort = shift.over_short || 0;
-    return sum + overShort;
+    // Only include shortfalls (negative values) that are -5 TL or less (more negative)
+    if (overShort < 0 && Math.abs(overShort) >= 5) {
+      return sum + overShort;
+    }
+    return sum;
   }, 0);
-  
-  // Calculate total veresiye
-  const totalVeresiye = filteredShifts.reduce((sum, shift) => sum + (shift.veresiye || 0), 0);
 
   // Calculate customer transaction totals
   const customerDebtTotal = customerTransactions
@@ -175,13 +177,13 @@ export const ReportsView = () => {
     return acc;
   }, {} as Record<string, number>);
 
-  // Prepare chart data
+  // Prepare chart data - removed veresiye
   const dailyRevenue = filteredShifts.reduce((acc, shift) => {
     const date = format(new Date(shift.start_time), 'yyyy-MM-dd');
     if (!acc[date]) {
       acc[date] = { date, revenue: 0, shifts: 0 };
     }
-    acc[date].revenue += shift.cash_sales + shift.card_sales + shift.veresiye + shift.bank_transfers;
+    acc[date].revenue += shift.cash_sales + shift.card_sales + shift.bank_transfers;
     acc[date].shifts += 1;
     return acc;
   }, {} as Record<string, any>);
@@ -313,8 +315,8 @@ export const ReportsView = () => {
         </CardContent>
       </Card>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-6">
+      {/* Summary Cards - removed veresiye card */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Toplam Ciro</CardTitle>
@@ -332,16 +334,6 @@ export const ReportsView = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(totalFuelRevenue)}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Veresiyeler</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalVeresiye + customerDebtTotal)}</div>
           </CardContent>
         </Card>
 
@@ -367,12 +359,12 @@ export const ReportsView = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Açık/Fazla</CardTitle>
+            <CardTitle className="text-sm font-medium">Önemli Açık (≥5₺)</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${totalOverShort >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {formatCurrency(totalOverShort)}
+            <div className="text-2xl font-bold text-red-600">
+              {formatCurrency(significantOverShort)}
             </div>
           </CardContent>
         </Card>
@@ -475,7 +467,7 @@ export const ReportsView = () => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
                   <YAxis />
-                  <Tooltip formatter={(value: unknown) => [formatCurrency(Number(value) || 0), 'Ciro']} />
+                  <Tooltip formatter={(value: number) => [formatCurrency(value), 'Ciro']} />
                   <Legend />
                   <Bar dataKey="revenue" fill="#8884d8" name="Günlük Ciro" />
                 </BarChart>
@@ -507,7 +499,7 @@ export const ReportsView = () => {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: unknown) => [formatCurrency(Number(value) || 0), 'Tutar']} />
+                  <Tooltip formatter={(value: number) => [formatCurrency(value), 'Tutar']} />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
@@ -525,7 +517,7 @@ export const ReportsView = () => {
                 <BarChart data={creditCardData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <YAxis />
-                  <Tooltip formatter={(value: unknown) => [formatCurrency(Number(value) || 0), 'Tutar']} />
+                  <Tooltip formatter={(value: number) => [formatCurrency(value), 'Tutar']} />
                   <Legend />
                   <Bar dataKey="amount" fill="#82ca9d" name="Kredi Kartı Satışı" />
                 </BarChart>
