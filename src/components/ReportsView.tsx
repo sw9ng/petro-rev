@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -446,7 +445,7 @@ export const ReportsView = () => {
                   <TableRow className="border-t-2 font-bold">
                     <TableCell>Toplam</TableCell>
                     <TableCell className="text-right">
-                      {formatCurrency(creditCardData.reduce((sum, item) => sum + item.amount, 0))}
+                      {formatCurrency(creditCardData.reduce((sum, item) => sum + (typeof item.amount === 'number' ? item.amount : 0), 0))}
                     </TableCell>
                   </TableRow>
                 </TableBody>
