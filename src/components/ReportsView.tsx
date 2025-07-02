@@ -29,6 +29,7 @@ export const ReportsView = () => {
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
   const [selectedPersonnel, setSelectedPersonnel] = useState('');
+  const [selectedShift, setSelectedShift] = useState('');
   const [loading, setLoading] = useState(false);
 
   const loadShifts = async () => {
@@ -94,6 +95,10 @@ export const ReportsView = () => {
       include = include && shift.personnel_id === selectedPersonnel;
     }
 
+    if (selectedShift) {
+      include = include && shift.shift_number === selectedShift;
+    }
+
     return include;
   });
 
@@ -116,8 +121,17 @@ export const ReportsView = () => {
     return include;
   });
 
-  // Filter bank details by date range
+  // Filter bank details by date range and shift
   const filteredBankDetails = bankDetails.filter(detail => {
+    // First check shift filter
+    if (selectedShift) {
+      const relatedShift = shifts.find(shift => shift.id === detail.shift_id);
+      if (!relatedShift || relatedShift.shift_number !== selectedShift) {
+        return false;
+      }
+    }
+    
+    // Then check date filters
     if (!startDate && !endDate) return true;
     
     const shiftDate = new Date(detail.shifts.start_time);
@@ -143,11 +157,11 @@ export const ReportsView = () => {
   
   const totalFuelRevenue = filteredFuelSales.reduce((sum, sale) => sum + sale.total_amount, 0);
   
-  // Calculate açık amounts >= 5 TL
-  const significantOverShort = filteredShifts.reduce((sum, shift) => {
+  // Calculate net balance (fazlalık - açık) with significance threshold
+  const netOverShort = filteredShifts.reduce((sum, shift) => {
     const overShort = shift.over_short || 0;
-    // Only include shortfalls (negative values) that are -5 TL or less (more negative)
-    if (overShort < 0 && Math.abs(overShort) >= 5) {
+    // Include all over/short amounts with absolute value >= 5 TL
+    if (Math.abs(overShort) >= 5) {
       return sum + overShort;
     }
     return sum;
@@ -210,7 +224,7 @@ export const ReportsView = () => {
   // Credit card data for chart
   const creditCardData = Object.entries(creditCardByBank).map(([bank, amount]) => ({
     bank,
-    amount
+    amount: amount as number
   }));
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
@@ -219,6 +233,7 @@ export const ReportsView = () => {
     setStartDate(undefined);
     setEndDate(undefined);
     setSelectedPersonnel('');
+    setSelectedShift('');
   };
 
   return (
@@ -305,11 +320,23 @@ export const ReportsView = () => {
               </Select>
             </div>
 
-            <div className="flex items-end">
-              <Button variant="outline" onClick={clearFilters} className="w-full">
-                Filtreleri Temizle
-              </Button>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Vardiya</label>
+              <Select value={selectedShift} onValueChange={setSelectedShift}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Vardiya seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="V1">V1</SelectItem>
+                  <SelectItem value="V2">V2</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+          </div>
+          <div className="mt-4">
+            <Button variant="outline" onClick={clearFilters} className="w-full">
+              Filtreleri Temizle
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -358,12 +385,12 @@ export const ReportsView = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Önemli Açık (≥5₺)</CardTitle>
+            <CardTitle className="text-sm font-medium">Net Denge (≥5₺)</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {formatCurrency(significantOverShort)}
+            <div className={`text-2xl font-bold ${netOverShort < 0 ? 'text-red-600' : 'text-green-600'}`}>
+              {formatCurrency(netOverShort)}
             </div>
           </CardContent>
         </Card>
@@ -521,6 +548,7 @@ export const ReportsView = () => {
               <ResponsiveContainer width="100%" height={400}>
                 <BarChart data={creditCardData}>
                   <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="bank" />
                   <YAxis />
                   <Tooltip formatter={(value: unknown) => {
                     const numValue = typeof value === 'number' ? value : parseFloat(String(value)) || 0;
