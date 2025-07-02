@@ -193,6 +193,57 @@ export const useCustomerTransactions = () => {
     return { data, error };
   };
 
+  const updateTransaction = async (transactionId: string, updateData: {
+    amount?: number;
+    payment_method?: string;
+    description?: string;
+    transaction_date?: string;
+  }) => {
+    if (!user) return { error: 'Kullanıcı doğrulanmadı' };
+
+    const { data, error } = await supabase
+      .from('customer_transactions')
+      .update(updateData)
+      .eq('id', transactionId)
+      .eq('station_id', user.id)
+      .select(`
+        *,
+        customer:customer_id (
+          name
+        )
+      `)
+      .single();
+
+    if (!error && data) {
+      // Fetch personnel data
+      const { data: personnelData } = await supabase
+        .from('personnel')
+        .select('name')
+        .eq('id', data.personnel_id)
+        .single();
+
+      const mappedTransaction = {
+        id: data.id,
+        customer_id: data.customer_id,
+        personnel_id: data.personnel_id,
+        amount: data.amount,
+        transaction_date: data.transaction_date,
+        transaction_type: data.transaction_type === 'veresiye' ? 'debt' as const : data.transaction_type as 'debt' | 'payment',
+        status: data.status as 'pending' | 'completed',
+        payment_method: data.payment_method,
+        description: data.description,
+        customer: data.customer,
+        personnel: personnelData ? { name: personnelData.name } : { name: 'Bilinmeyen Personel' }
+      };
+      
+      setTransactions(prev => prev.map(transaction => 
+        transaction.id === transactionId ? mappedTransaction : transaction
+      ));
+    }
+
+    return { data, error };
+  };
+
   const getCustomerBalance = (customerId: string) => {
     const customerTransactions = transactions.filter(t => t.customer_id === customerId);
     const totalDebt = customerTransactions
@@ -391,6 +442,7 @@ export const useCustomerTransactions = () => {
     loading,
     addPayment,
     addVeresiye,
+    updateTransaction,
     getCustomerBalance,
     getCustomerTransactions,
     getCustomerDebts,

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CreditCard, Plus, DollarSign, Filter, CalendarIcon, Edit, User } from 'lucide-react';
+import { CreditCard, Plus, DollarSign, Filter, CalendarIcon, Edit } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -22,13 +21,13 @@ import { formatCurrency, formatDateForInput } from '@/lib/numberUtils';
 
 export const PaymentTracking = () => {
   const { toast } = useToast();
-  const { customers, updateCustomer } = useCustomers();
+  const { customers } = useCustomers();
   const { personnel } = usePersonnel();
-  const { transactions, loading, addPayment, addVeresiye, getCustomerDebts, getTransactionsByDateRange } = useCustomerTransactions();
+  const { transactions, loading, addPayment, addVeresiye, updateTransaction, getCustomerDebts, getTransactionsByDateRange } = useCustomerTransactions();
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showDebtDialog, setShowDebtDialog] = useState(false);
-  const [showEditCustomerDialog, setShowEditCustomerDialog] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [showEditTransactionDialog, setShowEditTransactionDialog] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [filteredTransactions, setFilteredTransactions] = useState(transactions);
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
@@ -50,11 +49,11 @@ export const PaymentTracking = () => {
     transaction_date: formatDateForInput(new Date())
   });
 
-  const [editCustomerData, setEditCustomerData] = useState({
-    name: '',
-    phone: '',
-    address: '',
-    notes: ''
+  const [editTransactionData, setEditTransactionData] = useState({
+    amount: 0,
+    payment_method: '' as 'nakit' | 'kredi_karti' | 'havale' | '',
+    description: '',
+    transaction_date: ''
   });
 
   const resetPaymentForm = () => {
@@ -78,45 +77,60 @@ export const PaymentTracking = () => {
     });
   };
 
-  const openEditCustomerDialog = (customer: any) => {
-    setSelectedCustomer(customer);
-    setEditCustomerData({
-      name: customer.name || '',
-      phone: customer.phone || '',
-      address: customer.address || '',
-      notes: customer.notes || ''
+  const openEditTransactionDialog = (transaction: any) => {
+    setSelectedTransaction(transaction);
+    setEditTransactionData({
+      amount: transaction.amount,
+      payment_method: transaction.payment_method || '',
+      description: transaction.description || '',
+      transaction_date: formatDateForInput(new Date(transaction.transaction_date))
     });
-    setShowEditCustomerDialog(true);
+    setShowEditTransactionDialog(true);
   };
 
-  const handleCustomerUpdate = async (e: React.FormEvent) => {
+  const handleTransactionUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedCustomer || !editCustomerData.name.trim()) {
+    if (!selectedTransaction || editTransactionData.amount <= 0) {
       toast({
         title: "Hata",
-        description: "Müşteri adı zorunludur.",
+        description: "Geçerli bir tutar girin.",
         variant: "destructive"
       });
       return;
     }
 
-    const { error } = await updateCustomer(selectedCustomer.id, editCustomerData);
+    // Create the transaction date in the correct format
+    const transactionDate = new Date(editTransactionData.transaction_date);
+    transactionDate.setHours(new Date().getHours(), new Date().getMinutes(), new Date().getSeconds());
+
+    const updateData: any = {
+      amount: editTransactionData.amount,
+      description: editTransactionData.description,
+      transaction_date: transactionDate.toISOString()
+    };
+
+    // Only add payment_method if transaction is a payment
+    if (selectedTransaction.transaction_type === 'payment') {
+      updateData.payment_method = editTransactionData.payment_method;
+    }
+
+    const { error } = await updateTransaction(selectedTransaction.id, updateData);
 
     if (error) {
-      console.error('Customer update error:', error);
+      console.error('Transaction update error:', error);
       toast({
         title: "Hata",
-        description: "Müşteri güncellenirken bir hata oluştu.",
+        description: "İşlem güncellenirken bir hata oluştu.",
         variant: "destructive"
       });
     } else {
       toast({
         title: "Başarılı",
-        description: "Müşteri bilgileri güncellendi.",
+        description: "İşlem güncellendi.",
       });
-      setShowEditCustomerDialog(false);
-      setSelectedCustomer(null);
+      setShowEditTransactionDialog(false);
+      setSelectedTransaction(null);
     }
   };
 
@@ -510,34 +524,21 @@ export const PaymentTracking = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {customerDebts.map((debt) => {
-              const customer = customers.find(c => c.id === debt.customerId);
-              return (
-                <Card key={debt.customerId} className="border border-red-200 bg-red-50">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <p className="font-medium text-gray-900">{debt.customer}</p>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => customer && openEditCustomerDialog(customer)}
-                            className="h-6 w-6 p-0"
-                          >
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                        </div>
-                        <p className="text-sm text-gray-600">Borç</p>
-                      </div>
-                      <p className="text-lg font-bold text-red-600">
-                        {formatCurrency(debt.balance)}
-                      </p>
+            {customerDebts.map((debt) => (
+              <Card key={debt.customerId} className="border border-red-200 bg-red-50">
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900">{debt.customer}</p>
+                      <p className="text-sm text-gray-600">Borç</p>
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                    <p className="text-lg font-bold text-red-600">
+                      {formatCurrency(debt.balance)}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
           {customerDebts.length === 0 && (
             <div className="text-center py-8">
@@ -574,6 +575,7 @@ export const PaymentTracking = () => {
                     <TableHead>Tutar</TableHead>
                     <TableHead>Ödeme Yöntemi</TableHead>
                     <TableHead>Açıklama</TableHead>
+                    <TableHead>İşlemler</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -622,6 +624,16 @@ export const PaymentTracking = () => {
                           <span className="text-gray-400 text-sm">-</span>
                         )}
                       </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEditTransactionDialog(transaction)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -641,62 +653,71 @@ export const PaymentTracking = () => {
         </CardContent>
       </Card>
 
-      {/* Edit Customer Dialog */}
-      <Dialog open={showEditCustomerDialog} onOpenChange={(open) => {
-        setShowEditCustomerDialog(open);
+      {/* Edit Transaction Dialog */}
+      <Dialog open={showEditTransactionDialog} onOpenChange={(open) => {
+        setShowEditTransactionDialog(open);
         if (!open) {
-          setSelectedCustomer(null);
-          setEditCustomerData({ name: '', phone: '', address: '', notes: '' });
+          setSelectedTransaction(null);
+          setEditTransactionData({ amount: 0, payment_method: '', description: '', transaction_date: '' });
         }
       }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
-              <User className="h-5 w-5" />
-              <span>Müşteri Düzenle</span>
+              <Edit className="h-5 w-5" />
+              <span>İşlem Düzenle</span>
             </DialogTitle>
             <DialogDescription>
-              Müşteri bilgilerini güncelleyin.
+              İşlem bilgilerini güncelleyin.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleCustomerUpdate} className="space-y-4">
+          <form onSubmit={handleTransactionUpdate} className="space-y-4">
             <div className="space-y-2">
-              <Label>Müşteri Adı *</Label>
+              <Label>Tarih *</Label>
               <Input
-                value={editCustomerData.name}
-                onChange={(e) => setEditCustomerData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Müşteri adını girin"
+                type="date"
+                value={editTransactionData.transaction_date}
+                onChange={(e) => setEditTransactionData(prev => ({ ...prev, transaction_date: e.target.value }))}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label>Telefon</Label>
+              <Label>Tutar (₺) *</Label>
               <Input
-                value={editCustomerData.phone}
-                onChange={(e) => setEditCustomerData(prev => ({ ...prev, phone: e.target.value }))}
-                placeholder="Telefon numarası"
+                type="number"
+                step="0.001"
+                value={editTransactionData.amount}
+                onChange={(e) => setEditTransactionData(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+                placeholder="Tutar"
+                required
               />
             </div>
+            {selectedTransaction?.transaction_type === 'payment' && (
+              <div className="space-y-2">
+                <Label>Ödeme Yöntemi</Label>
+                <Select value={editTransactionData.payment_method} onValueChange={(value: any) => setEditTransactionData(prev => ({ ...prev, payment_method: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Ödeme yöntemi seçin" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border shadow-lg">
+                    <SelectItem value="nakit">Nakit</SelectItem>
+                    <SelectItem value="kredi_karti">Kredi Kartı</SelectItem>
+                    <SelectItem value="havale">Havale</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2">
-              <Label>Adres</Label>
+              <Label>Açıklama</Label>
               <Textarea
-                value={editCustomerData.address}
-                onChange={(e) => setEditCustomerData(prev => ({ ...prev, address: e.target.value }))}
-                placeholder="Müşteri adresi..."
-                rows={2}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Notlar</Label>
-              <Textarea
-                value={editCustomerData.notes}
-                onChange={(e) => setEditCustomerData(prev => ({ ...prev, notes: e.target.value }))}
-                placeholder="Müşteri hakkında notlar..."
+                value={editTransactionData.description}
+                onChange={(e) => setEditTransactionData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="İşlem açıklaması..."
                 rows={3}
               />
             </div>
             <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={() => setShowEditCustomerDialog(false)}>
+              <Button type="button" variant="outline" onClick={() => setShowEditTransactionDialog(false)}>
                 İptal
               </Button>
               <Button type="submit">
