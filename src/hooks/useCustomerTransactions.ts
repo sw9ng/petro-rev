@@ -244,6 +244,22 @@ export const useCustomerTransactions = () => {
     return { data, error };
   };
 
+  const deleteTransaction = async (transactionId: string) => {
+    if (!user) return { error: 'Kullanıcı doğrulanmadı' };
+
+    const { error } = await supabase
+      .from('customer_transactions')
+      .delete()
+      .eq('id', transactionId)
+      .eq('station_id', user.id);
+
+    if (!error) {
+      setTransactions(prev => prev.filter(transaction => transaction.id !== transactionId));
+    }
+
+    return { error };
+  };
+
   const getCustomerBalance = (customerId: string) => {
     const customerTransactions = transactions.filter(t => t.customer_id === customerId);
     const totalDebt = customerTransactions
@@ -443,6 +459,7 @@ export const useCustomerTransactions = () => {
     addPayment,
     addVeresiye,
     updateTransaction,
+    deleteTransaction,
     getCustomerBalance,
     getCustomerTransactions,
     getCustomerDebts,

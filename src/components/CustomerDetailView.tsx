@@ -3,10 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, CreditCard, User, Phone, MapPin, Calendar, FileText } from 'lucide-react';
+import { ArrowLeft, CreditCard, User, Phone, MapPin, Calendar, FileText, Trash2 } from 'lucide-react';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { formatCurrency } from '@/lib/numberUtils';
+import { useToast } from '@/hooks/use-toast';
 
 interface CustomerDetailViewProps {
   customerId: string;
@@ -15,7 +16,8 @@ interface CustomerDetailViewProps {
 
 export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewProps) => {
   const { customers } = useCustomers();
-  const { getCustomerTransactions, getCustomerBalance } = useCustomerTransactions();
+  const { getCustomerTransactions, getCustomerBalance, deleteTransaction } = useCustomerTransactions();
+  const { toast } = useToast();
   
   const customer = customers.find(c => c.id === customerId);
   const customerTransactions = getCustomerTransactions(customerId);
@@ -39,6 +41,23 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
       case 'kredi_karti': return 'Kredi Kartı';
       case 'havale': return 'Havale';
       default: return method;
+    }
+  };
+
+  const handleDeleteTransaction = async (transactionId: string) => {
+    const { error } = await deleteTransaction(transactionId);
+    
+    if (error) {
+      toast({
+        title: "Hata",
+        description: "İşlem silinirken bir hata oluştu.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Başarılı",
+        description: "İşlem başarıyla silindi.",
+      });
     }
   };
 
@@ -129,6 +148,7 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
                     <TableHead>Tutar</TableHead>
                     <TableHead>Ödeme Yöntemi</TableHead>
                     <TableHead>Açıklama</TableHead>
+                    <TableHead>İşlemler</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -175,6 +195,16 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
                         ) : (
                           <span className="text-gray-400 text-sm">-</span>
                         )}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteTransaction(transaction.id)}
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
