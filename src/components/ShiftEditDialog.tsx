@@ -51,6 +51,13 @@ export const ShiftEditDialog = ({ shift, isOpen, onOpenChange, onShiftUpdated }:
   const [loading, setLoading] = useState(false);
   const [showBankDialog, setShowBankDialog] = useState(false);
 
+  const handleBankDetailsUpdate = (details: BankDetail[]) => {
+    setBankDetails(details);
+    // Calculate total from bank details and update card_sales
+    const totalCardSales = details.reduce((sum, detail) => sum + detail.amount, 0);
+    handleInputChange('card_sales', totalCardSales);
+  };
+
   useEffect(() => {
     if (shift && isOpen) {
       const startTime = new Date(shift.start_time);
@@ -109,7 +116,8 @@ export const ShiftEditDialog = ({ shift, isOpen, onOpenChange, onShiftUpdated }:
     try {
       const overShort = calculateOverShort();
       
-      const { error } = await supabase
+      // Update shift data
+      const { error: shiftError } = await supabase
         .from('shifts')
         .update({
           personnel_id: formData.personnel_id,
@@ -128,15 +136,39 @@ export const ShiftEditDialog = ({ shift, isOpen, onOpenChange, onShiftUpdated }:
         .eq('id', shift.id)
         .eq('station_id', user.id);
 
-      if (error) {
-        toast({
-          title: "Hata",
-          description: "Vardiya güncellenirken bir hata oluştu.",
-          variant: "destructive"
-        });
-      } else {
-        onShiftUpdated();
+      if (shiftError) {
+        throw shiftError;
       }
+
+      // Delete existing bank details
+      await supabase
+        .from('shift_bank_details')
+        .delete()
+        .eq('shift_id', shift.id);
+
+      // Insert new bank details
+      if (bankDetails.length > 0) {
+        const bankDetailsToInsert = bankDetails.map(detail => ({
+          shift_id: shift.id,
+          bank_name: detail.bank_name,
+          amount: detail.amount
+        }));
+
+        const { error: bankError } = await supabase
+          .from('shift_bank_details')
+          .insert(bankDetailsToInsert);
+
+        if (bankError) {
+          throw bankError;
+        }
+      }
+
+      toast({
+        title: "Başarılı",
+        description: "Vardiya başarıyla güncellendi.",
+      });
+      onShiftUpdated();
+      onOpenChange(false);
     } catch (error) {
       console.error('Error updating shift:', error);
       toast({
@@ -365,7 +397,7 @@ export const ShiftEditDialog = ({ shift, isOpen, onOpenChange, onShiftUpdated }:
         <BankSelectionDialog
           isOpen={showBankDialog}
           onOpenChange={setShowBankDialog}
-          onBankDetailsUpdate={setBankDetails}
+          onBankDetailsUpdate={handleBankDetailsUpdate}
           currentDetails={bankDetails}
         />
       </DialogContent>
