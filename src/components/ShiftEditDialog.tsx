@@ -14,6 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency } from '@/lib/numberUtils';
 import { useToast } from '@/hooks/use-toast';
 import { Shift } from '@/hooks/useShifts';
+import { BankSelectionDialog } from '@/components/BankSelectionDialog';
 
 interface ShiftEditDialogProps {
   shift: Shift | null;
@@ -48,6 +49,7 @@ export const ShiftEditDialog = ({ shift, isOpen, onOpenChange, onShiftUpdated }:
   
   const [bankDetails, setBankDetails] = useState<BankDetail[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showBankDialog, setShowBankDialog] = useState(false);
 
   useEffect(() => {
     if (shift && isOpen) {
@@ -256,13 +258,24 @@ export const ShiftEditDialog = ({ shift, isOpen, onOpenChange, onShiftUpdated }:
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="card_sales">Kart Satış (₺)</Label>
-                  <Input
-                    id="card_sales"
-                    type="number"
-                    step="0.01"
-                    value={formData.card_sales}
-                    onChange={(e) => handleInputChange('card_sales', parseFloat(e.target.value) || 0)}
-                  />
+                  <div className="flex space-x-2">
+                    <Input
+                      id="card_sales"
+                      type="number"
+                      step="0.01"
+                      value={formData.card_sales}
+                      onChange={(e) => handleInputChange('card_sales', parseFloat(e.target.value) || 0)}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowBankDialog(true)}
+                      className="whitespace-nowrap"
+                    >
+                      Bankalar
+                    </Button>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="loyalty_card">Sadakat Kartı (₺)</Label>
@@ -348,6 +361,13 @@ export const ShiftEditDialog = ({ shift, isOpen, onOpenChange, onShiftUpdated }:
             </Button>
           </div>
         </div>
+
+        <BankSelectionDialog
+          isOpen={showBankDialog}
+          onOpenChange={setShowBankDialog}
+          onBankDetailsUpdate={setBankDetails}
+          currentDetails={bankDetails}
+        />
       </DialogContent>
     </Dialog>
   );

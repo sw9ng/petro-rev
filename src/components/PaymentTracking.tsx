@@ -18,6 +18,8 @@ import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { usePersonnel } from '@/hooks/usePersonnel';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, formatDateForInput } from '@/lib/numberUtils';
+import { CustomerListView } from '@/components/CustomerListView';
+import { CustomerDetailView } from '@/components/CustomerDetailView';
 
 export const PaymentTracking = () => {
   const { toast } = useToast();
@@ -31,6 +33,8 @@ export const PaymentTracking = () => {
   const [filteredTransactions, setFilteredTransactions] = useState(transactions);
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
   
   const [paymentData, setPaymentData] = useState({
     customer_id: '',
@@ -233,6 +237,16 @@ export const PaymentTracking = () => {
     setFilteredTransactions(transactions);
   };
 
+  const handleCustomerSelect = (customerId: string) => {
+    setSelectedCustomerId(customerId);
+    setViewMode('detail');
+  };
+
+  const handleBackToList = () => {
+    setSelectedCustomerId(null);
+    setViewMode('list');
+  };
+
   const displayTransactions = (startDate || endDate) ? filteredTransactions : transactions;
   const customerDebts = getCustomerDebts();
 
@@ -247,6 +261,18 @@ export const PaymentTracking = () => {
 
   if (loading) {
     return <div className="flex justify-center items-center h-64">Yükleniyor...</div>;
+  }
+
+  if (viewMode === 'detail' && selectedCustomerId) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col space-y-2">
+          <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Cari Satış</h2>
+          <p className="text-sm lg:text-base text-gray-600">Müşteri ödemelerini ve borçlarını takip edin</p>
+        </div>
+        <CustomerDetailView customerId={selectedCustomerId} onBack={handleBackToList} />
+      </div>
+    );
   }
 
   return (
@@ -511,42 +537,8 @@ export const PaymentTracking = () => {
         </div>
       </div>
 
-      {/* Customer Debts Summary */}
-      <Card className="shadow-sm border">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <DollarSign className="h-5 w-5 text-red-500" />
-              <span>Müşteri Borçları</span>
-            </div>
-          </CardTitle>
-          <CardDescription>Bekleyen veresiye borçları</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {customerDebts.map((debt) => (
-              <Card key={debt.customerId} className="border border-red-200 bg-red-50">
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">{debt.customer}</p>
-                      <p className="text-sm text-gray-600">Borç</p>
-                    </div>
-                    <p className="text-lg font-bold text-red-600">
-                      {formatCurrency(debt.balance)}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          {customerDebts.length === 0 && (
-            <div className="text-center py-8">
-              <p className="text-gray-600">Bekleyen borç bulunmuyor.</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Customer List */}
+      <CustomerListView onCustomerSelect={handleCustomerSelect} />
 
       {/* Recent Transactions Table */}
       <Card className="shadow-sm border">
