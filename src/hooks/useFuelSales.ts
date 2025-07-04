@@ -13,6 +13,7 @@ export interface FuelSale {
   sale_time: string;
   start_hour?: string;
   end_hour?: string;
+  personnel_id: string;
 }
 
 export const useFuelSales = () => {
