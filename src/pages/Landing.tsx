@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +10,7 @@ export const Landing = () => {
   const features = [
     {
       icon: <Users className="h-8 w-8 text-blue-600" />,
-      title: "Personel Yönetimi",
+      title: "Personel Yönetimi", 
       description: "Akaryakıt istasyonu personelinizi kolayca yönetin, vardiya takibi yapın ve performansları izleyin."
     },
     {
@@ -43,7 +42,7 @@ export const Landing = () => {
 
   const benefits = [
     "Kolay kullanım ve hızlı öğrenme",
-    "Mobil uyumlu tasarım",
+    "Mobil uyumlu tasarım", 
     "Gerçek zamanlı veri senkronizasyonu",
     "Detaylı analiz ve raporlama",
     "Çoklu ödeme yöntemi desteği",
@@ -53,8 +52,8 @@ export const Landing = () => {
   const pricingPlans = [
     {
       name: "Başlangıç",
-      price: "2.400",
-      originalPrice: "3.600",
+      price: "12.000",
+      originalPrice: "18.000",
       period: "yıl",
       description: "Küçük istasyonlar için ideal",
       features: [
@@ -68,9 +67,9 @@ export const Landing = () => {
       color: "border-gray-200"
     },
     {
-      name: "Profesyonel",
-      price: "4.800",
-      originalPrice: "7.200",
+      name: "Profesyonel", 
+      price: "18.000",
+      originalPrice: "24.000",
       period: "yıl",
       description: "Orta büyüklükteki istasyonlar için",
       features: [
@@ -86,8 +85,8 @@ export const Landing = () => {
     },
     {
       name: "Kurumsal",
-      price: "8.400",
-      originalPrice: "12.000",
+      price: "30.000", 
+      originalPrice: "42.000",
       period: "yıl",
       description: "Büyük istasyon zincirleri için",
       features: [
@@ -148,22 +147,22 @@ export const Landing = () => {
             </h1>
             <p className="text-xl text-gray-600 mb-8 leading-relaxed">
               PetroRev ile akaryakıt istasyonunuzun tüm operasyonlarını dijitalleştirin. 
-              Yıllık abonelik ile %33 tasarruf edin ve premium özelliklerin keyfini çıkarın.
+              Yıllık abonelik ile %25 tasarruf edin ve premium özelliklerin keyfini çıkarın.
             </p>
             <div className="bg-white rounded-2xl p-6 mb-8 shadow-lg border border-blue-100">
               <div className="flex items-center justify-center space-x-4 text-center">
                 <div className="text-red-500 line-through text-lg">
-                  Aylık ₺600/ay
+                  Aylık ₺2.000/ay
                 </div>
                 <div className="text-3xl font-bold text-green-600">
-                  Yıllık ₺4.800/yıl
+                  Yıllık ₺18.000/yıl
                 </div>
                 <Badge className="bg-green-100 text-green-800 border-green-200">
-                  %33 İndirim
+                  %25 İndirim
                 </Badge>
               </div>
               <p className="text-sm text-gray-600 mt-2">
-                Sadece ₺400/ay - 2 ay ücretsiz kullanım!
+                Sadece ₺1.500/ay - 3 ay ücretsiz kullanım!
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -233,7 +232,7 @@ export const Landing = () => {
             </p>
             <div className="inline-flex items-center bg-green-100 text-green-800 px-4 py-2 rounded-full">
               <Trophy className="mr-2 h-4 w-4" />
-              Tüm paketlerde %33 yıllık indirim!
+              Tüm paketlerde %25 yıllık indirim!
             </div>
           </div>
 
@@ -262,7 +261,7 @@ export const Landing = () => {
                       /{plan.period} + KDV
                     </div>
                     <div className="text-xs text-green-600 font-medium">
-                      Aylık sadece ₺{Math.round(parseInt(plan.price) / 12)}
+                      Aylık sadece ₺{Math.round(parseInt(plan.price) / 12).toLocaleString()}
                     </div>
                   </div>
                   <CardDescription className="mt-4">
@@ -392,14 +391,14 @@ export const Landing = () => {
             </h2>
             <p className="text-xl text-blue-100 mb-8 leading-relaxed">
               Binlerce akaryakıt istasyonu PetroRev Premium ile operasyonlarını optimize etti. 
-              Yıllık abonelik ile %33 tasarruf edin ve premium özelliklerin keyfini çıkarın.
+              Yıllık abonelik ile %25 tasarruf edin ve premium özelliklerin keyfini çıkarın.
             </p>
             <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-white/20">
               <div className="text-3xl font-bold text-white mb-2">
-                Sadece ₺400/ay
+                Sadece ₺1.500/ay
               </div>
               <div className="text-blue-100">
-                Yıllık ödemede 2 ay ücretsiz kullanım
+                Yıllık ödemede 3 ay ücretsiz kullanım
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -475,7 +474,7 @@ export const Landing = () => {
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
             <p>&copy; 2025 PetroRev Premium. Tüm hakları saklıdır.</p>
-            <p className="text-sm mt-2">Yıllık abonelik sistemi ile %33 tasarruf edin.</p>
+            <p className="text-sm mt-2">Yıllık abonelik sistemi ile %25 tasarruf edin.</p>
           </div>
         </div>
       </footer>
