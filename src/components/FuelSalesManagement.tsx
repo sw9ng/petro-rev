@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Plus, Fuel, Trash2, Calculator, Calendar as CalendarIcon, Clock, TrendingUp } from 'lucide-react';
+import { Plus, Fuel, Trash2, Calculator, Calendar as CalendarIcon, Clock, TrendingUp, Filter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFuelSales } from '@/hooks/useFuelSales';
 import { format } from 'date-fns';
@@ -48,6 +47,11 @@ export const FuelSalesManagement = () => {
     'BENZİN': { liters: '', total_amount: '', price_per_liter: '' },
     'MOTORİN(DİĞER)': { liters: '', total_amount: '', price_per_liter: '' }
   });
+
+  // Date filtering states
+  const [filterStartDate, setFilterStartDate] = useState<Date | undefined>(undefined);
+  const [filterEndDate, setFilterEndDate] = useState<Date | undefined>(undefined);
+  const [showDateFilter, setShowDateFilter] = useState(false);
 
   const handleCreateSales = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,6 +191,28 @@ export const FuelSalesManagement = () => {
     }, 0);
   };
 
+  // Filter fuel sales based on date range
+  const getFilteredFuelSales = () => {
+    if (!filterStartDate || !filterEndDate) return fuelSales;
+
+    return fuelSales.filter(sale => {
+      const saleDate = new Date(sale.sale_time);
+      const startFilter = new Date(filterStartDate);
+      const endFilter = new Date(filterEndDate);
+      
+      // Set time to start/end of day for proper comparison
+      startFilter.setHours(0, 0, 0, 0);
+      endFilter.setHours(23, 59, 59, 999);
+      
+      return saleDate >= startFilter && saleDate <= endFilter;
+    });
+  };
+
+  const clearDateFilter = () => {
+    setFilterStartDate(undefined);
+    setFilterEndDate(undefined);
+  };
+
   if (fuelLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -199,9 +225,10 @@ export const FuelSalesManagement = () => {
   }
 
   const grandTotal = calculateGrandTotal();
+  const filteredSales = getFilteredFuelSales();
 
   // Group sales by date (using Istanbul time)
-  const groupedSales = fuelSales.reduce((acc, sale) => {
+  const groupedSales = filteredSales.reduce((acc, sale) => {
     const istanbulDate = getIstanbulTime(new Date(sale.sale_time));
     const dateKey = format(istanbulDate, 'yyyy-MM-dd');
     
@@ -223,7 +250,7 @@ export const FuelSalesManagement = () => {
     acc[dateKey].totalAmount += sale.total_amount;
     
     // Add to fuel type totals
-    const fuelType = sale.fuel_type as keyof typeof acc[dateKey]['fuelTypeTotals'];
+    const fuelType = sale.fuel_type as 'MOTORİN' | 'LPG' | 'BENZİN' | 'MOTORİN(DİĞER)';
     if (acc[dateKey].fuelTypeTotals[fuelType]) {
       acc[dateKey].fuelTypeTotals[fuelType].amount += sale.total_amount;
       acc[dateKey].fuelTypeTotals[fuelType].liters += sale.liters;
@@ -242,186 +269,278 @@ export const FuelSalesManagement = () => {
           </h2>
           <p className="text-gray-600 mt-2">Günlük akaryakıt satış verilerini kaydet ve yönet</p>
         </div>
-        <Dialog open={newSaleOpen} onOpenChange={setNewSaleOpen}>
-          <DialogTrigger asChild>
-            <Button size="lg" className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-200">
-              <Plus className="h-5 w-5 mr-2" />
-              Satış Ekle
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-bold text-gray-900">Günlük Akaryakıt Satışları</DialogTitle>
-              <DialogDescription className="text-gray-600">
-                Seçilen tarih ve saat aralığı için tüm akaryakıt türlerinin satış verilerini girin
-              </DialogDescription>
-            </DialogHeader>
-            
-            <form onSubmit={handleCreateSales} className="space-y-6 py-4">
-              {/* Date and Time Selection */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Vardiya Başlangıç Tarihi *</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !startDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {startDate ? format(startDate, "dd MMM yyyy", { locale: tr }) : "Başlangıç tarihi"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 bg-white border shadow-lg z-50" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={startDate}
-                        onSelect={(date) => date && setStartDate(date)}
-                        initialFocus
-                        locale={tr}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+        <div className="flex space-x-3">
+          <Button
+            variant="outline"
+            onClick={() => setShowDateFilter(!showDateFilter)}
+            className="flex items-center space-x-2"
+          >
+            <Filter className="h-4 w-4" />
+            <span>Tarih Filtresi</span>
+          </Button>
+          <Dialog open={newSaleOpen} onOpenChange={setNewSaleOpen}>
+            <DialogTrigger asChild>
+              <Button size="lg" className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-200">
+                <Plus className="h-5 w-5 mr-2" />
+                Satış Ekle
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-bold text-gray-900">Günlük Akaryakıt Satışları</DialogTitle>
+                <DialogDescription className="text-gray-600">
+                  Seçilen tarih ve saat aralığı için tüm akaryakıt türlerinin satış verilerini girin
+                </DialogDescription>
+              </DialogHeader>
+              
+              <form onSubmit={handleCreateSales} className="space-y-6 py-4">
+                {/* Date and Time Selection */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Vardiya Başlangıç Tarihi *</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !startDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {startDate ? format(startDate, "dd MMM yyyy", { locale: tr }) : "Başlangıç tarihi"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0 bg-white border shadow-lg z-50" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={startDate}
+                          onSelect={(date) => date && setStartDate(date)}
+                          initialFocus
+                          locale={tr}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Vardiya Bitiş Tarihi *</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !endDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {endDate ? format(endDate, "dd MMM yyyy", { locale: tr }) : "Bitiş tarihi"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 bg-white border shadow-lg z-50" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={endDate}
-                        onSelect={(date) => date && setEndDate(date)}
-                        initialFocus
-                        locale={tr}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Vardiya Bitiş Tarihi *</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !endDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {endDate ? format(endDate, "dd MMM yyyy", { locale: tr }) : "Bitiş tarihi"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0 bg-white border shadow-lg z-50" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={endDate}
+                          onSelect={(date) => date && setEndDate(date)}
+                          initialFocus
+                          locale={tr}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Başlangıç Saati *</Label>
-                  <div className="relative">
-                    <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      type="time"
-                      value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Başlangıç Saati *</Label>
+                    <div className="relative">
+                      <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        type="time"
+                        value={startTime}
+                        onChange={(e) => setStartTime(e.target.value)}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Bitiş Saati *</Label>
+                    <div className="relative">
+                      <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        type="time"
+                        value={endTime}
+                        onChange={(e) => setEndTime(e.target.value)}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Bitiş Saati *</Label>
-                  <div className="relative">
-                    <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      type="time"
-                      value={endTime}
-                      onChange={(e) => setEndTime(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Fuel Types Data Entry */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                  <Fuel className="h-5 w-5 mr-2 text-blue-600" />
-                  Akaryakıt Türleri
-                </h3>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {FUEL_TYPES.map((fuelType) => (
-                    <Card key={fuelType} className="border-gray-200 hover:border-blue-300 transition-colors">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="font-semibold text-gray-900">{fuelType}</h4>
-                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        </div>
-                        <div className="grid grid-cols-3 gap-3">
-                          <div className="space-y-1">
-                            <Label className="text-xs text-gray-600">Litre</Label>
-                            <Input 
-                              type="number" 
-                              step="0.001"
-                              placeholder="0.000"
-                              value={fuelData[fuelType].liters}
-                              onChange={(e) => updateFuelData(fuelType, 'liters', e.target.value)}
-                              className="text-sm"
-                            />
+                {/* Fuel Types Data Entry */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                    <Fuel className="h-5 w-5 mr-2 text-blue-600" />
+                    Akaryakıt Türleri
+                  </h3>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {FUEL_TYPES.map((fuelType) => (
+                      <Card key={fuelType} className="border-gray-200 hover:border-blue-300 transition-colors">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-semibold text-gray-900">{fuelType}</h4>
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                           </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs text-gray-600">Toplam (₺)</Label>
-                            <Input 
-                              type="number" 
-                              step="0.01"
-                              placeholder="0.00"
-                              value={fuelData[fuelType].total_amount}
-                              onChange={(e) => updateFuelData(fuelType, 'total_amount', e.target.value)}
-                              className="text-sm"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs text-gray-600">Litre Fiyatı (₺)</Label>
-                            <div className="h-9 px-3 py-2 bg-gray-50 border rounded-md text-sm flex items-center">
-                              ₺{fuelData[fuelType].price_per_liter || '0.000'}
+                          <div className="grid grid-cols-3 gap-3">
+                            <div className="space-y-1">
+                              <Label className="text-xs text-gray-600">Litre</Label>
+                              <Input 
+                                type="number" 
+                                step="0.001"
+                                placeholder="0.000"
+                                value={fuelData[fuelType].liters}
+                                onChange={(e) => updateFuelData(fuelType, 'liters', e.target.value)}
+                                className="text-sm"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-gray-600">Toplam (₺)</Label>
+                              <Input 
+                                type="number" 
+                                step="0.01"
+                                placeholder="0.00"
+                                value={fuelData[fuelType].total_amount}
+                                onChange={(e) => updateFuelData(fuelType, 'total_amount', e.target.value)}
+                                className="text-sm"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-gray-600">Litre Fiyatı (₺)</Label>
+                              <div className="h-9 px-3 py-2 bg-gray-50 border rounded-md text-sm flex items-center">
+                                ₺{fuelData[fuelType].price_per_liter || '0.000'}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 </div>
+
+                {/* Grand Total Calculation */}
+                {grandTotal > 0 && (
+                  <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="p-2 bg-green-100 rounded-lg">
+                            <Calculator className="h-6 w-6 text-green-600" />
+                          </div>
+                          <span className="font-semibold text-green-800 text-lg">Genel Toplam:</span>
+                        </div>
+                        <span className="font-bold text-3xl text-green-600">₺{grandTotal.toFixed(2)}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                <Button 
+                  type="submit" 
+                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-200" 
+                  size="lg"
+                >
+                  <Plus className="h-5 w-5 mr-2" />
+                  Satışları Kaydet
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      {/* Date Filter Panel */}
+      {showDateFilter && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Başlangıç Tarihi</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-[200px] justify-start text-left font-normal bg-white",
+                        !filterStartDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {filterStartDate ? format(filterStartDate, "dd MMM yyyy", { locale: tr }) : "Başlangıç tarihi"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 bg-white border shadow-lg z-50" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={filterStartDate}
+                      onSelect={setFilterStartDate}
+                      initialFocus
+                      locale={tr}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
 
-              {/* Grand Total Calculation */}
-              {grandTotal > 0 && (
-                <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-green-100 rounded-lg">
-                          <Calculator className="h-6 w-6 text-green-600" />
-                        </div>
-                        <span className="font-semibold text-green-800 text-lg">Genel Toplam:</span>
-                      </div>
-                      <span className="font-bold text-3xl text-green-600">₺{grandTotal.toFixed(2)}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Bitiş Tarihi</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-[200px] justify-start text-left font-normal bg-white",
+                        !filterEndDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {filterEndDate ? format(filterEndDate, "dd MMM yyyy", { locale: tr }) : "Bitiş tarihi"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 bg-white border shadow-lg z-50" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={filterEndDate}
+                      onSelect={setFilterEndDate}
+                      initialFocus
+                      locale={tr}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
 
-              <Button 
-                type="submit" 
-                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-200" 
-                size="lg"
-              >
-                <Plus className="h-5 w-5 mr-2" />
-                Satışları Kaydet
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+              <div className="flex space-x-2 pt-6">
+                <Button
+                  onClick={clearDateFilter}
+                  variant="outline"
+                  size="sm"
+                >
+                  Temizle
+                </Button>
+              </div>
+            </div>
+            
+            {(filterStartDate || filterEndDate) && (
+              <div className="mt-3 text-sm text-blue-700">
+                <strong>Filtreleme:</strong> {filteredSales.length} satış kaydı gösteriliyor
+                {filterStartDate && filterEndDate && (
+                  <span> ({format(filterStartDate, "dd MMM yyyy", { locale: tr })} - {format(filterEndDate, "dd MMM yyyy", { locale: tr })})</span>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Sales List */}
       {Object.keys(groupedSales).length === 0 ? (
@@ -431,8 +550,15 @@ export const FuelSalesManagement = () => {
               <div className="p-4 bg-gray-50 rounded-full w-fit mx-auto mb-4">
                 <Fuel className="h-12 w-12 text-gray-400" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Henüz satış kaydı yok</h3>
-              <p className="text-gray-600 mb-6">İlk akaryakıt satışınızı kaydetmek için yukarıdaki butonu kullanın.</p>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                {filterStartDate || filterEndDate ? 'Seçilen tarih aralığında satış kaydı yok' : 'Henüz satış kaydı yok'}
+              </h3>
+              <p className="text-gray-600 mb-6">
+                {filterStartDate || filterEndDate 
+                  ? 'Farklı bir tarih aralığı seçmeyi deneyin.' 
+                  : 'İlk akaryakıt satışınızı kaydetmek için yukarıdaki butonu kullanın.'
+                }
+              </p>
             </div>
           </CardContent>
         </Card>

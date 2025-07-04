@@ -158,13 +158,13 @@ export const ShiftDetailDialog = ({ shift, isOpen, onOpenChange }: ShiftDetailDi
             </Card>
           )}
 
-          {/* Bank Transfer Description */}
+          {/* Description */}
           {shift.bank_transfer_description && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center space-x-2">
                   <FileText className="h-4 w-4" />
-                  <span>Havale Açıklaması</span>
+                  <span>Açıklama</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
