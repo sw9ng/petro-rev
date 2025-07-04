@@ -223,9 +223,10 @@ export const FuelSalesManagement = () => {
     acc[dateKey].totalAmount += sale.total_amount;
     
     // Add to fuel type totals
-    if (acc[dateKey].fuelTypeTotals[sale.fuel_type as keyof typeof acc[dateKey].fuelTypeTotals]) {
-      acc[dateKey].fuelTypeTotals[sale.fuel_type as keyof typeof acc[dateKey].fuelTypeTotals].amount += sale.total_amount;
-      acc[dateKey].fuelTypeTotals[sale.fuel_type as keyof typeof acc[dateKey].fuelTypeTotals].liters += sale.liters;
+    const fuelType = sale.fuel_type as keyof typeof acc[dateKey]['fuelTypeTotals'];
+    if (acc[dateKey].fuelTypeTotals[fuelType]) {
+      acc[dateKey].fuelTypeTotals[fuelType].amount += sale.total_amount;
+      acc[dateKey].fuelTypeTotals[fuelType].liters += sale.liters;
     }
     
     return acc;
