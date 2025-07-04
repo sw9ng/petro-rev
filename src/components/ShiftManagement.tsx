@@ -95,9 +95,9 @@ export const ShiftManagement = () => {
       return;
     }
 
-    // Create datetime strings without timezone conversion - store exactly as entered
-    const startDateTime = `${shiftData.start_date}T${shiftData.start_time}:00`;
-    const endDateTime = `${shiftData.end_date}T${shiftData.end_time}:00`;
+    // Create datetime strings with timezone adjustment for Turkey (UTC+3)
+    const startDateTime = `${shiftData.start_date}T${shiftData.start_time}:00+03:00`;
+    const endDateTime = `${shiftData.end_date}T${shiftData.end_time}:00+03:00`;
 
     const shiftPayload = {
       personnel_id: shiftData.personnel_id,
@@ -381,12 +381,12 @@ export const ShiftManagement = () => {
                     />
                   </div>
                   <div className="space-y-2 md:col-span-2">
-                    <Label>Havale Açıklaması</Label>
+                    <Label>Açıklama</Label>
                     <Textarea 
                       value={shiftData.bank_transfer_description}
                       onChange={(e) => handleInputChange('bank_transfer_description', e.target.value)}
                       className="border-gray-300"
-                      placeholder="Havale detayları ve açıklaması..."
+                      placeholder="Açıklama ve detaylar..."
                       rows={3}
                     />
                   </div>
