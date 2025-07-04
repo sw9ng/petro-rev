@@ -2,7 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Fuel, Users, BarChart3, Shield, Clock, DollarSign, Zap, CheckCircle, Star, Trophy, Code, Calculator } from 'lucide-react';
+import { Fuel, Users, BarChart3, Shield, Clock, DollarSign, Zap, CheckCircle, Star, Trophy, Code, Calculator, Mail, MessageCircle, Phone } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const Landing = () => {
@@ -51,6 +51,14 @@ export const Landing = () => {
     "7/24 teknik destek"
   ];
 
+  const handleWhatsAppContact = () => {
+    window.open('https://wa.me/905364547717?text=PetroRev Premium hakkında bilgi almak istiyorum.', '_blank');
+  };
+
+  const handleEmailContact = () => {
+    window.open('mailto:yusufsami.1061@gmail.com?subject=PetroRev Premium Bilgi Talebi&body=Merhaba, PetroRev Premium hakkında bilgi almak istiyorum.', '_blank');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
@@ -72,9 +80,10 @@ export const Landing = () => {
             </div>
             <Button 
               onClick={() => navigate('/')}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg"
             >
-              Sisteme Giriş
+              <Star className="mr-2 h-4 w-4" />
+              Premium Giriş
             </Button>
           </div>
         </div>
@@ -120,15 +129,17 @@ export const Landing = () => {
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg px-8 py-4 shadow-lg"
                 onClick={() => navigate('/')}
               >
-                <Zap className="mr-2 h-5 w-5" />
-                Ücretsiz Deneyin
+                <Star className="mr-2 h-5 w-5" />
+                Premium Sisteme Giriş
               </Button>
               <Button 
                 size="lg" 
                 variant="outline" 
                 className="text-lg px-8 py-4 border-gray-300 hover:bg-gray-50"
+                onClick={handleWhatsAppContact}
               >
-                Demo İzle
+                <MessageCircle className="mr-2 h-5 w-5" />
+                WhatsApp İletişim
               </Button>
             </div>
           </div>
@@ -236,12 +247,40 @@ export const Landing = () => {
                     </li>
                   ))}
                 </ul>
+                
+                {/* İletişim Bilgileri */}
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mt-6">
+                  <h4 className="font-semibold text-yellow-800 mb-3 flex items-center">
+                    <Mail className="mr-2 h-4 w-4" />
+                    Satın Almak İçin İletişime Geçin
+                  </h4>
+                  <p className="text-sm text-yellow-700 mb-4">
+                    Güvenli ödeme için öncelikle bizimle iletişime geçin. Size özel ödeme planı hazırlayalım.
+                  </p>
+                  <div className="space-y-3">
+                    <Button 
+                      onClick={handleEmailContact}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <Mail className="mr-2 h-4 w-4" />
+                      yusufsami.1061@gmail.com
+                    </Button>
+                    <Button 
+                      onClick={handleWhatsAppContact}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      <MessageCircle className="mr-2 h-4 w-4" />
+                      WhatsApp İletişim
+                    </Button>
+                  </div>
+                </div>
+
                 <Button 
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg py-6 shadow-lg"
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg py-6 shadow-lg mt-4"
                   onClick={() => navigate('/')}
                 >
                   <Star className="mr-2 h-5 w-5" />
-                  Hemen Başla
+                  Premium Sisteme Giriş
                 </Button>
               </CardContent>
             </Card>
@@ -249,12 +288,12 @@ export const Landing = () => {
 
           <div className="text-center mt-12">
             <p className="text-gray-600 mb-4">
-              14 gün ücretsiz deneme ile başlayın. Kredi kartı gerekmez.
+              İletişime geçin, size özel fiyat teklifi hazırlayalım.
             </p>
             <div className="flex justify-center space-x-8 text-sm text-gray-500">
               <div className="flex items-center">
                 <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
-                İstediğiniz zaman iptal edin
+                Güvenli banka havalesi
               </div>
               <div className="flex items-center">
                 <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
@@ -262,7 +301,7 @@ export const Landing = () => {
               </div>
               <div className="flex items-center">
                 <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
-                Güvenli ödeme
+                Kişisel danışmanlık
               </div>
             </div>
           </div>
@@ -346,27 +385,54 @@ export const Landing = () => {
         <div className="container mx-auto text-center">
           <div className="max-w-3xl mx-auto">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-              Güvenli Ödeme Seçenekleri
+              İletişim ve Ödeme Bilgileri
             </h2>
             <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-              Türkiye'nin güvenilir ödeme sistemleri ile güvenle ödeme yapın.
+              Size özel ödeme planları için bizimle iletişime geçin.
             </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-              <div className="bg-white p-4 rounded-lg shadow-md border">
-                <div className="text-sm font-medium text-gray-900">İyzico</div>
-                <div className="text-xs text-gray-500">Güvenli Ödeme</div>
-              </div>
-              <div className="bg-white p-4 rounded-lg shadow-md border">
-                <div className="text-sm font-medium text-gray-900">PayTR</div>
-                <div className="text-xs text-gray-500">Yerli Çözüm</div>
-              </div>
-              <div className="bg-white p-4 rounded-lg shadow-md border">
-                <div className="text-sm font-medium text-gray-900">Banka Havalesi</div>
-                <div className="text-xs text-gray-500">Geleneksel</div>
-              </div>
-              <div className="bg-white p-4 rounded-lg shadow-md border">
-                <div className="text-sm font-medium text-gray-900">Sanal POS</div>
-                <div className="text-xs text-gray-500">Banka Entegrasyonu</div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <Card className="p-6 bg-white shadow-lg hover:shadow-xl transition-shadow">
+                <div className="flex items-center justify-center mb-4">
+                  <Mail className="h-8 w-8 text-blue-600" />
+                </div>
+                <h3 className="font-semibold text-lg mb-2">Email İletişim</h3>
+                <p className="text-gray-600 mb-4">Detaylı bilgi ve teklif için</p>
+                <Button 
+                  onClick={handleEmailContact}
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                >
+                  yusufsami.1061@gmail.com
+                </Button>
+              </Card>
+              
+              <Card className="p-6 bg-white shadow-lg hover:shadow-xl transition-shadow">
+                <div className="flex items-center justify-center mb-4">
+                  <MessageCircle className="h-8 w-8 text-green-600" />
+                </div>
+                <h3 className="font-semibold text-lg mb-2">WhatsApp İletişim</h3>
+                <p className="text-gray-600 mb-4">Anında destek ve bilgi</p>
+                <Button 
+                  onClick={handleWhatsAppContact}
+                  className="w-full bg-green-600 hover:bg-green-700"
+                >
+                  WhatsApp ile İletişim
+                </Button>
+              </Card>
+            </div>
+            
+            <div className="bg-white rounded-lg p-6 shadow-lg">
+              <h4 className="font-semibold text-lg mb-3">Ödeme Seçenekleri</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex items-center justify-center p-3 bg-gray-50 rounded-lg">
+                  <span className="text-sm font-medium">Banka Havalesi</span>
+                </div>
+                <div className="flex items-center justify-center p-3 bg-gray-50 rounded-lg">
+                  <span className="text-sm font-medium">Taksitli Ödeme</span>
+                </div>
+                <div className="flex items-center justify-center p-3 bg-gray-50 rounded-lg">
+                  <span className="text-sm font-medium">Özel Ödeme Planı</span>
+                </div>
               </div>
             </div>
           </div>
@@ -398,14 +464,16 @@ export const Landing = () => {
                 className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-4 shadow-lg"
                 onClick={() => navigate('/')}
               >
-                <Zap className="mr-2 h-5 w-5" />
-                Hemen Dene
+                <Star className="mr-2 h-5 w-5" />
+                Premium Sisteme Giriş
               </Button>
               <Button 
                 size="lg" 
                 variant="outline" 
                 className="text-white border-white hover:bg-white/10 text-lg px-8 py-4"
+                onClick={handleWhatsAppContact}
               >
+                <MessageCircle className="mr-2 h-5 w-5" />
                 İletişime Geç
               </Button>
             </div>
@@ -456,8 +524,22 @@ export const Landing = () => {
             <div>
               <h4 className="font-semibold mb-4">İletişim</h4>
               <ul className="space-y-2 text-gray-400">
-                <li>premium@petrorev.com</li>
-                <li>+90 536 454 7717</li>
+                <li>
+                  <button 
+                    onClick={handleEmailContact}
+                    className="hover:text-white transition-colors"
+                  >
+                    yusufsami.1061@gmail.com
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={handleWhatsAppContact}
+                    className="hover:text-white transition-colors"
+                  >
+                    WhatsApp: +90 536 454 7717
+                  </button>
+                </li>
                 <li>İzmir, Türkiye</li>
                 <li className="text-green-400">Premium Müşteri Hattı</li>
               </ul>
