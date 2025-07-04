@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { CalendarIcon, TrendingUp, DollarSign, Users, Target, CreditCard, Calculator, User, ChevronDown, ChevronUp, FileText, ShoppingCart } from 'lucide-react';
+import { CalendarIcon, TrendingUp, DollarSign, Users, Target, CreditCard, Calculator, User, ChevronDown, ChevronUp, FileText, ShoppingCart, Fuel, Settings } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -15,7 +16,7 @@ import { usePersonnel } from '@/hooks/usePersonnel';
 import { useFuelSales } from '@/hooks/useFuelSales';
 import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { formatCurrency } from '@/lib/numberUtils';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
 
 interface BankDetail {
@@ -185,6 +186,28 @@ export const ReportsView = () => {
 
   const personnelAnalysis = getPersonnelAnalysis();
 
+  // Fuel sales analysis
+  const getFuelAnalysis = () => {
+    const fuelTypes = ['MOTORİN', 'BENZİN', 'LPG', 'MOTORİN(DİĞER)'];
+    
+    return fuelTypes.map(type => {
+      const typeSales = filteredFuelSales.filter(sale => sale.fuel_type === type);
+      const totalAmount = typeSales.reduce((sum, sale) => sum + sale.total_amount, 0);
+      const totalLiters = typeSales.reduce((sum, sale) => sum + sale.liters, 0);
+      const avgPrice = totalLiters > 0 ? totalAmount / totalLiters : 0;
+      
+      return {
+        type,
+        totalAmount,
+        totalLiters,
+        avgPrice,
+        salesCount: typeSales.length
+      };
+    }).filter(fuel => fuel.totalAmount > 0);
+  };
+
+  const fuelAnalysis = getFuelAnalysis();
+
   // Calculate totals
   const totalSales = filteredShifts.reduce((sum, shift) => 
     sum + shift.cash_sales + shift.card_sales + shift.veresiye + shift.bank_transfers + shift.loyalty_card, 0);
@@ -196,6 +219,7 @@ export const ReportsView = () => {
   const totalCustomerDebts = getTotalOutstandingDebt();
   const totalOverShort = filteredShifts.reduce((sum, shift) => sum + shift.over_short, 0);
   const totalFuelSales = filteredFuelSales.reduce((sum, sale) => sum + sale.total_amount, 0);
+  const totalFuelLiters = filteredFuelSales.reduce((sum, sale) => sum + sale.liters, 0);
 
   // Calculate bank-wise net sales
   const calculateBankWiseNetSales = () => {
@@ -231,6 +255,23 @@ export const ReportsView = () => {
     }
     return acc;
   }, [] as { date: string; sales: number }[]);
+
+  const fuelSalesChartData = filteredFuelSales.reduce((acc, sale) => {
+    const date = format(new Date(sale.sale_time), 'dd/MM');
+    const existingEntry = acc.find(entry => entry.date === date);
+    
+    if (existingEntry) {
+      existingEntry.liters += sale.liters;
+      existingEntry.amount += sale.total_amount;
+    } else {
+      acc.push({ 
+        date, 
+        liters: sale.liters, 
+        amount: sale.total_amount 
+      });
+    }
+    return acc;
+  }, [] as { date: string; liters: number; amount: number }[]);
 
   const paymentMethodData = [
     { name: 'Nakit', value: totalCashSales, color: '#10B981' },
@@ -320,6 +361,37 @@ export const ReportsView = () => {
               </Popover>
             </div>
           </div>
+
+          {/* Personnel and Shift Type Filters */}
+          <div className="flex items-center space-x-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Personel</Label>
+              <select
+                value={selectedPersonnel}
+                onChange={(e) => setSelectedPersonnel(e.target.value)}
+                className="w-[150px] px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">Tüm Personel</option>
+                {personnel.map(person => (
+                  <option key={person.id} value={person.id}>{person.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Vardiya</Label>
+              <select
+                value={selectedShiftType}
+                onChange={(e) => setSelectedShiftType(e.target.value)}
+                className="w-[150px] px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">Tüm Vardiyalar</option>
+                <option value="1">1. Vardiya</option>
+                <option value="2">2. Vardiya</option>
+                <option value="3">3. Vardiya</option>
+              </select>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -401,6 +473,54 @@ export const ReportsView = () => {
         </Card>
       </div>
 
+      {/* Additional Summary Cards for Fuel Sales */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Yakıt Satışları</CardTitle>
+            <Fuel className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">
+              {formatCurrency(totalFuelSales)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {totalFuelLiters.toFixed(2)} litre
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Fazla/Eksik</CardTitle>
+            <Calculator className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${totalOverShort >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {formatCurrency(totalOverShort)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Kasa farkı
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Komisyon Toplamı</CardTitle>
+            <Settings className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">
+              {formatCurrency(totalCommission)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Banka komisyonları
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Daily Sales Chart */}
@@ -421,6 +541,30 @@ export const ReportsView = () => {
                 <Tooltip formatter={(value: any) => formatCurrency(value)} />
                 <Bar dataKey="sales" fill="#3B82F6" />
               </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Fuel Sales Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Fuel className="h-5 w-5" />
+              <span>Günlük Yakıt Satışları</span>
+            </CardTitle>
+            <CardDescription>Litre ve tutar bazında yakıt satış grafiği</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={fuelSalesChartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis yAxisId="left" />
+                <YAxis yAxisId="right" orientation="right" />
+                <Tooltip />
+                <Bar yAxisId="left" dataKey="liters" fill="#F59E0B" name="Litre" />
+                <Line yAxisId="right" type="monotone" dataKey="amount" stroke="#EF4444" name="Tutar" />
+              </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
@@ -456,9 +600,41 @@ export const ReportsView = () => {
             </ResponsiveContainer>
           </CardContent>
         </Card>
+
+        {/* Fuel Type Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Fuel className="h-5 w-5" />
+              <span>Yakıt Türleri Dağılımı</span>
+            </CardTitle>
+            <CardDescription>Yakıt türlerine göre satış dağılımı</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={fuelAnalysis}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={(entry) => `${entry.type}: ${entry.totalLiters.toFixed(0)}L`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="totalLiters"
+                >
+                  {fuelAnalysis.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6'][index % 4]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value: any) => `${value} Litre`} />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Detailed Tables */}
+      {/* Detailed Analysis Tables */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Personnel Performance */}
         <Card>
@@ -472,29 +648,38 @@ export const ReportsView = () => {
           <CardContent>
             <div className="space-y-4">
               {personnelAnalysis.map((person) => (
-                <div key={person.name} className="border rounded-lg p-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <h4 className="font-medium text-gray-900">{person.name}</h4>
+                <div key={person.name} className="border rounded-lg p-4 bg-gradient-to-r from-gray-50 to-gray-100">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="font-medium text-gray-900 flex items-center space-x-2">
+                      <User className="h-4 w-4" />
+                      <span>{person.name}</span>
+                    </h4>
                     <span className="text-lg font-bold text-blue-600">
                       {formatCurrency(person.totalSales)}
                     </span>
                   </div>
-                  <div className="grid grid-cols-3 gap-4 text-sm text-gray-600">
-                    <div>
-                      <p>Vardiya: {person.shiftCount}</p>
-                      <p>Yakıt: {formatCurrency(person.totalFuelSales)}</p>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div className="space-y-1">
+                      <p className="text-gray-600">Vardiya Sayısı</p>
+                      <p className="font-semibold">{person.shiftCount}</p>
                     </div>
-                    <div>
-                      <p>Fark: {formatCurrency(person.totalOverShort)}</p>
-                      <p>Ortalama: {formatCurrency(person.averageOverShort)}</p>
+                    <div className="space-y-1">
+                      <p className="text-gray-600">Yakıt Satışı</p>
+                      <p className="font-semibold text-orange-600">{formatCurrency(person.totalFuelSales)}</p>
                     </div>
-                    <div className="text-right">
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-blue-600 h-2 rounded-full" 
-                          style={{width: `${(person.totalSales / Math.max(...personnelAnalysis.map(p => p.totalSales))) * 100}%`}}
-                        />
-                      </div>
+                    <div className="space-y-1">
+                      <p className="text-gray-600">Ortalama Fark</p>
+                      <p className={`font-semibold ${person.averageOverShort >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {formatCurrency(person.averageOverShort)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-300" 
+                        style={{width: `${(person.totalSales / Math.max(...personnelAnalysis.map(p => p.totalSales))) * 100}%`}}
+                      />
                     </div>
                   </div>
                 </div>
@@ -503,46 +688,40 @@ export const ReportsView = () => {
           </CardContent>
         </Card>
 
-        {/* Bank Commission Analysis */}
+        {/* Fuel Sales Analysis */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <Calculator className="h-5 w-5" />
-              <span>Banka Komisyon Analizi</span>
+              <Fuel className="h-5 w-5" />
+              <span>Yakıt Satış Analizi</span>
             </CardTitle>
-            <CardDescription>Banka bazında komisyon hesaplamaları</CardDescription>
+            <CardDescription>Yakıt türlerine göre detaylı satış analizi</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {bankWiseNetSales.map((bank) => (
-                <div key={bank.bankName} className="border rounded-lg p-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <h4 className="font-medium text-gray-900">{bank.bankName}</h4>
-                    <span className="text-lg font-bold text-green-600">
-                      {formatCurrency(bank.netAmount)}
+              {fuelAnalysis.map((fuel) => (
+                <div key={fuel.type} className="border rounded-lg p-4 bg-gradient-to-r from-orange-50 to-yellow-50">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="font-medium text-gray-900 flex items-center space-x-2">
+                      <Fuel className="h-4 w-4" />
+                      <span>{fuel.type}</span>
+                    </h4>
+                    <span className="text-lg font-bold text-orange-600">
+                      {formatCurrency(fuel.totalAmount)}
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
-                    <div>
-                      <p>Brüt: {formatCurrency(bank.grossAmount)}</p>
-                      <p>Komisyon Oranı: %{bank.commissionRate}</p>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div className="space-y-1">
+                      <p className="text-gray-600">Toplam Litre</p>
+                      <p className="font-semibold">{fuel.totalLiters.toFixed(2)} L</p>
                     </div>
-                    <div className="text-right">
-                      <p>Komisyon: {formatCurrency(bank.commission)}</p>
-                      <p className="text-green-600 font-medium">Net: {formatCurrency(bank.netAmount)}</p>
+                    <div className="space-y-1">
+                      <p className="text-gray-600">Ortalama Fiyat</p>
+                      <p className="font-semibold text-green-600">{formatCurrency(fuel.avgPrice)}/L</p>
                     </div>
-                  </div>
-                  <div className="mt-2">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs">Komisyon Oranı:</span>
-                      <input
-                        type="number"
-                        step="0.1"
-                        className="w-16 px-2 py-1 text-xs border rounded"
-                        value={commissionRates[bank.bankName] || 0}
-                        onChange={(e) => handleCommissionRateChange(bank.bankName, e.target.value)}
-                      />
-                      <span className="text-xs">%</span>
+                    <div className="space-y-1">
+                      <p className="text-gray-600">Satış Sayısı</p>
+                      <p className="font-semibold">{fuel.salesCount}</p>
                     </div>
                   </div>
                 </div>
@@ -551,6 +730,100 @@ export const ReportsView = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Enhanced Bank Commission Analysis */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Calculator className="h-5 w-5" />
+            <span>Detaylı Banka Komisyon Analizi</span>
+          </CardTitle>
+          <CardDescription>Banka bazında komisyon hesaplamaları ve kar-zarar analizi</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Commission Summary */}
+            <div className="space-y-4">
+              <h4 className="font-medium text-gray-900 mb-3">Komisyon Özeti</h4>
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Toplam Brüt Kart Satışı</p>
+                    <p className="text-xl font-bold text-blue-600">{formatCurrency(totalCardSales)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Toplam Net Kart Satışı</p>
+                    <p className="text-xl font-bold text-green-600">{formatCurrency(totalNetCardSales)}</p>
+                  </div>
+                </div>
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Toplam Komisyon Kaybı</span>
+                    <span className="text-lg font-bold text-red-600">{formatCurrency(totalCommission)}</span>
+                  </div>
+                  <div className="flex justify-between items-center mt-2">
+                    <span className="text-sm text-gray-600">Komisyon Oranı</span>
+                    <span className="text-sm font-medium">{((totalCommission / totalCardSales) * 100 || 0).toFixed(2)}%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bank-wise Details */}
+            <div className="space-y-4">
+              <h4 className="font-medium text-gray-900 mb-3">Banka Detayları</h4>
+              <div className="space-y-3">
+                {bankWiseNetSales.map((bank) => (
+                  <div key={bank.bankName} className="border rounded-lg p-4 bg-gradient-to-r from-gray-50 to-gray-100">
+                    <div className="flex justify-between items-center mb-2">
+                      <h5 className="font-medium text-gray-900 flex items-center space-x-2">
+                        <CreditCard className="h-4 w-4" />
+                        <span>{bank.bankName}</span>
+                      </h5>
+                      <span className="text-lg font-bold text-green-600">
+                        {formatCurrency(bank.netAmount)}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 text-sm mb-3">
+                      <div>
+                        <p className="text-gray-600">Brüt Tutar</p>
+                        <p className="font-semibold">{formatCurrency(bank.grossAmount)}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600">Komisyon</p>
+                        <p className="font-semibold text-red-600">{formatCurrency(bank.commission)}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600">Net Tutar</p>
+                        <p className="font-semibold text-green-600">{formatCurrency(bank.netAmount)}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2 pt-2 border-t border-gray-200">
+                      <span className="text-xs text-gray-600">Komisyon Oranı:</span>
+                      <input
+                        type="number"
+                        step="0.1"
+                        className="w-16 px-2 py-1 text-xs border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={commissionRates[bank.bankName] || 0}
+                        onChange={(e) => handleCommissionRateChange(bank.bankName, e.target.value)}
+                      />
+                      <span className="text-xs text-gray-600">%</span>
+                      <div className="flex-1">
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-red-500 h-2 rounded-full" 
+                            style={{width: `${bank.commissionRate}%`}}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Credit Sales Analysis */}
       <Card>
@@ -621,7 +894,7 @@ export const ReportsView = () => {
                     open={expandedCustomers[customerGroup.customer.name]}
                     onOpenChange={() => toggleCustomerExpansion(customerGroup.customer.name)}
                   >
-                    <div className="border rounded-lg bg-white">
+                    <div className="border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow">
                       <CollapsibleTrigger className="w-full">
                         <div className="flex justify-between items-center p-4 hover:bg-gray-50 transition-colors">
                           <div className="flex items-center space-x-3">
