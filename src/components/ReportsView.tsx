@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { CalendarIcon, TrendingUp, DollarSign, Users, Target, CreditCard, Calculator, User, ChevronDown, ChevronUp, FileText } from 'lucide-react';
+import { CalendarIcon, TrendingUp, DollarSign, Users, Target, CreditCard, Calculator, User, ChevronDown, ChevronUp, FileText, Fuel } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -237,7 +237,7 @@ export const ReportsView = () => {
     { name: 'Nakit', value: totalCashSales, color: '#10B981' },
     { name: 'Kart', value: totalCardSales, color: '#3B82F6' },
     { name: 'Banka Havale', value: totalBankTransfers, color: '#8B5CF6' },
-    { name: 'Sadakat Kartı', value: totalLoyaltyCard, color: '#F59E0B' },
+    { name: 'Cari Satış', value: filteredShifts.reduce((sum, shift) => sum + shift.veresiye, 0), color: '#F59E0B' },
     { name: 'Müşteri Borçları', value: totalCustomerDebts, color: '#EF4444' }
   ].filter(item => item.value > 0);
 
@@ -350,6 +350,152 @@ export const ReportsView = () => {
           <TabsTrigger value="credit-sales">Cari Satışlar</TabsTrigger>
         </TabsList>
 
+          <TabsContent value="fuel" className="space-y-6">
+            {/* Fuel Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Toplam Yakıt Satışı</CardTitle>
+                  <Fuel className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {formatCurrency(totalFuelSales)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {filteredFuelSales.length} satış
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Toplam Litre</CardTitle>
+                  <Target className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">
+                    {filteredFuelSales.reduce((sum, sale) => sum + sale.liters, 0).toFixed(2)} L
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Günlük ortalama: {filteredFuelSales.length > 0 && startDate && endDate ? (filteredFuelSales.reduce((sum, sale) => sum + sale.liters, 0) / Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)))).toFixed(1) : 0} L
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Ortalama Fiyat</CardTitle>
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-purple-600">
+                    {filteredFuelSales.length > 0 ? formatCurrency(filteredFuelSales.reduce((sum, sale) => sum + sale.price_per_liter, 0) / filteredFuelSales.length) : formatCurrency(0)}/L
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Litre başına
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Yakıt Türleri</CardTitle>
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-orange-600">
+                    {fuelTypeData.length}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Farklı tür
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Fuel Types Chart */}
+            {fuelTypeData.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Fuel className="h-5 w-5" />
+                    <span>Yakıt Türlerine Göre Satış</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Yakıt türlerinin toplam satış tutarları ve litre miktarları
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={fuelTypeData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={(entry) => `${entry.name}: ${formatCurrency(entry.value)}`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {fuelTypeData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value: any) => formatCurrency(value)} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Daily Fuel Sales by Type */}
+            {filteredFuelSales.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Target className="h-5 w-5" />
+                    <span>Günlük Yakıt Satış Detayları</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Günlük bazda yakıt türlerine göre satış miktarları
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {fuelTypeData.map((fuelType) => (
+                      <div key={fuelType.name} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-center mb-2">
+                          <h4 className="font-medium text-gray-900">{fuelType.name}</h4>
+                          <div className="text-right">
+                            <span className="text-lg font-bold" style={{color: fuelType.color}}>
+                              {formatCurrency(fuelType.value)}
+                            </span>
+                            <p className="text-sm text-gray-500">{fuelType.liters.toFixed(2)} L</p>
+                          </div>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="h-2 rounded-full" 
+                            style={{
+                              backgroundColor: fuelType.color,
+                              width: `${(fuelType.value / Math.max(...fuelTypeData.map(f => f.value))) * 100}%`
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="overview" className="space-y-6">
+            {/* Overview content would go here */}
+          </TabsContent>
+
         <TabsContent value="credit-sales" className="space-y-6">
           {/* Credit Sales Summary */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -390,8 +536,7 @@ export const ReportsView = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-red-600">
-                  {formatCurrency(customerDebts.reduce((sum, c) => sum + c.balance, 0))
-                }
+                  {formatCurrency(customerDebts.reduce((sum, c) => sum + c.balance, 0))}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {customerDebts.length} müşteri
