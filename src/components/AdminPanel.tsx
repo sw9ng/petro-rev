@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Users, Crown, Calendar, Clock, AlertCircle } from 'lucide-react';
+import { Users, Crown, Calendar, Clock } from 'lucide-react';
+import { CreateUserDialog } from './CreateUserDialog';
 
 interface Profile {
   id: string;
@@ -123,38 +123,8 @@ export const AdminPanel = () => {
           <h2 className="text-2xl font-bold">Admin Panel</h2>
           <p className="text-gray-600">Mevcut kullanıcıları yönetin</p>
         </div>
+        <CreateUserDialog onUserCreated={fetchProfiles} />
       </div>
-
-      {/* Yeni Hesap Oluşturma İçin Bilgilendirme */}
-      <Card className="border-orange-200 bg-orange-50">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2 text-orange-800">
-            <AlertCircle className="h-5 w-5" />
-            <span>Yeni Hesap Oluşturma</span>
-          </CardTitle>
-          <CardDescription className="text-orange-700">
-            Yeni premium hesap oluşturmak için Supabase Dashboard kullanın
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-orange-700">
-          <p className="mb-3">
-            Güvenlik nedeniyle yeni kullanıcı hesapları sadece Supabase Dashboard üzerinden oluşturulabilir.
-          </p>
-          <div className="space-y-2 text-sm">
-            <p><strong>1.</strong> Supabase Dashboard → Authentication → Users</p>
-            <p><strong>2.</strong> "Add user" butonuna tıklayın</p>
-            <p><strong>3.</strong> E-posta ve şifre girin</p>
-            <p><strong>4.</strong> User Metadata bölümüne şunları ekleyin:</p>
-            <div className="ml-4 font-mono text-xs bg-white p-2 rounded border">
-              {`{`}<br />
-              &nbsp;&nbsp;"full_name": "Kullanıcı Adı",<br />
-              &nbsp;&nbsp;"station_name": "İstasyon Adı"<br />
-              {`}`}
-            </div>
-            <p><strong>5.</strong> Kullanıcı oluşturulduktan sonra burada premium durumunu ayarlayabilirsiniz.</p>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Premium Uzatma Dialogu */}
       <Dialog open={extendPremiumOpen} onOpenChange={setExtendPremiumOpen}>
