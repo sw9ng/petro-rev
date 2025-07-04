@@ -185,18 +185,24 @@ export type Database = {
           created_at: string | null
           full_name: string | null
           id: string
+          is_premium: boolean | null
+          premium_expires_at: string | null
           station_name: string | null
         }
         Insert: {
           created_at?: string | null
           full_name?: string | null
           id: string
+          is_premium?: boolean | null
+          premium_expires_at?: string | null
           station_name?: string | null
         }
         Update: {
           created_at?: string | null
           full_name?: string | null
           id?: string
+          is_premium?: boolean | null
+          premium_expires_at?: string | null
           station_name?: string | null
         }
         Relationships: []
@@ -316,7 +322,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_user_premium: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

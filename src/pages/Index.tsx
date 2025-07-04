@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +25,7 @@ import { ReportsView } from "@/components/ReportsView";
 import { FuelSalesManagement } from "@/components/FuelSalesManagement";
 import { CustomerManagement } from "@/components/CustomerManagement";
 import { PaymentTracking } from "@/components/PaymentTracking";
+import { AdminPanel } from "@/components/AdminPanel";
 
 const Index = () => {
   const { user, signOut } = useAuth();
@@ -73,6 +73,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+      {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -112,7 +113,7 @@ const Index = () => {
 
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 bg-white border shadow-sm rounded-xl p-1">
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-9 bg-white border shadow-sm rounded-xl p-1">
             <TabsTrigger value="dashboard" className="flex items-center space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all">
               <LayoutDashboard className="h-4 w-4" />
               <span className="hidden sm:inline">Özet</span>
@@ -144,6 +145,10 @@ const Index = () => {
             <TabsTrigger value="reports" className="flex items-center space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Rapor</span>
+            </TabsTrigger>
+            <TabsTrigger value="admin" className="flex items-center space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all">
+              <Crown className="h-4 w-4" />
+              <span className="hidden sm:inline">Admin</span>
             </TabsTrigger>
           </TabsList>
 
@@ -177,6 +182,10 @@ const Index = () => {
 
           <TabsContent value="reports" className="space-y-6">
             <ReportsView />
+          </TabsContent>
+
+          <TabsContent value="admin" className="space-y-6">
+            <AdminPanel />
           </TabsContent>
         </Tabs>
       </div>
