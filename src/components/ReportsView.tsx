@@ -47,6 +47,26 @@ export const ReportsView = () => {
     }
   }, []);
 
+  // Filter data based on date range
+  const getFilteredShifts = () => {
+    if (!startDate || !endDate) return allShifts;
+    return allShifts.filter(shift => {
+      const shiftDate = new Date(shift.start_time);
+      return shiftDate >= startDate && shiftDate <= endDate;
+    });
+  };
+
+  const getFilteredFuelSales = () => {
+    if (!startDate || !endDate) return fuelSales;
+    return fuelSales.filter(sale => {
+      const saleDate = new Date(sale.sale_time);
+      return saleDate >= startDate && saleDate <= endDate;
+    });
+  };
+
+  const filteredShifts = getFilteredShifts();
+  const filteredFuelSales = getFilteredFuelSales();
+
   // Fetch bank details for filtered shifts
   useEffect(() => {
     if (filteredShifts.length > 0) {
@@ -82,26 +102,6 @@ export const ReportsView = () => {
       setBankDetails(grouped);
     }
   };
-
-  // Filter data based on date range
-  const getFilteredShifts = () => {
-    if (!startDate || !endDate) return allShifts;
-    return allShifts.filter(shift => {
-      const shiftDate = new Date(shift.start_time);
-      return shiftDate >= startDate && shiftDate <= endDate;
-    });
-  };
-
-  const getFilteredFuelSales = () => {
-    if (!startDate || !endDate) return fuelSales;
-    return fuelSales.filter(sale => {
-      const saleDate = new Date(sale.sale_time);
-      return saleDate >= startDate && saleDate <= endOfMonth;
-    });
-  };
-
-  const filteredShifts = getFilteredShifts();
-  const filteredFuelSales = getFilteredFuelSales();
 
   // Calculate totals
   const totalSales = filteredShifts.reduce((sum, shift) => 
