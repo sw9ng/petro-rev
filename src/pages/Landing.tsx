@@ -1,7 +1,8 @@
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Fuel, Users, BarChart3, Shield, Clock, DollarSign, Zap, CheckCircle, Star, Trophy } from 'lucide-react';
+import { Fuel, Users, BarChart3, Shield, Clock, DollarSign, Zap, CheckCircle, Star, Trophy, Code, Calculator } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const Landing = () => {
@@ -10,18 +11,18 @@ export const Landing = () => {
   const features = [
     {
       icon: <Users className="h-8 w-8 text-blue-600" />,
-      title: "Personel Yönetimi", 
-      description: "Akaryakıt istasyonu personelinizi kolayca yönetin, vardiya takibi yapın ve performansları izleyin."
+      title: "Sınırsız Personel Yönetimi", 
+      description: "İstediğiniz kadar personel ekleyin, vardiya takibi yapın ve performansları izleyin."
     },
     {
       icon: <Clock className="h-8 w-8 text-green-600" />,
       title: "Vardiya Takibi",
-      description: "Detaylı vardiya kaydı tutun, satış verilerini girin ve açık/fazla hesaplamalarını otomatik yapın."
+      description: "Detaylı vardiya kaydı tutun, satış verilerini girin ve tüm işlemleri takip edin."
     },
     {
-      icon: <DollarSign className="h-8 w-8 text-purple-600" />,
-      title: "Satış Analizi",
-      description: "Nakit, kart, sadakat kartı ve havale ödemelerini ayrı ayrı takip edin, raporlar alın."
+      icon: <Calculator className="h-8 w-8 text-purple-600" />,
+      title: "Açık/Fazla Takibi",
+      description: "Otomatik açık/fazla hesaplama ile kasa kontrolünü kolaylaştırın ve hataları minimize edin."
     },
     {
       icon: <BarChart3 className="h-8 w-8 text-orange-600" />,
@@ -29,77 +30,25 @@ export const Landing = () => {
       description: "Günlük, haftalık ve aylık satış raporları ile istasyonunuzun performansını analiz edin."
     },
     {
-      icon: <Fuel className="h-8 w-8 text-red-600" />,
-      title: "Akaryakıt Takibi",
-      description: "Yakıt satışlarını pompaya göre takip edin, stok yönetimi yapın ve litre bazında analiz edin."
+      icon: <Code className="h-8 w-8 text-indigo-600" />,
+      title: "API Entegrasyonu",
+      description: "Kendi sistemlerinizle entegre olun, özel çözümler geliştirin ve verileri senkronize edin."
     },
     {
-      icon: <Shield className="h-8 w-8 text-indigo-600" />,
+      icon: <Shield className="h-8 w-8 text-red-600" />,
       title: "Güvenli Veri",
       description: "Tüm verileriniz güvenli bulut ortamında saklanır ve sadece sizin erişiminize açıktır."
     }
   ];
 
   const benefits = [
+    "Sınırsız personel hesabı",
     "Kolay kullanım ve hızlı öğrenme",
     "Mobil uyumlu tasarım", 
     "Gerçek zamanlı veri senkronizasyonu",
     "Detaylı analiz ve raporlama",
-    "Çoklu ödeme yöntemi desteği",
+    "API entegrasyonu desteği",
     "7/24 teknik destek"
-  ];
-
-  const pricingPlans = [
-    {
-      name: "Başlangıç",
-      price: "12.000",
-      originalPrice: "18.000",
-      period: "yıl",
-      description: "Küçük istasyonlar için ideal",
-      features: [
-        "5 personel hesabı",
-        "Temel raporlama",
-        "Vardiya takibi",
-        "Email destek",
-        "Temel analitik"
-      ],
-      popular: false,
-      color: "border-gray-200"
-    },
-    {
-      name: "Profesyonel", 
-      price: "18.000",
-      originalPrice: "24.000",
-      period: "yıl",
-      description: "Orta büyüklükteki istasyonlar için",
-      features: [
-        "15 personel hesabı",
-        "Gelişmiş raporlama",
-        "Stok yönetimi",
-        "Müşteri takibi",
-        "Öncelikli destek",
-        "API entegrasyonu"
-      ],
-      popular: true,
-      color: "border-blue-500"
-    },
-    {
-      name: "Kurumsal",
-      price: "30.000", 
-      originalPrice: "42.000",
-      period: "yıl",
-      description: "Büyük istasyon zincirleri için",
-      features: [
-        "Sınırsız personel",
-        "Çoklu istasyon yönetimi",
-        "Özel raporlama",
-        "Dedicated destek",
-        "Özel entegrasyonlar",
-        "SLA garantisi"
-      ],
-      popular: false,
-      color: "border-purple-500"
-    }
   ];
 
   return (
@@ -143,27 +92,27 @@ export const Landing = () => {
             </div>
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
               Akaryakıt İstasyonunuz İçin 
-              <span className="text-blue-600 block">Premium Yönetim Sistemi</span>
+              <span className="text-blue-600 block">Tek Paket, Sınırsız Özellik</span>
             </h1>
             <p className="text-xl text-gray-600 mb-8 leading-relaxed">
               PetroRev ile akaryakıt istasyonunuzun tüm operasyonlarını dijitalleştirin. 
-              Yıllık abonelik ile %25 tasarruf edin ve premium özelliklerin keyfini çıkarın.
+              Tek pakette sınırsız personel, API entegrasyonu ve tüm premium özellikler.
             </p>
-            <div className="bg-white rounded-2xl p-6 mb-8 shadow-lg border border-blue-100">
-              <div className="flex items-center justify-center space-x-4 text-center">
-                <div className="text-red-500 line-through text-lg">
-                  Aylık ₺2.000/ay
+            <div className="bg-white rounded-2xl p-8 mb-8 shadow-lg border border-blue-100">
+              <div className="text-center">
+                <div className="text-red-500 line-through text-2xl mb-2">
+                  Aylık ₺2.000/ay × 12 = ₺24.000
                 </div>
-                <div className="text-3xl font-bold text-green-600">
-                  Yıllık ₺18.000/yıl
+                <div className="text-5xl font-bold text-green-600 mb-2">
+                  Yıllık ₺18.000
                 </div>
-                <Badge className="bg-green-100 text-green-800 border-green-200">
-                  %25 İndirim
+                <div className="text-lg text-gray-600 mb-2">
+                  Sadece ₺1.500/ay
+                </div>
+                <Badge className="bg-green-100 text-green-800 border-green-200 text-lg px-4 py-2">
+                  %25 İndirim - 6.000₺ Tasarruf
                 </Badge>
               </div>
-              <p className="text-sm text-gray-600 mt-2">
-                Sadece ₺1.500/ay - 3 ay ücretsiz kullanım!
-              </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button 
@@ -191,10 +140,10 @@ export const Landing = () => {
         <div className="container mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Neden PetroRev Premium?
+              Tek Pakette Her Şey Dahil
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Akaryakıt istasyonu işletmeciliğinde ihtiyaç duyduğunuz tüm premium araçları tek platformda sunuyoruz.
+              Sınırsız personel, API entegrasyonu, vardiya takibi ve daha fazlası. Hiçbir kısıtlama yok!
             </p>
           </div>
 
@@ -220,72 +169,82 @@ export const Landing = () => {
         </div>
       </section>
 
-      {/* Pricing Section */}
+      {/* Single Package Section */}
       <section className="py-20 px-4 bg-gradient-to-br from-gray-50 to-blue-50">
         <div className="container mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Yıllık Abonelik Paketleri
+              Tek Paket - Sınırsız Özellik
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
-              İstasyonunuzun büyüklüğüne göre tasarlanmış paketler ile en uygun çözümü seçin.
+              Karmaşık paket seçimlerine son! Tek pakette ihtiyacınız olan her şey.
             </p>
             <div className="inline-flex items-center bg-green-100 text-green-800 px-4 py-2 rounded-full">
               <Trophy className="mr-2 h-4 w-4" />
-              Tüm paketlerde %25 yıllık indirim!
+              %25 yıllık indirim ile 6.000₺ tasarruf!
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {pricingPlans.map((plan, index) => (
-              <Card key={index} className={`relative ${plan.color} ${plan.popular ? 'ring-2 ring-blue-500 shadow-2xl scale-105' : 'shadow-lg'} transition-all duration-300 hover:shadow-xl`}>
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <Badge className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-1">
-                      En Popüler
-                    </Badge>
+          <div className="max-w-2xl mx-auto">
+            <Card className="relative shadow-2xl border-2 border-blue-500 ring-2 ring-blue-300">
+              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                <Badge className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 text-lg">
+                  En Popüler Tek Seçenek
+                </Badge>
+              </div>
+              <CardHeader className="text-center pb-6 pt-8">
+                <CardTitle className="text-3xl font-bold text-gray-900 mb-4">
+                  PetroRev Premium
+                </CardTitle>
+                <div className="space-y-2">
+                  <div className="text-lg text-gray-500 line-through">
+                    ₺24.000/yıl
                   </div>
-                )}
-                <CardHeader className="text-center pb-6">
-                  <CardTitle className="text-2xl font-bold text-gray-900 mb-2">
-                    {plan.name}
-                  </CardTitle>
-                  <div className="space-y-2">
-                    <div className="text-sm text-gray-500 line-through">
-                      ₺{plan.originalPrice}/{plan.period}
-                    </div>
-                    <div className="text-4xl font-bold text-blue-600">
-                      ₺{plan.price}
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      /{plan.period} + KDV
-                    </div>
-                    <div className="text-xs text-green-600 font-medium">
-                      Aylık sadece ₺{Math.round(parseInt(plan.price) / 12).toLocaleString()}
-                    </div>
+                  <div className="text-5xl font-bold text-blue-600">
+                    ₺18.000
                   </div>
-                  <CardDescription className="mt-4">
-                    {plan.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <ul className="space-y-3">
-                    {plan.features.map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex items-center space-x-3">
-                        <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
-                        <span className="text-gray-700">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Button 
-                    className={`w-full ${plan.popular ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700' : 'bg-gray-800 hover:bg-gray-900'} text-white py-3`}
-                    onClick={() => navigate('/')}
-                  >
-                    {plan.popular ? 'Hemen Başla' : 'Seç'}
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+                  <div className="text-lg text-gray-600">
+                    /yıl + KDV
+                  </div>
+                  <div className="text-lg text-green-600 font-medium">
+                    Aylık sadece ₺1.500
+                  </div>
+                </div>
+                <CardDescription className="mt-4 text-lg">
+                  Sınırsız özellik, sınırsız personel
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <ul className="space-y-4">
+                  {[
+                    "Sınırsız personel hesabı",
+                    "Gelişmiş vardiya takibi",
+                    "Otomatik açık/fazla hesaplama",
+                    "API entegrasyonu",
+                    "Detaylı raporlama sistemi",
+                    "Müşteri borç takibi",
+                    "Yakıt satış yönetimi",
+                    "Mobil erişim",
+                    "7/24 premium destek",
+                    "Sınırsız veri saklama",
+                    "Özel entegrasyonlar",
+                    "SLA garantisi"
+                  ].map((feature, index) => (
+                    <li key={index} className="flex items-center space-x-3">
+                      <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                      <span className="text-gray-700 font-medium">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button 
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg py-6 shadow-lg"
+                  onClick={() => navigate('/')}
+                >
+                  <Star className="mr-2 h-5 w-5" />
+                  Hemen Başla
+                </Button>
+              </CardContent>
+            </Card>
           </div>
 
           <div className="text-center mt-12">
@@ -353,19 +312,19 @@ export const Landing = () => {
                     <CheckCircle className="h-5 w-5 text-green-600" />
                   </div>
                   <div className="flex justify-between items-center py-3 border-b border-gray-100">
-                    <span className="text-gray-600">Gelişmiş raporlama</span>
+                    <span className="text-gray-600">API entegrasyonu</span>
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                    <span className="text-gray-600">Açık/fazla takibi</span>
                     <CheckCircle className="h-5 w-5 text-green-600" />
                   </div>
                   <div className="flex justify-between items-center py-3 border-b border-gray-100">
                     <span className="text-gray-600">Mobil erişim</span>
                     <CheckCircle className="h-5 w-5 text-green-600" />
                   </div>
-                  <div className="flex justify-between items-center py-3 border-b border-gray-100">
-                    <span className="text-gray-600">Premium destek</span>
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                  </div>
                   <div className="flex justify-between items-center py-3">
-                    <span className="text-gray-600">API entegrasyonu</span>
+                    <span className="text-gray-600">Premium destek</span>
                     <CheckCircle className="h-5 w-5 text-green-600" />
                   </div>
                 </div>
@@ -382,6 +341,38 @@ export const Landing = () => {
         </div>
       </section>
 
+      {/* Payment Methods Section */}
+      <section className="py-20 px-4 bg-gradient-to-br from-gray-50 to-blue-50">
+        <div className="container mx-auto text-center">
+          <div className="max-w-3xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+              Güvenli Ödeme Seçenekleri
+            </h2>
+            <p className="text-xl text-gray-600 mb-8 leading-relaxed">
+              Türkiye'nin güvenilir ödeme sistemleri ile güvenle ödeme yapın.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+              <div className="bg-white p-4 rounded-lg shadow-md border">
+                <div className="text-sm font-medium text-gray-900">İyzico</div>
+                <div className="text-xs text-gray-500">Güvenli Ödeme</div>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-md border">
+                <div className="text-sm font-medium text-gray-900">PayTR</div>
+                <div className="text-xs text-gray-500">Yerli Çözüm</div>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-md border">
+                <div className="text-sm font-medium text-gray-900">Banka Havalesi</div>
+                <div className="text-xs text-gray-500">Geleneksel</div>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-md border">
+                <div className="text-sm font-medium text-gray-900">Sanal POS</div>
+                <div className="text-xs text-gray-500">Banka Entegrasyonu</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-20 px-4 bg-gradient-to-r from-blue-600 to-purple-600">
         <div className="container mx-auto text-center">
@@ -391,14 +382,14 @@ export const Landing = () => {
             </h2>
             <p className="text-xl text-blue-100 mb-8 leading-relaxed">
               Binlerce akaryakıt istasyonu PetroRev Premium ile operasyonlarını optimize etti. 
-              Yıllık abonelik ile %25 tasarruf edin ve premium özelliklerin keyfini çıkarın.
+              Tek pakette sınırsız özellik ile %25 tasarruf edin.
             </p>
             <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-white/20">
-              <div className="text-3xl font-bold text-white mb-2">
-                Sadece ₺1.500/ay
+              <div className="text-4xl font-bold text-white mb-2">
+                Sadece ₺18.000/yıl
               </div>
               <div className="text-blue-100">
-                Yıllık ödemede 3 ay ücretsiz kullanım
+                Aylık ₺1.500 - 6.000₺ tasarruf
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -441,16 +432,16 @@ export const Landing = () => {
                 </Badge>
               </div>
               <p className="text-gray-400">
-                Akaryakıt istasyonları için premium yönetim çözümleri.
+                Akaryakıt istasyonları için tek paket premium yönetim çözümü.
               </p>
             </div>
             <div>
               <h4 className="font-semibold mb-4">Premium Özellikler</h4>
               <ul className="space-y-2 text-gray-400">
-                <li>Gelişmiş Personel Yönetimi</li>
+                <li>Sınırsız Personel Yönetimi</li>
                 <li>Otomatik Vardiya Takibi</li>
-                <li>AI Destekli Analiz</li>
-                <li>Premium Raporlama</li>
+                <li>API Entegrasyonu</li>
+                <li>Açık/Fazla Takibi</li>
               </ul>
             </div>
             <div>
@@ -474,7 +465,7 @@ export const Landing = () => {
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
             <p>&copy; 2025 PetroRev Premium. Tüm hakları saklıdır.</p>
-            <p className="text-sm mt-2">Yıllık abonelik sistemi ile %25 tasarruf edin.</p>
+            <p className="text-sm mt-2">Tek paket sistemi ile sınırsız özellik.</p>
           </div>
         </div>
       </footer>
