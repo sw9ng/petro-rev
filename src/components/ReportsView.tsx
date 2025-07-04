@@ -5,10 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { CalendarIcon, TrendingUp, DollarSign, Users, Target, CreditCard, Calculator, User, ChevronDown, ChevronUp, FileText, Fuel } from 'lucide-react';
+import { CalendarIcon, TrendingUp, DollarSign, Users, Target, CreditCard, Calculator, User, ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -17,7 +15,7 @@ import { usePersonnel } from '@/hooks/usePersonnel';
 import { useFuelSales } from '@/hooks/useFuelSales';
 import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { formatCurrency } from '@/lib/numberUtils';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
 
 interface BankDetail {
@@ -237,27 +235,9 @@ export const ReportsView = () => {
     { name: 'Nakit', value: totalCashSales, color: '#10B981' },
     { name: 'Kart', value: totalCardSales, color: '#3B82F6' },
     { name: 'Banka Havale', value: totalBankTransfers, color: '#8B5CF6' },
-    { name: 'Cari Satış', value: filteredShifts.reduce((sum, shift) => sum + shift.veresiye, 0), color: '#F59E0B' },
+    { name: 'Sadakat Kartı', value: totalLoyaltyCard, color: '#F59E0B' },
     { name: 'Müşteri Borçları', value: totalCustomerDebts, color: '#EF4444' }
   ].filter(item => item.value > 0);
-
-  const fuelTypeData = filteredFuelSales.reduce((acc, sale) => {
-    const existing = acc.find(item => item.name === sale.fuel_type);
-    if (existing) {
-      existing.value += sale.total_amount;
-      existing.liters += sale.liters;
-    } else {
-      acc.push({
-        name: sale.fuel_type,
-        value: sale.total_amount,
-        liters: sale.liters,
-        color: sale.fuel_type === 'MOTORİN' ? '#3B82F6' : 
-               sale.fuel_type === 'BENZİN' ? '#10B981' :
-               sale.fuel_type === 'LPG' ? '#F59E0B' : '#8B5CF6'
-      });
-    }
-    return acc;
-  }, [] as { name: string; value: number; liters: number; color: string }[]);
 
   const handleCommissionRateChange = (bankName: string, rate: string) => {
     const numericRate = parseFloat(rate) || 0;
@@ -341,168 +321,236 @@ export const ReportsView = () => {
         </div>
       </div>
 
-      {/* Main Reports Tabs */}
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Genel Bakış</TabsTrigger>
-          <TabsTrigger value="sales">Satış Analizi</TabsTrigger>
-          <TabsTrigger value="fuel">Yakıt Analizi</TabsTrigger>
-          <TabsTrigger value="credit-sales">Cari Satışlar</TabsTrigger>
-        </TabsList>
-
-          <TabsContent value="fuel" className="space-y-6">
-            {/* Fuel Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Toplam Yakıt Satışı</CardTitle>
-                  <Fuel className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-blue-600">
-                    {formatCurrency(totalFuelSales)}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {filteredFuelSales.length} satış
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Toplam Litre</CardTitle>
-                  <Target className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-green-600">
-                    {filteredFuelSales.reduce((sum, sale) => sum + sale.liters, 0).toFixed(2)} L
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Günlük ortalama: {filteredFuelSales.length > 0 && startDate && endDate ? (filteredFuelSales.reduce((sum, sale) => sum + sale.liters, 0) / Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)))).toFixed(1) : 0} L
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Ortalama Fiyat</CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-purple-600">
-                    {filteredFuelSales.length > 0 ? formatCurrency(filteredFuelSales.reduce((sum, sale) => sum + sale.price_per_liter, 0) / filteredFuelSales.length) : formatCurrency(0)}/L
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Litre başına
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Yakıt Türleri</CardTitle>
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-orange-600">
-                    {fuelTypeData.length}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Farklı tür
-                  </p>
-                </CardContent>
-              </Card>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Toplam Satış</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {formatCurrency(totalSales)}
             </div>
+            <p className="text-xs text-muted-foreground">
+              {filteredShifts.length} vardiya
+            </p>
+          </CardContent>
+        </Card>
 
-            {/* Fuel Types Chart */}
-            {fuelTypeData.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Fuel className="h-5 w-5" />
-                    <span>Yakıt Türlerine Göre Satış</span>
-                  </CardTitle>
-                  <CardDescription>
-                    Yakıt türlerinin toplam satış tutarları ve litre miktarları
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={fuelTypeData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={(entry) => `${entry.name}: ${formatCurrency(entry.value)}`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {fuelTypeData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value: any) => formatCurrency(value)} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            )}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Nakit Satış</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {formatCurrency(totalCashSales)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {((totalCashSales / totalSales) * 100 || 0).toFixed(1)}% oranı
+            </p>
+          </CardContent>
+        </Card>
 
-            {/* Daily Fuel Sales by Type */}
-            {filteredFuelSales.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Target className="h-5 w-5" />
-                    <span>Günlük Yakıt Satış Detayları</span>
-                  </CardTitle>
-                  <CardDescription>
-                    Günlük bazda yakıt türlerine göre satış miktarları
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {fuelTypeData.map((fuelType) => (
-                      <div key={fuelType.name} className="border rounded-lg p-4">
-                        <div className="flex justify-between items-center mb-2">
-                          <h4 className="font-medium text-gray-900">{fuelType.name}</h4>
-                          <div className="text-right">
-                            <span className="text-lg font-bold" style={{color: fuelType.color}}>
-                              {formatCurrency(fuelType.value)}
-                            </span>
-                            <p className="text-sm text-gray-500">{fuelType.liters.toFixed(2)} L</p>
-                          </div>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="h-2 rounded-full" 
-                            style={{
-                              backgroundColor: fuelType.color,
-                              width: `${(fuelType.value / Math.max(...fuelTypeData.map(f => f.value))) * 100}%`
-                            }}
-                          />
-                        </div>
-                      </div>
-                    ))}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Kart Satış</CardTitle>
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">
+              {formatCurrency(totalCardSales)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Net: {formatCurrency(totalNetCardSales)}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Cari Satış</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">
+              {formatCurrency(totalCustomerDebts)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Mevcut borçlar
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Daily Sales Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <TrendingUp className="h-5 w-5" />
+              <span>Günlük Satış Grafiği</span>
+            </CardTitle>
+            <CardDescription>Seçilen tarih aralığındaki günlük satış performansı</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={dailySalesData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip formatter={(value: any) => formatCurrency(value)} />
+                <Bar dataKey="sales" fill="#3B82F6" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Payment Method Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Target className="h-5 w-5" />
+              <span>Ödeme Yöntemleri</span>
+            </CardTitle>
+            <CardDescription>Satış tutarlarının ödeme yöntemlerine göre dağılımı</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={paymentMethodData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={(entry) => `${entry.name}: ${formatCurrency(entry.value)}`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {paymentMethodData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value: any) => formatCurrency(value)} />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Detailed Tables */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* Personnel Performance */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Users className="h-5 w-5" />
+              <span>Personel Performansı</span>
+            </CardTitle>
+            <CardDescription>Personel bazında satış ve performans analizi</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {personnelAnalysis.map((person) => (
+                <div key={person.name} className="border rounded-lg p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-medium text-gray-900">{person.name}</h4>
+                    <span className="text-lg font-bold text-blue-600">
+                      {formatCurrency(person.totalSales)}
+                    </span>
                   </div>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
+                  <div className="grid grid-cols-3 gap-4 text-sm text-gray-600">
+                    <div>
+                      <p>Vardiya: {person.shiftCount}</p>
+                      <p>Yakıt: {formatCurrency(person.totalFuelSales)}</p>
+                    </div>
+                    <div>
+                      <p>Fark: {formatCurrency(person.totalOverShort)}</p>
+                      <p>Ortalama: {formatCurrency(person.averageOverShort)}</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full" 
+                          style={{width: `${(person.totalSales / Math.max(...personnelAnalysis.map(p => p.totalSales))) * 100}%`}}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
-          <TabsContent value="overview" className="space-y-6">
-            {/* Overview content would go here */}
-          </TabsContent>
+        {/* Bank Commission Analysis */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Calculator className="h-5 w-5" />
+              <span>Banka Komisyon Analizi</span>
+            </CardTitle>
+            <CardDescription>Banka bazında komisyon hesaplamaları</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {bankWiseNetSales.map((bank) => (
+                <div key={bank.bankName} className="border rounded-lg p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-medium text-gray-900">{bank.bankName}</h4>
+                    <span className="text-lg font-bold text-green-600">
+                      {formatCurrency(bank.netAmount)}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                    <div>
+                      <p>Brüt: {formatCurrency(bank.grossAmount)}</p>
+                      <p>Komisyon Oranı: %{bank.commissionRate}</p>
+                    </div>
+                    <div className="text-right">
+                      <p>Komisyon: {formatCurrency(bank.commission)}</p>
+                      <p className="text-green-600 font-medium">Net: {formatCurrency(bank.netAmount)}</p>
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs">Komisyon Oranı:</span>
+                      <input
+                        type="number"
+                        step="0.1"
+                        className="w-16 px-2 py-1 text-xs border rounded"
+                        value={commissionRates[bank.bankName] || 0}
+                        onChange={(e) => handleCommissionRateChange(bank.bankName, e.target.value)}
+                      />
+                      <span className="text-xs">%</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-        <TabsContent value="credit-sales" className="space-y-6">
-          {/* Credit Sales Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Credit Sales Analysis */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <FileText className="h-5 w-5" />
+            <span>Cari Satış Analizi</span>
+          </CardTitle>
+          <CardDescription>
+            Seçilen tarih aralığındaki cari satış işlemleri ve müşteri borç durumları
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">Toplam Cari Satış</CardTitle>
-                <FileText className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-orange-600">
@@ -515,9 +563,8 @@ export const ReportsView = () => {
             </Card>
 
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">Toplam Ödeme</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">
@@ -530,9 +577,8 @@ export const ReportsView = () => {
             </Card>
 
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">Mevcut Borçlar</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-red-600">
@@ -546,100 +592,88 @@ export const ReportsView = () => {
           </div>
 
           {/* Customer Debt Analysis */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Users className="h-5 w-5" />
-                <span>Müşteri Borç Analizi</span>
-              </CardTitle>
-              <CardDescription>
-                Müşterilerin mevcut borç durumları ve işlem geçmişi
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {groupedTransactions.length > 0 ? (
-                <div className="space-y-4">
-                  {groupedTransactions
-                    .filter(group => group.balance > 0)
-                    .sort((a, b) => b.balance - a.balance)
-                    .map((customerGroup) => (
-                      <Collapsible
-                        key={customerGroup.customer.name}
-                        open={expandedCustomers[customerGroup.customer.name]}
-                        onOpenChange={() => toggleCustomerExpansion(customerGroup.customer.name)}
-                      >
-                        <div className="border rounded-lg bg-white">
-                          <CollapsibleTrigger className="w-full">
-                            <div className="flex justify-between items-center p-4 hover:bg-gray-50 transition-colors">
-                              <div className="flex items-center space-x-3">
-                                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                                  <User className="h-5 w-5 text-red-600" />
-                                </div>
-                                <div className="text-left">
-                                  <p className="font-medium text-gray-900">{customerGroup.customer.name}</p>
-                                  <p className="text-sm text-gray-600">
-                                    {customerGroup.transactions.length} işlem
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex items-center space-x-3">
-                                <div className="text-right">
-                                  <p className="text-lg font-bold text-red-600">
-                                    {formatCurrency(customerGroup.balance)}
-                                  </p>
-                                  <p className="text-sm text-gray-500">Borç</p>
-                                </div>
-                                {expandedCustomers[customerGroup.customer.name] ? (
-                                  <ChevronUp className="h-5 w-5 text-gray-400" />
-                                ) : (
-                                  <ChevronDown className="h-5 w-5 text-gray-400" />
-                                )}
-                              </div>
+          {groupedTransactions.length > 0 ? (
+            <div className="space-y-4">
+              <h4 className="font-medium text-gray-900 mb-3">Müşteri Borç Detayları</h4>
+              {groupedTransactions
+                .filter(group => group.balance > 0)
+                .sort((a, b) => b.balance - a.balance)
+                .map((customerGroup) => (
+                  <Collapsible
+                    key={customerGroup.customer.name}
+                    open={expandedCustomers[customerGroup.customer.name]}
+                    onOpenChange={() => toggleCustomerExpansion(customerGroup.customer.name)}
+                  >
+                    <div className="border rounded-lg bg-white">
+                      <CollapsibleTrigger className="w-full">
+                        <div className="flex justify-between items-center p-4 hover:bg-gray-50 transition-colors">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                              <User className="h-5 w-5 text-red-600" />
                             </div>
-                          </CollapsibleTrigger>
-                          <CollapsibleContent>
-                            <div className="border-t bg-gray-50 p-4">
-                              <h4 className="font-medium text-gray-900 mb-3">İşlem Geçmişi</h4>
-                              <div className="space-y-2 max-h-60 overflow-y-auto">
-                                {customerGroup.transactions
-                                  .sort((a, b) => new Date(b.transaction_date).getTime() - new Date(a.transaction_date).getTime())
-                                  .map((transaction) => (
-                                    <div key={transaction.id} className="flex justify-between items-center py-2 px-3 bg-white rounded border">
-                                      <div>
-                                        <p className="text-sm font-medium">
-                                          {transaction.transaction_type === 'debt' ? 'Cari Satış' : 'Ödeme'}
-                                        </p>
-                                        <p className="text-xs text-gray-500">
-                                          {format(new Date(transaction.transaction_date), 'dd MMM yyyy', { locale: tr })} • {transaction.personnel.name}
-                                        </p>
-                                        {transaction.description && (
-                                          <p className="text-xs text-gray-600 mt-1">{transaction.description}</p>
-                                        )}
-                                      </div>
-                                      <p className={`font-medium ${
-                                        transaction.transaction_type === 'debt' ? 'text-red-600' : 'text-green-600'
-                                      }`}>
-                                        {transaction.transaction_type === 'debt' ? '+' : '-'}{formatCurrency(transaction.amount)}
-                                      </p>
-                                    </div>
-                                  ))}
-                              </div>
+                            <div className="text-left">
+                              <p className="font-medium text-gray-900">{customerGroup.customer.name}</p>
+                              <p className="text-sm text-gray-600">
+                                {customerGroup.transactions.length} işlem
+                              </p>
                             </div>
-                          </CollapsibleContent>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <div className="text-right">
+                              <p className="text-lg font-bold text-red-600">
+                                {formatCurrency(customerGroup.balance)}
+                              </p>
+                              <p className="text-sm text-gray-500">Borç</p>
+                            </div>
+                            {expandedCustomers[customerGroup.customer.name] ? (
+                              <ChevronUp className="h-5 w-5 text-gray-400" />
+                            ) : (
+                              <ChevronDown className="h-5 w-5 text-gray-400" />
+                            )}
+                          </div>
                         </div>
-                      </Collapsible>
-                    ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">Henüz borcu olan müşteri bulunmuyor</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="border-t bg-gray-50 p-4">
+                          <h4 className="font-medium text-gray-900 mb-3">İşlem Geçmişi</h4>
+                          <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {customerGroup.transactions
+                              .sort((a, b) => new Date(b.transaction_date).getTime() - new Date(a.transaction_date).getTime())
+                              .map((transaction) => (
+                                <div key={transaction.id} className="flex justify-between items-center py-2 px-3 bg-white rounded border">
+                                  <div>
+                                    <p className="text-sm font-medium">
+                                      {transaction.transaction_type === 'debt' ? 'Cari Satış' : 'Ödeme'}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                      {format(new Date(transaction.transaction_date), 'dd MMM yyyy', { locale: tr })} • {transaction.personnel.name}
+                                    </p>
+                                    {transaction.description && (
+                                      <p className="text-xs text-gray-600 mt-1">{transaction.description}</p>
+                                    )}
+                                  </div>
+                                  <p className={`font-medium ${
+                                    transaction.transaction_type === 'debt' ? 'text-red-600' : 'text-green-600'
+                                  }`}>
+                                    {transaction.transaction_type === 'debt' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                                  </p>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      </CollapsibleContent>
+                    </div>
+                  </Collapsible>
+                ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">Henüz borcu olan müşteri bulunmuyor</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
