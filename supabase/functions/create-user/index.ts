@@ -21,10 +21,11 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Create the user
+    // Create the user with email_confirm set to true
     const { data: user, error: userError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
+      email_confirm: true, // This bypasses email confirmation
       user_metadata: {
         full_name: fullName,
         station_name: stationName
