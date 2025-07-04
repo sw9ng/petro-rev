@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { CalendarIcon, TrendingUp, DollarSign, Users, Target, CreditCard, Calculator, User, ChevronDown, ChevronUp, FileText } from 'lucide-react';
+import { CalendarIcon, TrendingUp, DollarSign, Users, Target, CreditCard, Calculator, User, ChevronDown, ChevronUp, FileText, ShoppingCart } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -82,7 +82,7 @@ export const ReportsView = () => {
   const customerDebts = getCustomerDebts();
   const groupedTransactions = getAllTransactionsGroupedByCustomer();
 
-  // Filter data based on date range, shift type, and personnel
+  // Get filtered data
   const getFilteredShifts = () => {
     if (!startDate || !endDate) return allShifts;
     
@@ -192,6 +192,7 @@ export const ReportsView = () => {
   const totalCardSales = filteredShifts.reduce((sum, shift) => sum + shift.card_sales, 0);
   const totalBankTransfers = filteredShifts.reduce((sum, shift) => sum + shift.bank_transfers, 0);
   const totalLoyaltyCard = filteredShifts.reduce((sum, shift) => sum + shift.loyalty_card, 0);
+  const totalVeresiye = filteredShifts.reduce((sum, shift) => sum + shift.veresiye, 0);
   const totalCustomerDebts = getTotalOutstandingDebt();
   const totalOverShort = filteredShifts.reduce((sum, shift) => sum + shift.over_short, 0);
   const totalFuelSales = filteredFuelSales.reduce((sum, sale) => sum + sale.total_amount, 0);
@@ -236,6 +237,7 @@ export const ReportsView = () => {
     { name: 'Kart', value: totalCardSales, color: '#3B82F6' },
     { name: 'Banka Havale', value: totalBankTransfers, color: '#8B5CF6' },
     { name: 'Sadakat Kartı', value: totalLoyaltyCard, color: '#F59E0B' },
+    { name: 'Cari Satış', value: totalVeresiye, color: '#EC4899' },
     { name: 'Müşteri Borçları', value: totalCustomerDebts, color: '#EF4444' }
   ].filter(item => item.value > 0);
 
@@ -322,7 +324,7 @@ export const ReportsView = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Toplam Satış</CardTitle>
@@ -371,6 +373,21 @@ export const ReportsView = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Cari Satış</CardTitle>
+            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-pink-600">
+              {formatCurrency(totalVeresiye)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Dönem içi satış
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Müşteri Borçları</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
