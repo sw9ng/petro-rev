@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -720,7 +719,7 @@ export const ReportsView = () => {
             </div>
           )}
 
-          {/* Summary */}
+          {/* Summary - Updated to use correct totalCardSales variable */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
             <Card className="bg-blue-50 border-blue-200">
               <CardContent className="p-6">
