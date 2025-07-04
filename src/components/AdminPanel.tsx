@@ -2,14 +2,13 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { UserPlus, Users, Crown, Calendar, Clock } from 'lucide-react';
+import { Users, Crown, Calendar, Clock, AlertCircle } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -24,19 +23,8 @@ export const AdminPanel = () => {
   const { toast } = useToast();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [createAccountOpen, setCreateAccountOpen] = useState(false);
   const [extendPremiumOpen, setExtendPremiumOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
-
-  const [newAccount, setNewAccount] = useState({
-    email: '',
-    password: '',
-    fullName: '',
-    stationName: '',
-    isPremium: true,
-    premiumExpires: '2025-12-31'
-  });
-
   const [extensionMonths, setExtensionMonths] = useState('12');
 
   useEffect(() => {
@@ -57,65 +45,6 @@ export const AdminPanel = () => {
       toast({
         title: "Hata",
         description: "Profiller yüklenemedi",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createNewAccount = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      // Yeni kullanıcı oluştur
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: newAccount.email,
-        password: newAccount.password,
-        user_metadata: {
-          full_name: newAccount.fullName,
-          station_name: newAccount.stationName
-        }
-      });
-
-      if (authError) throw authError;
-
-      // Profile güncelle
-      if (authData.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({
-            full_name: newAccount.fullName,
-            station_name: newAccount.stationName,
-            is_premium: newAccount.isPremium,
-            premium_expires_at: newAccount.isPremium ? new Date(newAccount.premiumExpires).toISOString() : null
-          })
-          .eq('id', authData.user.id);
-
-        if (profileError) throw profileError;
-      }
-
-      toast({
-        title: "Başarılı",
-        description: "Yeni hesap oluşturuldu"
-      });
-
-      setCreateAccountOpen(false);
-      setNewAccount({
-        email: '',
-        password: '',
-        fullName: '',
-        stationName: '',
-        isPremium: true,
-        premiumExpires: '2025-12-31'
-      });
-      fetchProfiles();
-    } catch (error: any) {
-      console.error('Error creating account:', error);
-      toast({
-        title: "Hata",
-        description: error.message || "Hesap oluşturulamadı",
         variant: "destructive"
       });
     } finally {
@@ -192,78 +121,40 @@ export const AdminPanel = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Admin Panel</h2>
-          <p className="text-gray-600">Kullanıcı hesaplarını yönetin</p>
+          <p className="text-gray-600">Mevcut kullanıcıları yönetin</p>
         </div>
-        <Dialog open={createAccountOpen} onOpenChange={setCreateAccountOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-              <UserPlus className="mr-2 h-4 w-4" />
-              Yeni Hesap Oluştur
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Yeni Premium Hesap</DialogTitle>
-              <DialogDescription>
-                Ödeme alan müşteri için yeni hesap oluşturun
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={createNewAccount} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">E-posta</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={newAccount.email}
-                  onChange={(e) => setNewAccount({...newAccount, email: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Geçici Şifre</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={newAccount.password}
-                  onChange={(e) => setNewAccount({...newAccount, password: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Ad Soyad</Label>
-                <Input
-                  id="fullName"
-                  value={newAccount.fullName}
-                  onChange={(e) => setNewAccount({...newAccount, fullName: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="stationName">İstasyon Adı</Label>
-                <Input
-                  id="stationName"
-                  value={newAccount.stationName}
-                  onChange={(e) => setNewAccount({...newAccount, stationName: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="premiumExpires">Premium Bitiş Tarihi</Label>
-                <Input
-                  id="premiumExpires"
-                  type="date"
-                  value={newAccount.premiumExpires}
-                  onChange={(e) => setNewAccount({...newAccount, premiumExpires: e.target.value})}
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Oluşturuluyor...' : 'Hesap Oluştur'}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
       </div>
+
+      {/* Yeni Hesap Oluşturma İçin Bilgilendirme */}
+      <Card className="border-orange-200 bg-orange-50">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2 text-orange-800">
+            <AlertCircle className="h-5 w-5" />
+            <span>Yeni Hesap Oluşturma</span>
+          </CardTitle>
+          <CardDescription className="text-orange-700">
+            Yeni premium hesap oluşturmak için Supabase Dashboard kullanın
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="text-orange-700">
+          <p className="mb-3">
+            Güvenlik nedeniyle yeni kullanıcı hesapları sadece Supabase Dashboard üzerinden oluşturulabilir.
+          </p>
+          <div className="space-y-2 text-sm">
+            <p><strong>1.</strong> Supabase Dashboard → Authentication → Users</p>
+            <p><strong>2.</strong> "Add user" butonuna tıklayın</p>
+            <p><strong>3.</strong> E-posta ve şifre girin</p>
+            <p><strong>4.</strong> User Metadata bölümüne şunları ekleyin:</p>
+            <div className="ml-4 font-mono text-xs bg-white p-2 rounded border">
+              {`{`}<br />
+              &nbsp;&nbsp;"full_name": "Kullanıcı Adı",<br />
+              &nbsp;&nbsp;"station_name": "İstasyon Adı"<br />
+              {`}`}
+            </div>
+            <p><strong>5.</strong> Kullanıcı oluşturulduktan sonra burada premium durumunu ayarlayabilirsiniz.</p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Premium Uzatma Dialogu */}
       <Dialog open={extendPremiumOpen} onOpenChange={setExtendPremiumOpen}>
