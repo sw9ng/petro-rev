@@ -37,29 +37,29 @@ const Index = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
         <Card className="w-full max-w-md shadow-2xl border-0">
           <CardHeader className="text-center pb-6">
             <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <Fuel className="h-8 w-8 text-white" />
             </div>
             <div className="flex items-center justify-center space-x-2 mb-2">
-              <CardTitle className="text-2xl">PetroRev Premium</CardTitle>
+              <CardTitle className="text-xl sm:text-2xl">PetroRev Premium</CardTitle>
               <Badge className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
                 <Crown className="h-3 w-3 mr-1" />
                 2025
               </Badge>
             </div>
-            <CardDescription className="text-base">
+            <CardDescription className="text-sm sm:text-base">
               Premium akaryakıt istasyonu yönetim sistemine giriş yapın
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <Button 
               onClick={() => window.location.href = '/auth'}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg py-6"
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-base sm:text-lg py-3 sm:py-6"
             >
-              <Star className="mr-2 h-5 w-5" />
+              <Star className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
               Premium Girişi
             </Button>
             <Button 
@@ -80,24 +80,24 @@ const Index = () => {
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
-                <Fuel className="h-6 w-6 text-white" />
+          <div className="flex justify-between items-center h-14 sm:h-16">
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
+                <Fuel className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
               </div>
               <div>
-                <div className="flex items-center space-x-2">
-                  <h1 className="text-xl font-bold text-gray-900">PetroRev Premium</h1>
+                <div className="flex items-center space-x-1 sm:space-x-2">
+                  <h1 className="text-base sm:text-xl font-bold text-gray-900">PetroRev Premium</h1>
                   <Badge className="bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs">
-                    <Crown className="h-3 w-3 mr-1" />
+                    <Crown className="h-2 w-2 sm:h-3 sm:w-3 mr-1" />
                     2025
                   </Badge>
                 </div>
-                <p className="text-sm text-gray-600">Akaryakıt İstasyonu Yönetim Sistemi</p>
+                <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">Akaryakıt İstasyonu Yönetim Sistemi</p>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <div className="text-right hidden sm:block">
                 <span className="text-sm font-medium text-gray-900">Hoşgeldiniz!</span>
                 <div className="text-xs text-gray-500">Premium Üye</div>
               </div>
@@ -105,93 +105,95 @@ const Index = () => {
                 variant="outline"
                 size="sm"
                 onClick={signOut}
-                className="flex items-center space-x-2 hover:bg-red-50 hover:border-red-200 hover:text-red-600"
+                className="flex items-center space-x-1 sm:space-x-2 hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-xs sm:text-sm"
               >
-                <LogOut className="h-4 w-4" />
-                <span>Çıkış</span>
+                <LogOut className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Çıkış</span>
               </Button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-4 lg:grid-cols-9' : 'grid-cols-4 lg:grid-cols-8'} bg-white border shadow-sm rounded-xl p-1`}>
-            <TabsTrigger value="dashboard" className="flex items-center space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all">
-              <LayoutDashboard className="h-4 w-4" />
-              <span className="hidden sm:inline">Özet</span>
-            </TabsTrigger>
-            <TabsTrigger value="shifts" className="flex items-center space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all">
-              <Clock className="h-4 w-4" />
-              <span className="hidden sm:inline">Vardiya</span>
-            </TabsTrigger>
-            <TabsTrigger value="shift-list" className="flex items-center space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all">
-              <FileText className="h-4 w-4" />
-              <span className="hidden sm:inline">Liste</span>
-            </TabsTrigger>
-            <TabsTrigger value="personnel" className="flex items-center space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all">
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Personel</span>
-            </TabsTrigger>
-            <TabsTrigger value="customers" className="flex items-center space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all">
-              <UserPlus className="h-4 w-4" />
-              <span className="hidden sm:inline">Müşteri</span>
-            </TabsTrigger>
-            <TabsTrigger value="payments" className="flex items-center space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all">
-              <CreditCard className="h-4 w-4" />
-              <span className="hidden sm:inline">Cari Satış</span>
-            </TabsTrigger>
-            <TabsTrigger value="fuel" className="flex items-center space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all">
-              <Fuel className="h-4 w-4" />
-              <span className="hidden sm:inline">Yakıt</span>
-            </TabsTrigger>
-            <TabsTrigger value="reports" className="flex items-center space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all">
-              <BarChart3 className="h-4 w-4" />
-              <span className="hidden sm:inline">Rapor</span>
-            </TabsTrigger>
-            {isAdmin && (
-              <TabsTrigger value="admin" className="flex items-center space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all">
-                <Crown className="h-4 w-4" />
-                <span className="hidden sm:inline">Admin</span>
+      <div className="max-w-7xl mx-auto py-4 sm:py-6 px-2 sm:px-4 lg:px-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+          <div className="overflow-x-auto">
+            <TabsList className={`flex w-max min-w-full ${isAdmin ? 'grid-cols-9' : 'grid-cols-8'} bg-white border shadow-sm rounded-xl p-1 gap-1`}>
+              <TabsTrigger value="dashboard" className="flex items-center space-x-1 sm:space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap">
+                <LayoutDashboard className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span>Özet</span>
               </TabsTrigger>
-            )}
-          </TabsList>
+              <TabsTrigger value="shifts" className="flex items-center space-x-1 sm:space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap">
+                <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span>Vardiya</span>
+              </TabsTrigger>
+              <TabsTrigger value="shift-list" className="flex items-center space-x-1 sm:space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap">
+                <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span>Liste</span>
+              </TabsTrigger>
+              <TabsTrigger value="personnel" className="flex items-center space-x-1 sm:space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap">
+                <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span>Personel</span>
+              </TabsTrigger>
+              <TabsTrigger value="customers" className="flex items-center space-x-1 sm:space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap">
+                <UserPlus className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span>Müşteri</span>
+              </TabsTrigger>
+              <TabsTrigger value="payments" className="flex items-center space-x-1 sm:space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap">
+                <CreditCard className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span>Cari Satış</span>
+              </TabsTrigger>
+              <TabsTrigger value="fuel" className="flex items-center space-x-1 sm:space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap">
+                <Fuel className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span>Yakıt</span>
+              </TabsTrigger>
+              <TabsTrigger value="reports" className="flex items-center space-x-1 sm:space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap">
+                <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span>Rapor</span>
+              </TabsTrigger>
+              {isAdmin && (
+                <TabsTrigger value="admin" className="flex items-center space-x-1 sm:space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap">
+                  <Crown className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span>Admin</span>
+                </TabsTrigger>
+              )}
+            </TabsList>
+          </div>
 
-          <TabsContent value="dashboard" className="space-y-6">
+          <TabsContent value="dashboard" className="space-y-4 sm:space-y-6">
             <FuelStationDashboard />
           </TabsContent>
 
-          <TabsContent value="shifts" className="space-y-6">
+          <TabsContent value="shifts" className="space-y-4 sm:space-y-6">
             <ShiftManagement />
           </TabsContent>
 
-          <TabsContent value="shift-list" className="space-y-6">
+          <TabsContent value="shift-list" className="space-y-4 sm:space-y-6">
             <ShiftList />
           </TabsContent>
 
-          <TabsContent value="personnel" className="space-y-6">
+          <TabsContent value="personnel" className="space-y-4 sm:space-y-6">
             <PersonnelManagement />
           </TabsContent>
 
-          <TabsContent value="customers" className="space-y-6">
+          <TabsContent value="customers" className="space-y-4 sm:space-y-6">
             <CustomerManagement />
           </TabsContent>
 
-          <TabsContent value="payments" className="space-y-6">
+          <TabsContent value="payments" className="space-y-4 sm:space-y-6">
             <PaymentTracking />
           </TabsContent>
 
-          <TabsContent value="fuel" className="space-y-6">
+          <TabsContent value="fuel" className="space-y-4 sm:space-y-6">
             <FuelSalesManagement />
           </TabsContent>
 
-          <TabsContent value="reports" className="space-y-6">
+          <TabsContent value="reports" className="space-y-4 sm:space-y-6">
             <ReportsView />
           </TabsContent>
 
           {isAdmin && (
-            <TabsContent value="admin" className="space-y-6">
+            <TabsContent value="admin" className="space-y-4 sm:space-y-6">
               <AdminPanel />
             </TabsContent>
           )}
