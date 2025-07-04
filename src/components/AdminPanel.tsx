@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { UserPlus, Users, Crown, Calendar } from 'lucide-react';
+import { UserPlus, Users, Crown, Calendar, Clock } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -25,6 +25,8 @@ export const AdminPanel = () => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [createAccountOpen, setCreateAccountOpen] = useState(false);
+  const [extendPremiumOpen, setExtendPremiumOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
 
   const [newAccount, setNewAccount] = useState({
     email: '',
@@ -34,6 +36,8 @@ export const AdminPanel = () => {
     isPremium: true,
     premiumExpires: '2025-12-31'
   });
+
+  const [extensionMonths, setExtensionMonths] = useState('12');
 
   useEffect(() => {
     fetchProfiles();
@@ -146,6 +150,43 @@ export const AdminPanel = () => {
     }
   };
 
+  const extendPremium = async () => {
+    if (!selectedUser) return;
+
+    try {
+      const currentExpiry = selectedUser.premium_expires_at ? new Date(selectedUser.premium_expires_at) : new Date();
+      const newExpiry = new Date(currentExpiry);
+      newExpiry.setMonth(newExpiry.getMonth() + parseInt(extensionMonths));
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          is_premium: true,
+          premium_expires_at: newExpiry.toISOString()
+        })
+        .eq('id', selectedUser.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Başarılı",
+        description: `Premium ${extensionMonths} ay uzatıldı`
+      });
+
+      setExtendPremiumOpen(false);
+      setSelectedUser(null);
+      setExtensionMonths('12');
+      fetchProfiles();
+    } catch (error) {
+      console.error('Error extending premium:', error);
+      toast({
+        title: "Hata",
+        description: "Premium uzatılamadı",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -224,6 +265,53 @@ export const AdminPanel = () => {
         </Dialog>
       </div>
 
+      {/* Premium Uzatma Dialogu */}
+      <Dialog open={extendPremiumOpen} onOpenChange={setExtendPremiumOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Premium Uzat</DialogTitle>
+            <DialogDescription>
+              {selectedUser?.full_name || 'Kullanıcı'} için premium süresini uzatın
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Mevcut Bitiş Tarihi</Label>
+              <p className="text-sm text-gray-600">
+                {selectedUser?.premium_expires_at 
+                  ? new Date(selectedUser.premium_expires_at).toLocaleDateString('tr-TR')
+                  : 'Belirtilmemiş'
+                }
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="extensionMonths">Uzatma Süresi</Label>
+              <Select value={extensionMonths} onValueChange={setExtensionMonths}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Süre seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 Ay</SelectItem>
+                  <SelectItem value="3">3 Ay</SelectItem>
+                  <SelectItem value="6">6 Ay</SelectItem>
+                  <SelectItem value="12">12 Ay</SelectItem>
+                  <SelectItem value="24">24 Ay</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex space-x-2">
+              <Button onClick={extendPremium} className="flex-1">
+                <Clock className="mr-2 h-4 w-4" />
+                Premium Uzat
+              </Button>
+              <Button variant="outline" onClick={() => setExtendPremiumOpen(false)}>
+                İptal
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
@@ -274,6 +362,19 @@ export const AdminPanel = () => {
                     >
                       {profile.is_premium ? 'Premium İptal' : 'Premium Yap'}
                     </Button>
+                    {profile.is_premium && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => {
+                          setSelectedUser(profile);
+                          setExtendPremiumOpen(true);
+                        }}
+                      >
+                        <Clock className="mr-1 h-3 w-3" />
+                        Premium Uzat
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
