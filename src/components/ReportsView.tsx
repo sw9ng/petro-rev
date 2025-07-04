@@ -5,8 +5,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CalendarIcon, TrendingUp, DollarSign, Users, Fuel, CreditCard } from 'lucide-react';
+import { CalendarIcon, TrendingUp, DollarSign, Users, Fuel, CreditCard, Calculator } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -31,6 +33,10 @@ export const ReportsView = () => {
   const [selectedPersonnel, setSelectedPersonnel] = useState('');
   const [selectedShift, setSelectedShift] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Net credit card calculation states
+  const [commissionRates, setCommissionRates] = useState<Record<string, number>>({});
+  const [showCommissionDialog, setShowCommissionDialog] = useState(false);
 
   const loadShifts = async () => {
     setLoading(true);
@@ -189,6 +195,29 @@ export const ReportsView = () => {
     acc[bankName] += amount;
     return acc;
   }, {} as Record<string, number>);
+
+  // Calculate net credit card amounts after commission
+  const netCreditCardByBank = Object.entries(creditCardByBank).map(([bank, amount]) => {
+    const commissionRate = commissionRates[bank] || 0;
+    const commission = amount * (commissionRate / 100);
+    const netAmount = amount - commission;
+    return {
+      bank,
+      grossAmount: amount,
+      commissionRate,
+      commission,
+      netAmount
+    };
+  });
+
+  const totalNetCreditCard = netCreditCardByBank.reduce((sum, item) => sum + item.netAmount, 0);
+
+  const handleCommissionRateChange = (bank: string, rate: string) => {
+    setCommissionRates(prev => ({
+      ...prev,
+      [bank]: parseFloat(rate) || 0
+    }));
+  };
 
   // Prepare chart data - removed veresiye
   const dailyRevenue = filteredShifts.reduce((acc, shift) => {
@@ -395,6 +424,71 @@ export const ReportsView = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Net Credit Card Section */}
+      {creditCardData.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle className="flex items-center space-x-2">
+                  <Calculator className="h-5 w-5 text-green-500" />
+                  <span>Net Kredi Kartı Hesaplama</span>
+                </CardTitle>
+                <CardDescription>Banka komisyon oranlarını girerek net kredi kartı tutarını hesaplayın</CardDescription>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-gray-600">Toplam Net Tutar</p>
+                <p className="text-2xl font-bold text-green-600">{formatCurrency(totalNetCreditCard)}</p>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {netCreditCardByBank.map((item, index) => (
+                <Card key={item.bank} className="border-l-4" style={{borderLeftColor: COLORS[index % COLORS.length]}}>
+                  <CardContent className="p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-center">
+                      <div>
+                        <Label className="font-medium text-gray-900">{item.bank}</Label>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-gray-600">Brüt Tutar</Label>
+                        <div className="font-semibold">{formatCurrency(item.grossAmount)}</div>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-gray-600">Komisyon Oranı (%)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                          value={commissionRates[item.bank] || ''}
+                          onChange={(e) => handleCommissionRateChange(item.bank, e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-gray-600">Komisyon Tutarı</Label>
+                        <div className="font-semibold text-red-600">{formatCurrency(item.commission)}</div>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-gray-600">Net Tutar</Label>
+                        <div className="font-bold text-green-600">{formatCurrency(item.netAmount)}</div>
+                      </div>
+                      <div className="text-right">
+                        <div 
+                          className="w-4 h-4 rounded-full ml-auto" 
+                          style={{backgroundColor: COLORS[index % COLORS.length]}}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Credit Card Processing by Bank */}
       {creditCardData.length > 0 && (

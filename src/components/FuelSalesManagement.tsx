@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Plus, Fuel, Trash2, Calculator, Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { Plus, Fuel, Trash2, Calculator, Calendar as CalendarIcon, Clock, TrendingUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFuelSales } from '@/hooks/useFuelSales';
 import { format } from 'date-fns';
@@ -208,12 +209,24 @@ export const FuelSalesManagement = () => {
       acc[dateKey] = {
         date: dateKey,
         sales: [],
-        totalAmount: 0
+        totalAmount: 0,
+        fuelTypeTotals: {
+          'MOTORİN': { amount: 0, liters: 0 },
+          'LPG': { amount: 0, liters: 0 },
+          'BENZİN': { amount: 0, liters: 0 },
+          'MOTORİN(DİĞER)': { amount: 0, liters: 0 }
+        }
       };
     }
     
     acc[dateKey].sales.push(sale);
     acc[dateKey].totalAmount += sale.total_amount;
+    
+    // Add to fuel type totals
+    if (acc[dateKey].fuelTypeTotals[sale.fuel_type as keyof typeof acc[dateKey].fuelTypeTotals]) {
+      acc[dateKey].fuelTypeTotals[sale.fuel_type as keyof typeof acc[dateKey].fuelTypeTotals].amount += sale.total_amount;
+      acc[dateKey].fuelTypeTotals[sale.fuel_type as keyof typeof acc[dateKey].fuelTypeTotals].liters += sale.liters;
+    }
     
     return acc;
   }, {} as Record<string, any>);
@@ -445,6 +458,28 @@ export const FuelSalesManagement = () => {
                     </div>
                   </div>
                 </CardHeader>
+
+                {/* Daily Fuel Type Summary */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b">
+                  <div className="flex items-center mb-3">
+                    <TrendingUp className="h-5 w-5 text-blue-600 mr-2" />
+                    <h4 className="font-semibold text-gray-900">Günlük Akaryakıt Türü Özeti</h4>
+                  </div>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {FUEL_TYPES.map((fuelType) => {
+                      const typeData = group.fuelTypeTotals[fuelType];
+                      if (typeData.amount === 0) return null;
+                      return (
+                        <div key={fuelType} className="bg-white p-3 rounded-lg border border-blue-200">
+                          <div className="text-sm font-medium text-gray-700 mb-1">{fuelType}</div>
+                          <div className="text-lg font-bold text-blue-600">₺{typeData.amount.toFixed(2)}</div>
+                          <div className="text-xs text-gray-500">{typeData.liters.toFixed(3)} L</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <CardContent className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {group.sales.map((sale: any) => (
