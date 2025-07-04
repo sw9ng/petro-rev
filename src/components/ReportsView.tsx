@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { useShifts } from '@/hooks/useShifts';
 import { usePersonnel } from '@/hooks/usePersonnel';
 import { useFuelSales } from '@/hooks/useFuelSales';
+import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { formatCurrency } from '@/lib/numberUtils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,6 +28,7 @@ export const ReportsView = () => {
   const { allShifts } = useShifts();
   const { personnel } = usePersonnel();
   const { fuelSales } = useFuelSales();
+  const { getTotalOutstandingDebt } = useCustomerTransactions();
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
   const [selectedShiftType, setSelectedShiftType] = useState<string>('all');
@@ -161,7 +163,7 @@ export const ReportsView = () => {
   const totalCardSales = filteredShifts.reduce((sum, shift) => sum + shift.card_sales, 0);
   const totalBankTransfers = filteredShifts.reduce((sum, shift) => sum + shift.bank_transfers, 0);
   const totalLoyaltyCard = filteredShifts.reduce((sum, shift) => sum + shift.loyalty_card, 0);
-  const totalVeResiye = filteredShifts.reduce((sum, shift) => sum + shift.veresiye, 0);
+  const totalCustomerDebts = getTotalOutstandingDebt();
   const totalOverShort = filteredShifts.reduce((sum, shift) => sum + shift.over_short, 0);
   const totalFuelSales = filteredFuelSales.reduce((sum, sale) => sum + sale.total_amount, 0);
 
@@ -205,7 +207,7 @@ export const ReportsView = () => {
     { name: 'Kart', value: totalCardSales, color: '#3B82F6' },
     { name: 'Banka Havale', value: totalBankTransfers, color: '#8B5CF6' },
     { name: 'Sadakat Kartı', value: totalLoyaltyCard, color: '#F59E0B' },
-    { name: 'Veresiye', value: totalVeResiye, color: '#EF4444' }
+    { name: 'Müşteri Borçları', value: totalCustomerDebts, color: '#EF4444' }
   ].filter(item => item.value > 0);
 
   const fuelTypeData = filteredFuelSales.reduce((acc, sale) => {
@@ -553,12 +555,12 @@ export const ReportsView = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Veresiye Satışlar</CardTitle>
+            <CardTitle className="text-lg">Müşteri Borçları</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-red-600">{formatCurrency(totalVeResiye)}</div>
+            <div className="text-3xl font-bold text-red-600">{formatCurrency(totalCustomerDebts)}</div>
             <p className="text-sm text-gray-600 mt-2">
-              Toplam satışın %{((totalVeResiye / totalSales) * 100).toFixed(1)}'i
+              Aktif borç tutarı
             </p>
           </CardContent>
         </Card>
