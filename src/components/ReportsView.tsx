@@ -7,11 +7,13 @@ import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CalendarIcon, TrendingUp, DollarSign, Users, Target, CreditCard, Calculator } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CalendarIcon, TrendingUp, DollarSign, Users, Target, CreditCard, Calculator, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useShifts } from '@/hooks/useShifts';
+import { usePersonnel } from '@/hooks/usePersonnel';
 import { useFuelSales } from '@/hooks/useFuelSales';
 import { formatCurrency } from '@/lib/numberUtils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
@@ -24,9 +26,12 @@ interface BankDetail {
 
 export const ReportsView = () => {
   const { allShifts } = useShifts();
+  const { personnel } = usePersonnel();
   const { fuelSales } = useFuelSales();
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
+  const [selectedShiftType, setSelectedShiftType] = useState<string>('all');
+  const [selectedPersonnel, setSelectedPersonnel] = useState<string>('all');
   const [commissionRates, setCommissionRates] = useState<Record<string, number>>({});
   const [bankDetails, setBankDetails] = useState<BankDetail[]>([]);
 
@@ -47,21 +52,42 @@ export const ReportsView = () => {
     }
   }, []);
 
-  // Filter data based on date range
+  // Filter data based on date range, shift type, and personnel
   const getFilteredShifts = () => {
     if (!startDate || !endDate) return allShifts;
-    return allShifts.filter(shift => {
+    
+    let filtered = allShifts.filter(shift => {
       const shiftDate = new Date(shift.start_time);
       return shiftDate >= startDate && shiftDate <= endDate;
     });
+
+    // Filter by shift type
+    if (selectedShiftType !== 'all') {
+      filtered = filtered.filter(shift => shift.shift_number === selectedShiftType);
+    }
+
+    // Filter by personnel
+    if (selectedPersonnel !== 'all') {
+      filtered = filtered.filter(shift => shift.personnel_id === selectedPersonnel);
+    }
+
+    return filtered;
   };
 
   const getFilteredFuelSales = () => {
     if (!startDate || !endDate) return fuelSales;
-    return fuelSales.filter(sale => {
+    
+    let filtered = fuelSales.filter(sale => {
       const saleDate = new Date(sale.sale_time);
       return saleDate >= startDate && saleDate <= endDate;
     });
+
+    // Filter by personnel if selected
+    if (selectedPersonnel !== 'all') {
+      filtered = filtered.filter(sale => sale.personnel_id === selectedPersonnel);
+    }
+
+    return filtered;
   };
 
   const filteredShifts = getFilteredShifts();
@@ -102,6 +128,32 @@ export const ReportsView = () => {
       setBankDetails(grouped);
     }
   };
+
+  // Personnel analysis data
+  const getPersonnelAnalysis = () => {
+    const personnelStats = personnel.map(person => {
+      const personShifts = filteredShifts.filter(shift => shift.personnel_id === person.id);
+      const personFuelSales = filteredFuelSales.filter(sale => sale.personnel_id === person.id);
+      
+      const totalSales = personShifts.reduce((sum, shift) => 
+        sum + shift.cash_sales + shift.card_sales + shift.veresiye + shift.bank_transfers + shift.loyalty_card, 0);
+      const totalOverShort = personShifts.reduce((sum, shift) => sum + shift.over_short, 0);
+      const totalFuelSales = personFuelSales.reduce((sum, sale) => sum + sale.total_amount, 0);
+      
+      return {
+        name: person.name,
+        shiftCount: personShifts.length,
+        totalSales,
+        totalFuelSales,
+        totalOverShort,
+        averageOverShort: personShifts.length > 0 ? totalOverShort / personShifts.length : 0
+      };
+    }).filter(stat => stat.shiftCount > 0);
+
+    return personnelStats;
+  };
+
+  const personnelAnalysis = getPersonnelAnalysis();
 
   // Calculate totals
   const totalSales = filteredShifts.reduce((sum, shift) => 
@@ -197,60 +249,97 @@ export const ReportsView = () => {
           <p className="text-gray-600 mt-2">Detaylı satış raporları ve performans analizleri</p>
         </div>
 
-        {/* Date Range Selector */}
-        <div className="flex items-center space-x-4">
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Başlangıç Tarihi</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-[200px] justify-start text-left font-normal",
-                    !startDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {startDate ? format(startDate, "dd MMM yyyy", { locale: tr }) : "Başlangıç tarihi"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-white border shadow-lg z-50" align="start">
-                <Calendar
-                  mode="single"
-                  selected={startDate}
-                  onSelect={setStartDate}
-                  initialFocus
-                  locale={tr}
-                />
-              </PopoverContent>
-            </Popover>
+        {/* Filter Controls */}
+        <div className="flex flex-col lg:flex-row items-start lg:items-center space-y-4 lg:space-y-0 lg:space-x-4">
+          {/* Date Range Selector */}
+          <div className="flex items-center space-x-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Başlangıç Tarihi</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-[200px] justify-start text-left font-normal",
+                      !startDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {startDate ? format(startDate, "dd MMM yyyy", { locale: tr }) : "Başlangıç tarihi"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 bg-white border shadow-lg z-50" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={startDate}
+                    onSelect={setStartDate}
+                    initialFocus
+                    locale={tr}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Bitiş Tarihi</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-[200px] justify-start text-left font-normal",
+                      !endDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {endDate ? format(endDate, "dd MMM yyyy", { locale: tr }) : "Bitiş tarihi"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 bg-white border shadow-lg z-50" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={endDate}
+                    onSelect={setEndDate}
+                    initialFocus
+                    locale={tr}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Bitiş Tarihi</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-[200px] justify-start text-left font-normal",
-                    !endDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {endDate ? format(endDate, "dd MMM yyyy", { locale: tr }) : "Bitiş tarihi"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-white border shadow-lg z-50" align="start">
-                <Calendar
-                  mode="single"
-                  selected={endDate}
-                  onSelect={setEndDate}
-                  initialFocus
-                  locale={tr}
-                />
-              </PopoverContent>
-            </Popover>
+          {/* Filter Controls */}
+          <div className="flex items-center space-x-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Vardiya Tipi</Label>
+              <Select value={selectedShiftType} onValueChange={setSelectedShiftType}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="Vardiya" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tümü</SelectItem>
+                  <SelectItem value="V1">V1</SelectItem>
+                  <SelectItem value="V2">V2</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Pompacı</Label>
+              <Select value={selectedPersonnel} onValueChange={setSelectedPersonnel}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Pompacı" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tümü</SelectItem>
+                  {personnel.map((person) => (
+                    <SelectItem key={person.id} value={person.id}>
+                      {person.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </div>
@@ -313,6 +402,56 @@ export const ReportsView = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Personnel Analysis */}
+      {personnelAnalysis.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <User className="h-5 w-5" />
+              <span>Pompacı Performans Analizi</span>
+            </CardTitle>
+            <CardDescription>
+              Seçilen dönemde pompacıların performans verileri
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4">
+              {personnelAnalysis.map((person) => (
+                <div key={person.name} className="border rounded-lg p-4 bg-gray-50">
+                  <h5 className="font-medium text-gray-900 mb-3">{person.name}</h5>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-600">Vardiya Sayısı</p>
+                      <p className="font-semibold text-blue-600">{person.shiftCount}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600">Toplam Satış</p>
+                      <p className="font-semibold text-green-600">{formatCurrency(person.totalSales)}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600">Akaryakıt Satışı</p>
+                      <p className="font-semibold text-purple-600">{formatCurrency(person.totalFuelSales)}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600">Toplam Açık/Fazla</p>
+                      <p className={`font-semibold ${person.totalOverShort >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {person.totalOverShort >= 0 ? '+' : ''}{formatCurrency(person.totalOverShort)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600">Ortalama Açık/Fazla</p>
+                      <p className={`font-semibold ${person.averageOverShort >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {person.averageOverShort >= 0 ? '+' : ''}{formatCurrency(person.averageOverShort)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
