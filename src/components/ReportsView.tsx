@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarIcon, TrendingUp, DollarSign, Users, Target } from 'lucide-react';
+import { CalendarIcon, TrendingUp, DollarSign, Users, Target, Calendar as CalendarDays } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -16,34 +15,68 @@ import { useFuelSales } from '@/hooks/useFuelSales';
 import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { formatCurrency } from '@/lib/numberUtils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { DateRange } from 'react-day-picker';
 
 export const ReportsView = () => {
   const { allShifts } = useShifts();
   const { personnel } = usePersonnel();
   const { fuelSales } = useFuelSales();
-  const { getTotalOutstandingDebt } = useCustomerTransactions();
+  const { getTotalOutstandingDebt, getTransactionsByDateRange, findTransactionsByDate } = useCustomerTransactions();
   const [selectedDate, setSelectedDate] = useState<Date>();
+  const [selectedDateRange, setSelectedDateRange] = useState<DateRange | undefined>();
+  const [dateMode, setDateMode] = useState<'single' | 'range'>('single');
   const [selectedShiftType, setSelectedShiftType] = useState<string>('all');
   const [selectedPersonnel, setSelectedPersonnel] = useState<string>('all');
+  const [dailyTransactions, setDailyTransactions] = useState<any[]>([]);
 
   // Set default date to today
   useEffect(() => {
     setSelectedDate(new Date());
   }, []);
 
-  // Filter data based on selected date, shift type, and personnel
+  // Fetch daily transactions based on selected date(s)
+  useEffect(() => {
+    const fetchDailyTransactions = async () => {
+      if (dateMode === 'single' && selectedDate) {
+        const transactions = await findTransactionsByDate(selectedDate.toISOString().split('T')[0]);
+        setDailyTransactions(transactions);
+      } else if (dateMode === 'range' && selectedDateRange?.from && selectedDateRange?.to) {
+        const transactions = await getTransactionsByDateRange(
+          selectedDateRange.from.toISOString().split('T')[0],
+          selectedDateRange.to.toISOString().split('T')[0]
+        );
+        setDailyTransactions(transactions);
+      }
+    };
+
+    fetchDailyTransactions();
+  }, [selectedDate, selectedDateRange, dateMode, findTransactionsByDate, getTransactionsByDateRange]);
+
+  // Filter data based on selected date(s), shift type, and personnel
   const getFilteredShifts = () => {
-    if (!selectedDate) return allShifts;
+    let filtered = allShifts;
     
-    let filtered = allShifts.filter(shift => {
-      const shiftDate = new Date(shift.start_time);
-      const selectedDateStart = new Date(selectedDate);
-      selectedDateStart.setHours(0, 0, 0, 0);
-      const selectedDateEnd = new Date(selectedDate);
-      selectedDateEnd.setHours(23, 59, 59, 999);
-      
-      return shiftDate >= selectedDateStart && shiftDate <= selectedDateEnd;
-    });
+    if (dateMode === 'single' && selectedDate) {
+      filtered = allShifts.filter(shift => {
+        const shiftDate = new Date(shift.start_time);
+        const selectedDateStart = new Date(selectedDate);
+        selectedDateStart.setHours(0, 0, 0, 0);
+        const selectedDateEnd = new Date(selectedDate);
+        selectedDateEnd.setHours(23, 59, 59, 999);
+        
+        return shiftDate >= selectedDateStart && shiftDate <= selectedDateEnd;
+      });
+    } else if (dateMode === 'range' && selectedDateRange?.from && selectedDateRange?.to) {
+      filtered = allShifts.filter(shift => {
+        const shiftDate = new Date(shift.start_time);
+        const startDate = new Date(selectedDateRange.from!);
+        startDate.setHours(0, 0, 0, 0);
+        const endDate = new Date(selectedDateRange.to!);
+        endDate.setHours(23, 59, 59, 999);
+        
+        return shiftDate >= startDate && shiftDate <= endDate;
+      });
+    }
 
     // Filter by shift type
     if (selectedShiftType !== 'all') {
@@ -59,17 +92,29 @@ export const ReportsView = () => {
   };
 
   const getFilteredFuelSales = () => {
-    if (!selectedDate) return fuelSales;
+    let filtered = fuelSales;
     
-    let filtered = fuelSales.filter(sale => {
-      const saleDate = new Date(sale.sale_time);
-      const selectedDateStart = new Date(selectedDate);
-      selectedDateStart.setHours(0, 0, 0, 0);
-      const selectedDateEnd = new Date(selectedDate);
-      selectedDateEnd.setHours(23, 59, 59, 999);
-      
-      return saleDate >= selectedDateStart && saleDate <= selectedDateEnd;
-    });
+    if (dateMode === 'single' && selectedDate) {
+      filtered = fuelSales.filter(sale => {
+        const saleDate = new Date(sale.sale_time);
+        const selectedDateStart = new Date(selectedDate);
+        selectedDateStart.setHours(0, 0, 0, 0);
+        const selectedDateEnd = new Date(selectedDate);
+        selectedDateEnd.setHours(23, 59, 59, 999);
+        
+        return saleDate >= selectedDateStart && saleDate <= selectedDateEnd;
+      });
+    } else if (dateMode === 'range' && selectedDateRange?.from && selectedDateRange?.to) {
+      filtered = fuelSales.filter(sale => {
+        const saleDate = new Date(sale.sale_time);
+        const startDate = new Date(selectedDateRange.from!);
+        startDate.setHours(0, 0, 0, 0);
+        const endDate = new Date(selectedDateRange.to!);
+        endDate.setHours(23, 59, 59, 999);
+        
+        return saleDate >= startDate && saleDate <= endDate;
+      });
+    }
 
     // Filter by personnel if selected
     if (selectedPersonnel !== 'all') {
@@ -81,6 +126,10 @@ export const ReportsView = () => {
 
   const filteredShifts = getFilteredShifts();
   const filteredFuelSales = getFilteredFuelSales();
+
+  // Calculate daily veresiye/debt transactions
+  const dailyVeresiye = dailyTransactions.filter(t => t.transaction_type === 'debt').reduce((sum, t) => sum + t.amount, 0);
+  const dailyPayments = dailyTransactions.filter(t => t.transaction_type === 'payment').reduce((sum, t) => sum + t.amount, 0);
 
   // Personnel analysis data
   const getPersonnelAnalysis = () => {
@@ -115,6 +164,7 @@ export const ReportsView = () => {
   const totalCardSales = filteredShifts.reduce((sum, shift) => sum + shift.card_sales, 0);
   const totalBankTransfers = filteredShifts.reduce((sum, shift) => sum + shift.bank_transfers, 0);
   const totalLoyaltyCard = filteredShifts.reduce((sum, shift) => sum + shift.loyalty_card, 0);
+  const totalShiftVeresiye = filteredShifts.reduce((sum, shift) => sum + shift.veresiye, 0);
   const totalCustomerDebts = getTotalOutstandingDebt();
   const totalOverShort = filteredShifts.reduce((sum, shift) => sum + shift.over_short, 0);
   const totalFuelSales = filteredFuelSales.reduce((sum, sale) => sum + sale.total_amount, 0);
@@ -138,7 +188,7 @@ export const ReportsView = () => {
     { name: 'Kart', value: totalCardSales, color: '#3B82F6' },
     { name: 'Banka Havale', value: totalBankTransfers, color: '#8B5CF6' },
     { name: 'Sadakat Kartı', value: totalLoyaltyCard, color: '#F59E0B' },
-    { name: 'Müşteri Borçları', value: totalCustomerDebts, color: '#EF4444' }
+    { name: 'Cari Satış', value: totalShiftVeresiye + dailyVeresiye, color: '#EF4444' }
   ].filter(item => item.value > 0);
 
   const fuelTypeData = filteredFuelSales.reduce((acc, sale) => {
@@ -159,6 +209,15 @@ export const ReportsView = () => {
     return acc;
   }, [] as { name: string; value: number; liters: number; color: string }[]);
 
+  const getDateRangeText = () => {
+    if (dateMode === 'single' && selectedDate) {
+      return format(selectedDate, "dd MMM yyyy", { locale: tr });
+    } else if (dateMode === 'range' && selectedDateRange?.from && selectedDateRange?.to) {
+      return `${format(selectedDateRange.from, "dd MMM yyyy", { locale: tr })} - ${format(selectedDateRange.to, "dd MMM yyyy", { locale: tr })}`;
+    }
+    return "Tarih seçin";
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -172,28 +231,51 @@ export const ReportsView = () => {
 
         {/* Filter Controls */}
         <div className="flex flex-col lg:flex-row items-start lg:items-center space-y-4 lg:space-y-0 lg:space-x-4">
-          {/* Single Date Selector */}
+          {/* Date Mode Toggle */}
+          <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
+            <Button
+              variant={dateMode === 'single' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setDateMode('single')}
+              className="text-xs"
+            >
+              <CalendarIcon className="h-3 w-3 mr-1" />
+              Tek Tarih
+            </Button>
+            <Button
+              variant={dateMode === 'range' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setDateMode('range')}
+              className="text-xs"
+            >
+              <CalendarDays className="h-3 w-3 mr-1" />
+              Aralık
+            </Button>
+          </div>
+
+          {/* Date Selector */}
           <div className="space-y-2">
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-[200px] justify-start text-left font-normal",
-                    !selectedDate && "text-muted-foreground"
+                    "w-[280px] justify-start text-left font-normal",
+                    (!selectedDate && !selectedDateRange) && "text-muted-foreground"
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {selectedDate ? format(selectedDate, "dd MMM yyyy", { locale: tr }) : "Tarih seçin"}
+                  {getDateRangeText()}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 bg-white border shadow-lg z-50" align="start">
                 <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
+                  mode={dateMode === 'single' ? 'single' : 'range'}
+                  selected={dateMode === 'single' ? selectedDate : selectedDateRange}
+                  onSelect={dateMode === 'single' ? setSelectedDate : setSelectedDateRange}
                   initialFocus
                   locale={tr}
+                  className="pointer-events-auto"
                 />
               </PopoverContent>
             </Popover>
@@ -234,7 +316,7 @@ export const ReportsView = () => {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Toplam Satış</CardTitle>
@@ -257,6 +339,19 @@ export const ReportsView = () => {
             <div className="text-2xl font-bold">{formatCurrency(totalFuelSales)}</div>
             <p className="text-xs text-muted-foreground">
               {filteredFuelSales.length} işlem
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Cari Satış</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{formatCurrency(totalShiftVeresiye + dailyVeresiye)}</div>
+            <p className="text-xs text-muted-foreground">
+              Ödeme: {formatCurrency(dailyPayments)}
             </p>
           </CardContent>
         </Card>
@@ -298,7 +393,7 @@ export const ReportsView = () => {
           <CardHeader>
             <CardTitle>Pompacı Performans Analizi</CardTitle>
             <CardDescription>
-              Seçilen tarihteki pompacıların performans verileri
+              Seçilen tarih(ler)deki pompacıların performans verileri
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -344,7 +439,7 @@ export const ReportsView = () => {
         <Card>
           <CardHeader>
             <CardTitle>Günlük Satış Trendi</CardTitle>
-            <CardDescription>Seçilen tarihteki satış performansı</CardDescription>
+            <CardDescription>Seçilen tarih(ler)deki satış performansı</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -389,7 +484,7 @@ export const ReportsView = () => {
       </div>
 
       {/* Sales Analysis */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Nakit Satışlar</CardTitle>
@@ -397,7 +492,7 @@ export const ReportsView = () => {
           <CardContent>
             <div className="text-3xl font-bold text-green-600">{formatCurrency(totalCashSales)}</div>
             <p className="text-sm text-gray-600 mt-2">
-              Toplam satışın %{((totalCashSales / totalSales) * 100).toFixed(1)}'i
+              Toplam satışın %{totalSales > 0 ? ((totalCashSales / totalSales) * 100).toFixed(1) : '0'}'i
             </p>
           </CardContent>
         </Card>
@@ -409,7 +504,7 @@ export const ReportsView = () => {
           <CardContent>
             <div className="text-3xl font-bold text-blue-600">{formatCurrency(totalCardSales)}</div>
             <p className="text-sm text-gray-600 mt-2">
-              Toplam satışın %{((totalCardSales / totalSales) * 100).toFixed(1)}'i
+              Toplam satışın %{totalSales > 0 ? ((totalCardSales / totalSales) * 100).toFixed(1) : '0'}'i
             </p>
           </CardContent>
         </Card>
@@ -421,7 +516,19 @@ export const ReportsView = () => {
           <CardContent>
             <div className="text-3xl font-bold text-purple-600">{formatCurrency(totalBankTransfers)}</div>
             <p className="text-sm text-gray-600 mt-2">
-              Toplam satışın %{((totalBankTransfers / totalSales) * 100).toFixed(1)}'i
+              Toplam satışın %{totalSales > 0 ? ((totalBankTransfers / totalSales) * 100).toFixed(1) : '0'}'i
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Cari Satışlar</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-red-600">{formatCurrency(totalShiftVeresiye + dailyVeresiye)}</div>
+            <p className="text-sm text-gray-600 mt-2">
+              Toplam satışın %{totalSales > 0 ? (((totalShiftVeresiye + dailyVeresiye) / totalSales) * 100).toFixed(1) : '0'}'i
             </p>
           </CardContent>
         </Card>
