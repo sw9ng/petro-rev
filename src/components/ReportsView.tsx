@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,14 +28,13 @@ export const ReportsView = () => {
   const { allShifts } = useShifts();
   const { personnel } = usePersonnel();
   const { fuelSales } = useFuelSales();
-  const { getTotalOutstandingDebt, getTransactionsByDateRange } = useCustomerTransactions();
+  const { getTotalOutstandingDebt } = useCustomerTransactions();
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
   const [selectedShiftType, setSelectedShiftType] = useState<string>('all');
   const [selectedPersonnel, setSelectedPersonnel] = useState<string>('all');
   const [commissionRates, setCommissionRates] = useState<Record<string, number>>({});
   const [bankDetails, setBankDetails] = useState<BankDetail[]>([]);
-  const [cariSales, setCariSales] = useState<any[]>([]);
 
   // Set default date range to current month
   useEffect(() => {
@@ -92,23 +90,6 @@ export const ReportsView = () => {
 
     return filtered;
   };
-
-  // Fetch cari sales for the selected date range
-  const fetchCariSales = async () => {
-    if (!startDate || !endDate) return;
-    
-    const transactions = await getTransactionsByDateRange(
-      startDate.toISOString(),
-      endDate.toISOString()
-    );
-    
-    const veresiyeTransactions = transactions.filter(t => t.transaction_type === 'veresiye');
-    setCariSales(veresiyeTransactions);
-  };
-
-  useEffect(() => {
-    fetchCariSales();
-  }, [startDate, endDate]);
 
   const filteredShifts = getFilteredShifts();
   const filteredFuelSales = getFilteredFuelSales();
@@ -181,7 +162,7 @@ export const ReportsView = () => {
   const totalCashSales = filteredShifts.reduce((sum, shift) => sum + shift.cash_sales, 0);
   const totalCardSales = filteredShifts.reduce((sum, shift) => sum + shift.card_sales, 0);
   const totalBankTransfers = filteredShifts.reduce((sum, shift) => sum + shift.bank_transfers, 0);
-  const totalCariSales = cariSales.reduce((sum, sale) => sum + sale.amount, 0);
+  const totalLoyaltyCard = filteredShifts.reduce((sum, shift) => sum + shift.loyalty_card, 0);
   const totalCustomerDebts = getTotalOutstandingDebt();
   const totalOverShort = filteredShifts.reduce((sum, shift) => sum + shift.over_short, 0);
   const totalFuelSales = filteredFuelSales.reduce((sum, sale) => sum + sale.total_amount, 0);
@@ -225,7 +206,7 @@ export const ReportsView = () => {
     { name: 'Nakit', value: totalCashSales, color: '#10B981' },
     { name: 'Kart', value: totalCardSales, color: '#3B82F6' },
     { name: 'Banka Havale', value: totalBankTransfers, color: '#8B5CF6' },
-    { name: 'Cari Satış', value: totalCariSales, color: '#F59E0B' },
+    { name: 'Sadakat Kartı', value: totalLoyaltyCard, color: '#F59E0B' },
     { name: 'Müşteri Borçları', value: totalCustomerDebts, color: '#EF4444' }
   ].filter(item => item.value > 0);
 
@@ -365,7 +346,7 @@ export const ReportsView = () => {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Toplam Satış</CardTitle>
@@ -403,19 +384,6 @@ export const ReportsView = () => {
             </div>
             <p className="text-xs text-muted-foreground">
               Ortalama: {formatCurrency(totalOverShort / Math.max(filteredShifts.length, 1))}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Cari Satış</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-amber-600">{formatCurrency(totalCariSales)}</div>
-            <p className="text-xs text-muted-foreground">
-              {cariSales.length} işlem
             </p>
           </CardContent>
         </Card>
@@ -575,12 +543,12 @@ export const ReportsView = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Cari Satış</CardTitle>
+            <CardTitle className="text-lg">Sadakat Kartı</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-amber-600">{formatCurrency(totalCariSales)}</div>
+            <div className="text-3xl font-bold text-amber-600">{formatCurrency(totalLoyaltyCard)}</div>
             <p className="text-sm text-gray-600 mt-2">
-              Toplam satışın %{((totalCariSales / totalSales) * 100).toFixed(1)}'i
+              Toplam satışın %{((totalLoyaltyCard / totalSales) * 100).toFixed(1)}'i
             </p>
           </CardContent>
         </Card>
