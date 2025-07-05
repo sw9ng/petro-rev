@@ -1,9 +1,8 @@
-
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, DollarSign, User, CreditCard, Building2, FileText } from 'lucide-react';
-import { formatCurrency } from '@/lib/numberUtils';
+import { formatCurrency, formatDateTimeForDisplay } from '@/lib/numberUtils';
 import { Shift } from '@/hooks/useShifts';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -50,13 +49,11 @@ export const ShiftDetailDialog = ({ shift, isOpen, onOpenChange }: ShiftDetailDi
 
   if (!shift) return null;
 
-  const startTime = new Date(shift.start_time);
-  const endTime = shift.end_time ? new Date(shift.end_time) : null;
+  const startTime = formatDateTimeForDisplay(shift.start_time);
+  const endTime = shift.end_time ? formatDateTimeForDisplay(shift.end_time) : null;
   
   const formatDateTime = (date: Date) => {
-    // Create a date object adjusted for Turkey timezone (UTC+3)
-    const turkeyDate = new Date(date.getTime() + (3 * 60 * 60 * 1000));
-    return turkeyDate.toLocaleDateString('tr-TR') + ' ' + turkeyDate.toLocaleTimeString('tr-TR', { 
+    return date.toLocaleDateString('tr-TR') + ' ' + date.toLocaleTimeString('tr-TR', { 
       hour: '2-digit', 
       minute: '2-digit' 
     });
