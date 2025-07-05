@@ -73,18 +73,31 @@ export const ReportsView = () => {
     setSelectedDate(new Date());
   }, []);
 
-  // Fetch daily transactions based on selected date(s)
+  // Fetch daily transactions based on selected date(s) - Stable version to prevent glitching
   useEffect(() => {
     const fetchDailyTransactions = async () => {
-      if (dateMode === 'single' && selectedDate) {
-        const transactions = await findTransactionsByDate(selectedDate.toISOString().split('T')[0]);
-        setDailyTransactions(transactions);
-      } else if (dateMode === 'range' && selectedDateRange?.from && selectedDateRange?.to) {
-        const transactions = await getTransactionsByDateRange(
-          selectedDateRange.from.toISOString().split('T')[0],
-          selectedDateRange.to.toISOString().split('T')[0]
-        );
-        setDailyTransactions(transactions);
+      try {
+        let transactions = [];
+        
+        if (dateMode === 'single' && selectedDate) {
+          const dateString = selectedDate.toISOString().split('T')[0];
+          transactions = await findTransactionsByDate(dateString);
+        } else if (dateMode === 'range' && selectedDateRange?.from && selectedDateRange?.to) {
+          const startDate = selectedDateRange.from.toISOString().split('T')[0];
+          const endDate = selectedDateRange.to.toISOString().split('T')[0];
+          transactions = await getTransactionsByDateRange(startDate, endDate);
+        }
+        
+        // Only update if transactions actually changed to prevent unnecessary re-renders
+        setDailyTransactions(prevTransactions => {
+          if (JSON.stringify(prevTransactions) !== JSON.stringify(transactions)) {
+            return transactions;
+          }
+          return prevTransactions;
+        });
+      } catch (error) {
+        console.error('Error fetching daily transactions:', error);
+        setDailyTransactions([]);
       }
     };
 
@@ -218,9 +231,18 @@ export const ReportsView = () => {
   const filteredShifts = getFilteredShifts();
   const filteredFuelSales = getFilteredFuelSales();
 
-  // Calculate daily veresiye/debt transactions
-  const dailyVeresiye = dailyTransactions.filter(t => t.transaction_type === 'debt').reduce((sum, t) => sum + t.amount, 0);
-  const dailyPayments = dailyTransactions.filter(t => t.transaction_type === 'payment').reduce((sum, t) => sum + t.amount, 0);
+  // Calculate daily veresiye/debt transactions with memoization to prevent glitching
+  const dailyVeresiye = useMemo(() => {
+    return dailyTransactions
+      .filter(t => t.transaction_type === 'debt')
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+  }, [dailyTransactions]);
+
+  const dailyPayments = useMemo(() => {
+    return dailyTransactions
+      .filter(t => t.transaction_type === 'payment')
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+  }, [dailyTransactions]);
 
   // Personnel analysis data
   const getPersonnelAnalysis = () => {
@@ -248,20 +270,53 @@ export const ReportsView = () => {
 
   const personnelAnalysis = getPersonnelAnalysis();
 
-  // Calculate totals
-  const totalSales = filteredShifts.reduce((sum, shift) => 
-    sum + shift.cash_sales + shift.card_sales + shift.veresiye + shift.bank_transfers + shift.loyalty_card, 0);
-  const totalCashSales = filteredShifts.reduce((sum, shift) => sum + shift.cash_sales, 0);
-  const totalCardSales = filteredShifts.reduce((sum, shift) => sum + shift.card_sales, 0);
-  const totalBankTransfers = filteredShifts.reduce((sum, shift) => sum + shift.bank_transfers, 0);
-  const totalLoyaltyCard = filteredShifts.reduce((sum, shift) => sum + shift.loyalty_card, 0);
-  const totalShiftVeresiye = filteredShifts.reduce((sum, shift) => sum + shift.veresiye, 0);
-  const totalCustomerDebts = getTotalOutstandingDebt();
-  const totalOverShort = filteredShifts.reduce((sum, shift) => sum + shift.over_short, 0);
-  const totalFuelSales = filteredFuelSales.reduce((sum, sale) => sum + sale.total_amount, 0);
+  // Calculate totals with memoization to prevent glitching
+  const totalSales = useMemo(() => {
+    return filteredShifts.reduce((sum, shift) => 
+      sum + (shift.cash_sales || 0) + (shift.card_sales || 0) + (shift.veresiye || 0) + (shift.bank_transfers || 0) + (shift.loyalty_card || 0), 0);
+  }, [filteredShifts]);
 
-  const totalCommission = Object.values(bankCommissionData).reduce((sum, bank) => sum + bank.commission, 0);
-  const totalNetIncome = Object.values(bankCommissionData).reduce((sum, bank) => sum + bank.netIncome, 0);
+  const totalCashSales = useMemo(() => {
+    return filteredShifts.reduce((sum, shift) => sum + (shift.cash_sales || 0), 0);
+  }, [filteredShifts]);
+
+  const totalCardSales = useMemo(() => {
+    return filteredShifts.reduce((sum, shift) => sum + (shift.card_sales || 0), 0);
+  }, [filteredShifts]);
+
+  const totalBankTransfers = useMemo(() => {
+    return filteredShifts.reduce((sum, shift) => sum + (shift.bank_transfers || 0), 0);
+  }, [filteredShifts]);
+
+  const totalLoyaltyCard = useMemo(() => {
+    return filteredShifts.reduce((sum, shift) => sum + (shift.loyalty_card || 0), 0);
+  }, [filteredShifts]);
+
+  const totalShiftVeresiye = useMemo(() => {
+    return filteredShifts.reduce((sum, shift) => sum + (shift.veresiye || 0), 0);
+  }, [filteredShifts]);
+
+  const totalCustomerDebts = getTotalOutstandingDebt();
+  const totalOverShort = useMemo(() => {
+    return filteredShifts.reduce((sum, shift) => sum + (shift.over_short || 0), 0);
+  }, [filteredShifts]);
+
+  const totalFuelSales = useMemo(() => {
+    return filteredFuelSales.reduce((sum, sale) => sum + (sale.total_amount || 0), 0);
+  }, [filteredFuelSales]);
+
+  const totalCommission = useMemo(() => {
+    return Object.values(bankCommissionData).reduce((sum, bank) => sum + (bank.commission || 0), 0);
+  }, [bankCommissionData]);
+
+  const totalNetIncome = useMemo(() => {
+    return Object.values(bankCommissionData).reduce((sum, bank) => sum + (bank.netIncome || 0), 0);
+  }, [bankCommissionData]);
+
+  // Stable calculation for total current sales to prevent glitching
+  const totalCurrentSales = useMemo(() => {
+    return (totalShiftVeresiye || 0) + (dailyVeresiye || 0);
+  }, [totalShiftVeresiye, dailyVeresiye]);
 
   // Prepare chart data
   const dailySalesData = filteredShifts.reduce((acc, shift) => {
@@ -515,7 +570,7 @@ export const ReportsView = () => {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{formatCurrency(totalShiftVeresiye + dailyVeresiye)}</div>
+            <div className="text-2xl font-bold text-red-600">{formatCurrency(totalCurrentSales)}</div>
             <p className="text-xs text-muted-foreground">
               Ödeme: {formatCurrency(dailyPayments)}
             </p>
