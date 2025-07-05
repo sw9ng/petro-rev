@@ -47,10 +47,13 @@ export const ShiftList = () => {
   useEffect(() => {
     let filtered = shifts;
 
-    // Filter by date range
+    // Filter by date range - now using end_time instead of start_time
     if (startDate || endDate) {
       filtered = filtered.filter(shift => {
-        const shiftDate = formatDateTimeForDisplay(shift.start_time);
+        // Skip shifts without end_time for date filtering
+        if (!shift.end_time) return false;
+        
+        const shiftDate = formatDateTimeForDisplay(shift.end_time);
         const shiftDateString = format(shiftDate, 'yyyy-MM-dd');
         
         if (startDate && endDate) {
@@ -134,6 +137,12 @@ export const ShiftList = () => {
     const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
     
     return `${diffHours}s ${diffMinutes}dk`;
+  };
+
+  const getShiftDisplayDate = (shift: any) => {
+    // Use end_time for display date, fallback to start_time if end_time is null
+    const dateToUse = shift.end_time || shift.start_time;
+    return formatDateTimeForDisplay(dateToUse);
   };
 
   if (loading) {
@@ -263,6 +272,7 @@ export const ShiftList = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {filteredShifts.map((shift) => {
             const totalExpenses = shift.cash_sales + shift.card_sales + shift.veresiye + shift.bank_transfers;
+            const displayDate = getShiftDisplayDate(shift);
             
             return (
               <Card key={shift.id} className="shadow-sm border hover:shadow-md transition-shadow">
@@ -273,7 +283,7 @@ export const ShiftList = () => {
                       <CardDescription className="mt-1">
                         <div className="flex items-center space-x-1 mb-2">
                           <Calendar className="h-3 w-3" />
-                          <span className="text-sm">{format(formatDateTimeForDisplay(shift.start_time), "dd MMMM yyyy", { locale: tr })}</span>
+                          <span className="text-sm">{format(displayDate, "dd MMMM yyyy", { locale: tr })}</span>
                         </div>
                         <div className="flex items-center space-x-4 text-xs text-gray-500">
                           <div className="flex items-center space-x-1">
