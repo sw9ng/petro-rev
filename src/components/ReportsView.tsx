@@ -5,7 +5,9 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarIcon, TrendingUp, DollarSign, Users, Target, Calendar as CalendarDays, CreditCard } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { CalendarIcon, TrendingUp, DollarSign, Users, Target, Calendar as CalendarDays, CreditCard, Edit, Save, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -23,20 +25,29 @@ interface BankDetail {
   amount: number;
 }
 
-// Commission rates for different banks (example rates - adjust as needed)
-const BANK_COMMISSION_RATES: { [key: string]: number } = {
-  'Ziraat Bankası': 0.015, // 1.5%
-  'İş Bankası': 0.018, // 1.8%
-  'Garanti BBVA': 0.020, // 2.0%
-  'Yapı Kredi': 0.019, // 1.9%
-  'Akbank': 0.017, // 1.7%
-  'Halkbank': 0.016, // 1.6%
-  'Vakıfbank': 0.015, // 1.5%
-  'QNB Finansbank': 0.021, // 2.1%
-  'DenizBank': 0.018, // 1.8%
-  'TEB': 0.022, // 2.2%
-  'Şekerbank': 0.020, // 2.0%
-  'Diğer': 0.025 // 2.5%
+interface BankCommissionData {
+  [bankName: string]: {
+    amount: number;
+    commissionRate: number;
+    commission: number;
+    netIncome: number;
+  };
+}
+
+// Default commission rates for different banks
+const DEFAULT_BANK_COMMISSION_RATES: { [key: string]: number } = {
+  'Ziraat Bankası': 1.5,
+  'İş Bankası': 1.8,
+  'Garanti BBVA': 2.0,
+  'Yapı Kredi': 1.9,
+  'Akbank': 1.7,
+  'Halkbank': 1.6,
+  'Vakıfbank': 1.5,
+  'QNB Finansbank': 2.1,
+  'DenizBank': 1.8,
+  'TEB': 2.2,
+  'Şekerbank': 2.0,
+  'Diğer': 2.5
 };
 
 export const ReportsView = () => {
@@ -53,6 +64,9 @@ export const ReportsView = () => {
   const [bankDetails, setBankDetails] = useState<{ [shiftId: string]: BankDetail[] }>({});
   const [showBankDialog, setShowBankDialog] = useState(false);
   const [selectedShiftForBank, setSelectedShiftForBank] = useState<string>('');
+  const [bankCommissionData, setBankCommissionData] = useState<BankCommissionData>({});
+  const [editingBank, setEditingBank] = useState<string | null>(null);
+  const [tempCommissionRate, setTempCommissionRate] = useState<number>(0);
 
   // Set default date to today
   useEffect(() => {
@@ -95,6 +109,39 @@ export const ReportsView = () => {
 
     fetchBankDetails();
   }, [selectedDate, selectedDateRange, dateMode, selectedShiftType, selectedPersonnel, getShiftBankDetails]);
+
+  // Calculate bank commission data
+  useEffect(() => {
+    const calculateBankCommissions = () => {
+      const bankTotals: BankCommissionData = {};
+      
+      Object.values(bankDetails).forEach(details => {
+        details.forEach(detail => {
+          const defaultRate = DEFAULT_BANK_COMMISSION_RATES[detail.bank_name] || 2.5;
+          const currentRate = bankCommissionData[detail.bank_name]?.commissionRate || defaultRate;
+          const commission = (detail.amount * currentRate) / 100;
+          const netIncome = detail.amount - commission;
+          
+          if (bankTotals[detail.bank_name]) {
+            bankTotals[detail.bank_name].amount += detail.amount;
+            bankTotals[detail.bank_name].commission += commission;
+            bankTotals[detail.bank_name].netIncome += netIncome;
+          } else {
+            bankTotals[detail.bank_name] = {
+              amount: detail.amount,
+              commissionRate: currentRate,
+              commission: commission,
+              netIncome: netIncome
+            };
+          }
+        });
+      });
+      
+      setBankCommissionData(bankTotals);
+    };
+
+    calculateBankCommissions();
+  }, [bankDetails]);
 
   // Filter data based on selected date(s), shift type, and personnel
   const getFilteredShifts = () => {
@@ -213,36 +260,8 @@ export const ReportsView = () => {
   const totalOverShort = filteredShifts.reduce((sum, shift) => sum + shift.over_short, 0);
   const totalFuelSales = filteredFuelSales.reduce((sum, sale) => sum + sale.total_amount, 0);
 
-  // Calculate bank-wise totals and commissions
-  const getBankWiseTotals = () => {
-    const bankTotals: { [bankName: string]: { amount: number; commission: number; netIncome: number } } = {};
-    
-    Object.values(bankDetails).forEach(details => {
-      details.forEach(detail => {
-        const commissionRate = BANK_COMMISSION_RATES[detail.bank_name] || 0.025;
-        const commission = detail.amount * commissionRate;
-        const netIncome = detail.amount - commission;
-        
-        if (bankTotals[detail.bank_name]) {
-          bankTotals[detail.bank_name].amount += detail.amount;
-          bankTotals[detail.bank_name].commission += commission;
-          bankTotals[detail.bank_name].netIncome += netIncome;
-        } else {
-          bankTotals[detail.bank_name] = {
-            amount: detail.amount,
-            commission: commission,
-            netIncome: netIncome
-          };
-        }
-      });
-    });
-    
-    return bankTotals;
-  };
-
-  const bankWiseTotals = getBankWiseTotals();
-  const totalCommission = Object.values(bankWiseTotals).reduce((sum, bank) => sum + bank.commission, 0);
-  const totalNetIncome = Object.values(bankWiseTotals).reduce((sum, bank) => sum + bank.netIncome, 0);
+  const totalCommission = Object.values(bankCommissionData).reduce((sum, bank) => sum + bank.commission, 0);
+  const totalNetIncome = Object.values(bankCommissionData).reduce((sum, bank) => sum + bank.netIncome, 0);
 
   // Prepare chart data
   const dailySalesData = filteredShifts.reduce((acc, shift) => {
@@ -284,7 +303,7 @@ export const ReportsView = () => {
     return acc;
   }, [] as { name: string; value: number; liters: number; color: string }[]);
 
-  const bankChartData = Object.entries(bankWiseTotals).map(([bank, data]) => ({
+  const bankChartData = Object.entries(bankCommissionData).map(([bank, data]) => ({
     bank,
     amount: data.amount,
     commission: data.commission,
@@ -302,8 +321,30 @@ export const ReportsView = () => {
   };
 
   const handleBankDetailsUpdate = async (details: BankDetail[]) => {
-    // This would typically save to database
     console.log('Bank details updated:', details);
+  };
+
+  const handleCommissionEdit = (bankName: string) => {
+    setEditingBank(bankName);
+    setTempCommissionRate(bankCommissionData[bankName]?.commissionRate || DEFAULT_BANK_COMMISSION_RATES[bankName] || 2.5);
+  };
+
+  const handleCommissionSave = (bankName: string) => {
+    setBankCommissionData(prev => ({
+      ...prev,
+      [bankName]: {
+        ...prev[bankName],
+        commissionRate: tempCommissionRate,
+        commission: (prev[bankName].amount * tempCommissionRate) / 100,
+        netIncome: prev[bankName].amount - (prev[bankName].amount * tempCommissionRate) / 100
+      }
+    }));
+    setEditingBank(null);
+  };
+
+  const handleCommissionCancel = () => {
+    setEditingBank(null);
+    setTempCommissionRate(0);
   };
 
   return (
@@ -497,108 +538,177 @@ export const ReportsView = () => {
         </Card>
       </div>
 
-      {/* Bank Details Section */}
-      {Object.keys(bankWiseTotals).length > 0 && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                Banka Bazlı Kart Satışları ve Komisyon Analizi
-              </CardTitle>
-              <CardDescription>
-                Seçilen tarih(ler)deki banka bazında kart satış dağılımı, komisyon gideri ve net gelir
-              </CardDescription>
+      {/* Bank-wise Card Sales Analysis */}
+      {Object.keys(bankCommissionData).length > 0 && (
+        <Card className="border-2 border-blue-100">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-3 text-xl">
+                  <CreditCard className="h-6 w-6 text-blue-600" />
+                  Banka Bazlı Kart Satışları ve Komisyon Analizi
+                </CardTitle>
+                <CardDescription className="text-base mt-2">
+                  Seçilen tarih aralığındaki banka bazında kart satış dağılımı ve komisyon hesaplamaları
+                </CardDescription>
+              </div>
+              <div className="text-right">
+                <div className="text-sm text-gray-600">Toplam Kart Satışı</div>
+                <div className="text-2xl font-bold text-blue-600">{formatCurrency(totalCardSales)}</div>
+              </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowBankDialog(true)}
-              className="text-xs"
-            >
-              Detay Görüntüle
-            </Button>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-              {Object.entries(bankWiseTotals).map(([bank, data]) => (
-                <div key={bank} className="p-4 bg-gray-50 rounded-lg border">
-                  <h5 className="font-medium text-gray-900 text-sm mb-3">{bank}</h5>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Toplam Satış:</span>
-                      <span className="font-semibold text-blue-600">{formatCurrency(data.amount)}</span>
+          <CardContent className="pt-6">
+            {/* Bank Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {Object.entries(bankCommissionData).map(([bankName, data]) => (
+                <Card key={bankName} className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg font-semibold text-gray-800">{bankName}</CardTitle>
+                      <div className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                        {((data.amount / totalCardSales) * 100).toFixed(1)}%
+                      </div>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Komisyon ({((BANK_COMMISSION_RATES[bank] || 0.025) * 100).toFixed(1)}%):</span>
-                      <span className="font-semibold text-red-600">-{formatCurrency(data.commission)}</span>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Sales Amount */}
+                    <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                      <span className="text-sm font-medium text-gray-700">Toplam Satış</span>
+                      <span className="text-lg font-bold text-blue-600">{formatCurrency(data.amount)}</span>
                     </div>
-                    <div className="flex justify-between text-sm border-t pt-2">
-                      <span className="text-gray-900 font-medium">Net Gelir:</span>
-                      <span className="font-bold text-green-600">{formatCurrency(data.netIncome)}</span>
+
+                    {/* Commission Rate - Editable */}
+                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                      <span className="text-sm font-medium text-gray-700">Komisyon Oranı</span>
+                      <div className="flex items-center gap-2">
+                        {editingBank === bankName ? (
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              value={tempCommissionRate}
+                              onChange={(e) => setTempCommissionRate(Number(e.target.value))}
+                              className="w-16 h-8 text-sm"
+                              step="0.1"
+                            />
+                            <span className="text-sm">%</span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleCommissionSave(bankName)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Save className="h-4 w-4 text-green-600" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={handleCommissionCancel}
+                              className="h-8 w-8 p-0"
+                            >
+                              <X className="h-4 w-4 text-red-600" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-orange-600">%{data.commissionRate.toFixed(1)}</span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleCommissionEdit(bankName)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Edit className="h-4 w-4 text-gray-500" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-500 text-center">
-                      Toplam kart satışının %{totalCardSales > 0 ? ((data.amount / totalCardSales) * 100).toFixed(1) : '0'}'i
+
+                    {/* Commission Amount */}
+                    <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                      <span className="text-sm font-medium text-gray-700">Komisyon</span>
+                      <span className="text-lg font-bold text-red-600">-{formatCurrency(data.commission)}</span>
                     </div>
-                  </div>
-                </div>
+
+                    {/* Net Income */}
+                    <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg border-t-2 border-green-200">
+                      <span className="text-sm font-semibold text-gray-800">Net Gelir</span>
+                      <span className="text-xl font-bold text-green-600">{formatCurrency(data.netIncome)}</span>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
 
-            {/* Commission Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-blue-50 rounded-lg">
-              <div className="text-center">
-                <p className="text-sm text-gray-600 mb-1">Toplam Kart Satışı</p>
-                <p className="text-xl font-bold text-blue-600">{formatCurrency(totalCardSales)}</p>
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 p-6 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 rounded-xl border">
+              <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+                <div className="text-sm text-gray-600 mb-2">Toplam Kart Satışı</div>
+                <div className="text-2xl font-bold text-blue-600">{formatCurrency(totalCardSales)}</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {Object.keys(bankCommissionData).length} banka
+                </div>
               </div>
-              <div className="text-center">
-                <p className="text-sm text-gray-600 mb-1">Toplam Komisyon</p>
-                <p className="text-xl font-bold text-red-600">-{formatCurrency(totalCommission)}</p>
+              <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+                <div className="text-sm text-gray-600 mb-2">Toplam Komisyon</div>
+                <div className="text-2xl font-bold text-red-600">-{formatCurrency(totalCommission)}</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  Ort. %{totalCardSales > 0 ? ((totalCommission / totalCardSales) * 100).toFixed(2) : '0'}
+                </div>
               </div>
-              <div className="text-center">
-                <p className="text-sm text-gray-600 mb-1">Toplam Net Gelir</p>
-                <p className="text-xl font-bold text-green-600">{formatCurrency(totalNetIncome)}</p>
+              <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+                <div className="text-sm text-gray-600 mb-2">Toplam Net Gelir</div>
+                <div className="text-2xl font-bold text-green-600">{formatCurrency(totalNetIncome)}</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  Kar Oranı: %{totalCardSales > 0 ? ((totalNetIncome / totalCardSales) * 100).toFixed(1) : '0'}
+                </div>
               </div>
             </div>
 
-            {/* Bank Comparison Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div>
-                <h6 className="font-medium mb-3">Banka Bazlı Satış Karşılaştırması</h6>
+            {/* Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Bank Sales Comparison */}
+              <div className="bg-white p-6 rounded-lg border">
+                <h3 className="text-lg font-semibold mb-4 text-gray-800">Banka Bazlı Satış Karşılaştırması</h3>
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={bankChartData}>
+                  <BarChart data={Object.entries(bankCommissionData).map(([bank, data]) => ({
+                    bank: bank.length > 10 ? `${bank.substring(0, 10)}...` : bank,
+                    amount: data.amount,
+                    commission: data.commission,
+                    netIncome: data.netIncome
+                  }))}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
-                      dataKey="bank" 
-                      angle={-45}
-                      textAnchor="end"
-                      height={80}
-                    />
-                    <YAxis tickFormatter={(value) => formatCurrency(value)} />
-                    <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Tutar']} />
-                    <Bar dataKey="amount" fill="#3B82F6" name="Toplam Satış" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              
-              <div>
-                <h6 className="font-medium mb-3">Net Gelir Karşılaştırması</h6>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={bankChartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
-                      dataKey="bank" 
-                      angle={-45}
-                      textAnchor="end"
-                      height={80}
-                    />
+                    <XAxis dataKey="bank" angle={-45} textAnchor="end" height={80} />
                     <YAxis tickFormatter={(value) => formatCurrency(value)} />
                     <Tooltip formatter={(value, name) => [
                       formatCurrency(Number(value)), 
-                      name === 'netIncome' ? 'Net Gelir' : name === 'commission' ? 'Komisyon' : name
+                      name === 'amount' ? 'Toplam Satış' : 
+                      name === 'commission' ? 'Komisyon' : 'Net Gelir'
                     ]} />
-                    <Bar dataKey="netIncome" fill="#10B981" name="Net Gelir" />
-                    <Bar dataKey="commission" fill="#EF4444" name="Komisyon" />
+                    <Bar dataKey="amount" fill="#3B82F6" name="amount" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Commission vs Net Income */}
+              <div className="bg-white p-6 rounded-lg border">
+                <h3 className="text-lg font-semibold mb-4 text-gray-800">Komisyon vs Net Gelir</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={Object.entries(bankCommissionData).map(([bank, data]) => ({
+                    bank: bank.length > 10 ? `${bank.substring(0, 10)}...` : bank,
+                    commission: data.commission,
+                    netIncome: data.netIncome
+                  }))}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="bank" angle={-45} textAnchor="end" height={80} />
+                    <YAxis tickFormatter={(value) => formatCurrency(value)} />
+                    <Tooltip formatter={(value, name) => [
+                      formatCurrency(Number(value)), 
+                      name === 'commission' ? 'Komisyon' : 'Net Gelir'
+                    ]} />
+                    <Bar dataKey="commission" fill="#EF4444" name="commission" />
+                    <Bar dataKey="netIncome" fill="#10B981" name="netIncome" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
