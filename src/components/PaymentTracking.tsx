@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CreditCard, Plus, DollarSign, Filter, CalendarIcon, Edit, User, ChevronDown, ChevronUp, Users } from 'lucide-react';
+import { CreditCard, Plus, DollarSign, Filter, CalendarIcon, Edit } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -20,7 +20,6 @@ import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, formatDateForInput } from '@/lib/numberUtils';
 import { CustomerListView } from '@/components/CustomerListView';
 import { CustomerDetailView } from '@/components/CustomerDetailView';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 export const PaymentTracking = () => {
   const { toast } = useToast();
@@ -36,7 +35,6 @@ export const PaymentTracking = () => {
   const [endDate, setEndDate] = useState<Date>();
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
-  const [expandedCustomers, setExpandedCustomers] = useState<Record<string, boolean>>({});
   
   const [paymentData, setPaymentData] = useState({
     customer_id: '',
@@ -247,13 +245,6 @@ export const PaymentTracking = () => {
   const handleBackToList = () => {
     setSelectedCustomerId(null);
     setViewMode('list');
-  };
-
-  const toggleCustomerExpansion = (customerId: string) => {
-    setExpandedCustomers(prev => ({
-      ...prev,
-      [customerId]: !prev[customerId]
-    }));
   };
 
   const displayTransactions = (startDate || endDate) ? filteredTransactions : transactions;
@@ -546,73 +537,8 @@ export const PaymentTracking = () => {
         </div>
       </div>
 
-      {/* Customer List with Debt Information */}
-      <Card className="shadow-sm border">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Users className="h-5 w-5 text-blue-500" />
-            <span>Müşteri Borç Durumu</span>
-          </CardTitle>
-          <CardDescription>Müşterilerin mevcut borç durumları</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {customerDebts.length > 0 ? (
-            <div className="space-y-4">
-              {customerDebts.map((debt) => (
-                <Collapsible
-                  key={debt.customerId}
-                  open={expandedCustomers[debt.customerId]}
-                  onOpenChange={() => toggleCustomerExpansion(debt.customerId)}
-                >
-                  <div className="border rounded-lg bg-white">
-                    <CollapsibleTrigger className="w-full">
-                      <div className="flex justify-between items-center p-4 hover:bg-gray-50 transition-colors">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                            <User className="h-5 w-5 text-red-600" />
-                          </div>
-                          <div className="text-left">
-                            <p className="font-medium text-gray-900">{debt.customer}</p>
-                            <p className="text-sm text-gray-600">Müşteri borcu</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <div className="text-right">
-                            <p className="text-lg font-bold text-red-600">
-                              {formatCurrency(debt.balance)}
-                            </p>
-                            <p className="text-sm text-gray-500">Toplam Borç</p>
-                          </div>
-                          {expandedCustomers[debt.customerId] ? (
-                            <ChevronUp className="h-5 w-5 text-gray-400" />
-                          ) : (
-                            <ChevronDown className="h-5 w-5 text-gray-400" />
-                          )}
-                        </div>
-                      </div>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <div className="border-t bg-gray-50 p-4">
-                        <h4 className="font-medium text-gray-900 mb-3">Borç Detayları</h4>
-                        <div className="text-sm text-gray-600">
-                          <p>Müşteri: {debt.customer}</p>
-                          <p>Toplam Borç: {formatCurrency(debt.balance)}</p>
-                          <p>Detaylı işlem geçmişi için müşteri detay sayfasını ziyaret edin.</p>
-                        </div>
-                      </div>
-                    </CollapsibleContent>
-                  </div>
-                </Collapsible>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">Henüz borcu olan müşteri bulunmuyor</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Customer List */}
+      <CustomerListView onCustomerSelect={handleCustomerSelect} />
 
       {/* Recent Transactions Table */}
       <Card className="shadow-sm border">
