@@ -54,7 +54,9 @@ export const ShiftDetailDialog = ({ shift, isOpen, onOpenChange }: ShiftDetailDi
   const endTime = shift.end_time ? new Date(shift.end_time) : null;
   
   const formatDateTime = (date: Date) => {
-    return date.toLocaleDateString('tr-TR') + ' ' + date.toLocaleTimeString('tr-TR', { 
+    // Create a date object adjusted for Turkey timezone (UTC+3)
+    const turkeyDate = new Date(date.getTime() + (3 * 60 * 60 * 1000));
+    return turkeyDate.toLocaleDateString('tr-TR') + ' ' + turkeyDate.toLocaleTimeString('tr-TR', { 
       hour: '2-digit', 
       minute: '2-digit' 
     });
