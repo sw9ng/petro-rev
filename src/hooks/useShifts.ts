@@ -22,6 +22,11 @@ export interface Shift {
   };
 }
 
+interface BankDetail {
+  bank_name: string;
+  amount: number;
+}
+
 export const useShifts = () => {
   const { user } = useAuth();
   const [shifts, setShifts] = useState<Shift[]>([]);
@@ -324,6 +329,22 @@ export const useShifts = () => {
     return `${formattedDate} – ${shiftNumber}`;
   };
 
+  const getShiftBankDetails = async (shiftId: string): Promise<BankDetail[]> => {
+    if (!user) return [];
+    
+    const { data, error } = await supabase
+      .from('shift_bank_details')
+      .select('bank_name, amount')
+      .eq('shift_id', shiftId);
+
+    if (error) {
+      console.error('Error fetching shift bank details:', error);
+      return [];
+    }
+
+    return data || [];
+  };
+
   useEffect(() => {
     fetchShifts();
   }, [user]);
@@ -340,6 +361,7 @@ export const useShifts = () => {
     fetchAllShifts,
     findShiftsByDateAndPersonnel,
     getShiftDisplayName,
+    getShiftBankDetails,
     refreshShifts: fetchShifts
   };
 };
