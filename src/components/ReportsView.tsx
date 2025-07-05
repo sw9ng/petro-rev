@@ -16,6 +16,13 @@ import { cn } from '@/lib/utils';
 import { formatCurrency, formatDateTimeForDisplay } from '@/lib/numberUtils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
+interface PersonnelStat {
+  name: string;
+  shifts: number;
+  revenue: number;
+  overShort: number;
+}
+
 export const ReportsView = () => {
   const { toast } = useToast();
   const { fetchAllShifts } = useShifts();
@@ -176,9 +183,9 @@ export const ReportsView = () => {
       acc[personnelName].revenue += (shift.cash_sales || 0) + (shift.card_sales || 0) + (shift.loyalty_card || 0);
       acc[personnelName].overShort += (shift.over_short || 0);
       return acc;
-    }, {} as Record<string, any>);
+    }, {} as Record<string, PersonnelStat>);
 
-    return Object.values(stats);
+    return Object.values(stats) as PersonnelStat[];
   }, [filteredShifts]);
 
   const clearFilters = () => {
