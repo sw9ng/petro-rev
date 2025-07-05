@@ -14,19 +14,16 @@ import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/numberUtils';
 import { Textarea } from '@/components/ui/textarea';
 
-// Function to determine shift date based on start time
-const getShiftDate = (startDateTime: string) => {
-  const startTime = new Date(startDateTime);
-  const hour = startTime.getHours();
-  const minute = startTime.getMinutes();
-  
-  // If shift starts after 22:55, it belongs to the next day
-  if (hour > 22 || (hour === 22 && minute >= 55)) {
-    const nextDay = new Date(startTime);
-    nextDay.setDate(nextDay.getDate() + 1);
-    return nextDay.toISOString().split('T')[0];
+// Function to determine shift date based on shift type and times
+const getShiftDate = (startDateTime: string, endDateTime: string, shiftNumber: string) => {
+  // For V1 shifts, use the end date
+  if (shiftNumber === 'V1') {
+    const endTime = new Date(endDateTime);
+    return endTime.toISOString().split('T')[0];
   }
   
+  // For V2 shifts, use the start date
+  const startTime = new Date(startDateTime);
   return startTime.toISOString().split('T')[0];
 };
 
@@ -137,9 +134,12 @@ export const ShiftManagement = () => {
       });
     }
 
+    // Calculate effective shift date based on shift type
+    const effectiveShiftDate = getShiftDate(startDateTime, endDateTime, shiftData.shift_number);
+
     toast({
       title: "Vardiya Kaydedildi",
-      description: `Vardiya başarıyla kaydedildi. Shift tarihi: ${getShiftDate(startDateTime)}`,
+      description: `Vardiya başarıyla kaydedildi. Shift tarihi: ${effectiveShiftDate}`,
     });
     
     // Reset form
@@ -166,19 +166,25 @@ export const ShiftManagement = () => {
   const overShort = totalExpenses - shiftData.otomasyon_satis;
 
   // Calculate effective shift date for display
-  const effectiveShiftDate = shiftData.start_date && shiftData.start_time 
-    ? getShiftDate(`${shiftData.start_date}T${shiftData.start_time}:00`)
-    : shiftData.start_date;
+  const effectiveShiftDate = shiftData.start_date && shiftData.start_time && shiftData.end_date && shiftData.end_time && shiftData.shift_number
+    ? getShiftDate(`${shiftData.start_date}T${shiftData.start_time}:00`, `${shiftData.end_date}T${shiftData.end_time}:00`, shiftData.shift_number)
+    : null;
+
+  const shouldShowDateWarning = effectiveShiftDate && (
+    (shiftData.shift_number === 'V1' && effectiveShiftDate !== shiftData.end_date) ||
+    (shiftData.shift_number === 'V2' && effectiveShiftDate !== shiftData.start_date)
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col space-y-2">
         <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Vardiya Kaydet</h2>
         <p className="text-sm lg:text-base text-gray-600">Yeni vardiya bilgilerini girin</p>
-        {effectiveShiftDate && effectiveShiftDate !== shiftData.start_date && (
+        {shouldShowDateWarning && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <p className="text-sm text-blue-800">
-              <strong>Dikkat:</strong> Bu vardiya {effectiveShiftDate} tarihine kaydedilecek (22:55 sonrası başladığı için)
+              <strong>Bilgi:</strong> Bu {shiftData.shift_number} vardiyası {effectiveShiftDate} tarihine kaydedilecek
+              {shiftData.shift_number === 'V1' && ' (bitiş tarihine göre)'}
             </p>
           </div>
         )}
