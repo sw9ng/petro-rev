@@ -19,7 +19,7 @@ import { formatCurrency, formatDateTimeForDisplay } from '@/lib/numberUtils';
 
 export const ShiftList = () => {
   const { toast } = useToast();
-  const { fetchAllShifts, deleteShift } = useShifts();
+  const { fetchAllShifts, deleteShift, getEffectiveShiftDate } = useShifts();
   const { personnel } = usePersonnel();
   const [shifts, setShifts] = useState<any[]>([]);
   const [filteredShifts, setFilteredShifts] = useState<any[]>([]);
@@ -47,11 +47,15 @@ export const ShiftList = () => {
   useEffect(() => {
     let filtered = shifts;
 
-    // Filter by date range
+    // Filter by date range using effective shift dates
     if (startDate || endDate) {
       filtered = filtered.filter(shift => {
-        const shiftDate = formatDateTimeForDisplay(shift.start_time);
-        const shiftDateString = format(shiftDate, 'yyyy-MM-dd');
+        const effectiveShiftDate = getEffectiveShiftDate(
+          shift.start_time, 
+          shift.end_time, 
+          shift.shift_number
+        );
+        const shiftDateString = format(effectiveShiftDate, 'yyyy-MM-dd');
         
         if (startDate && endDate) {
           const startDateString = format(startDate, 'yyyy-MM-dd');
@@ -74,7 +78,7 @@ export const ShiftList = () => {
     }
 
     setFilteredShifts(filtered);
-  }, [startDate, endDate, selectedPersonnel, shifts]);
+  }, [startDate, endDate, selectedPersonnel, shifts, getEffectiveShiftDate]);
 
   const clearFilters = () => {
     setStartDate(undefined);
@@ -262,7 +266,8 @@ export const ShiftList = () => {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {filteredShifts.map((shift) => {
-            const totalExpenses = shift.cash_sales + shift.card_sales + shift.veresiye + shift.bank_transfers;
+            const totalExpenses = shift.cash_sales + shift.card_sales + shift.veresiye + shift.bank_transfers + shift.loyalty_card;
+            const effectiveShiftDate = getEffectiveShiftDate(shift.start_time, shift.end_time, shift.shift_number);
             
             return (
               <Card key={shift.id} className="shadow-sm border hover:shadow-md transition-shadow">
@@ -273,7 +278,12 @@ export const ShiftList = () => {
                       <CardDescription className="mt-1">
                         <div className="flex items-center space-x-1 mb-2">
                           <Calendar className="h-3 w-3" />
-                          <span className="text-sm">{format(formatDateTimeForDisplay(shift.start_time), "dd MMMM yyyy", { locale: tr })}</span>
+                          <span className="text-sm">{format(effectiveShiftDate, "dd MMMM yyyy", { locale: tr })}</span>
+                          {shift.shift_number && (
+                            <Badge variant="outline" className="ml-2 text-xs">
+                              {shift.shift_number}
+                            </Badge>
+                          )}
                         </div>
                         <div className="flex items-center space-x-4 text-xs text-gray-500">
                           <div className="flex items-center space-x-1">

@@ -22,6 +22,31 @@ export interface Shift {
   };
 }
 
+// Function to determine effective shift date based on shift type and times
+const getEffectiveShiftDate = (startTime: string, endTime: string | null, shiftNumber?: 'V1' | 'V2') => {
+  // For V1 shifts, use the end date
+  if (shiftNumber === 'V1' && endTime) {
+    const endDate = new Date(endTime);
+    return endDate;
+  }
+  
+  // For shifts without shift_number, check if it looks like a V1 shift (late night start)
+  if (!shiftNumber && endTime) {
+    const startDate = new Date(startTime);
+    const endDate = new Date(endTime);
+    const startHour = startDate.getHours();
+    
+    // If starts after 22:00 and ends on next day, treat as V1
+    if (startHour >= 22 && endDate.toDateString() !== startDate.toDateString()) {
+      return endDate;
+    }
+  }
+  
+  // For V2 shifts or default, use the start date
+  const startDate = new Date(startTime);
+  return startDate;
+};
+
 export const useShifts = () => {
   const { user } = useAuth();
   const [shifts, setShifts] = useState<Shift[]>([]);
@@ -318,8 +343,8 @@ export const useShifts = () => {
   };
 
   const getShiftDisplayName = (shift: Shift) => {
-    const date = new Date(shift.start_time);
-    const formattedDate = date.toLocaleDateString('tr-TR');
+    const effectiveDate = getEffectiveShiftDate(shift.start_time, shift.end_time, shift.shift_number);
+    const formattedDate = effectiveDate.toLocaleDateString('tr-TR');
     const shiftNumber = shift.shift_number || 'V1';
     return `${formattedDate} – ${shiftNumber}`;
   };
@@ -340,6 +365,7 @@ export const useShifts = () => {
     fetchAllShifts,
     findShiftsByDateAndPersonnel,
     getShiftDisplayName,
-    refreshShifts: fetchShifts
+    refreshShifts: fetchShifts,
+    getEffectiveShiftDate
   };
 };
