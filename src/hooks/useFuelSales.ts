@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -42,29 +43,6 @@ export const useFuelSales = () => {
       setFuelSales(typedData);
     }
     setLoading(false);
-  };
-
-  const fetchAllFuelSales = async () => {
-    if (!user) return [];
-    
-    const { data, error } = await supabase
-      .from('fuel_sales')
-      .select('*')
-      .eq('station_id', user.id)
-      .order('sale_time', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching all fuel sales:', error);
-      return [];
-    }
-    
-    // Type cast the data to match our interface
-    const typedData = (data || []).map(sale => ({
-      ...sale,
-      fuel_type: sale.fuel_type as 'MOTORİN' | 'LPG' | 'BENZİN' | 'MOTORİN(DİĞER)'
-    })) as FuelSale[];
-    
-    return typedData;
   };
 
   const addFuelSale = async (fuelSaleData: any) => {
@@ -154,7 +132,6 @@ export const useFuelSales = () => {
     getTotalFuelSales,
     getFuelSalesByType,
     getFuelSalesByDateRange,
-    fetchAllFuelSales,
     refreshFuelSales: fetchFuelSales
   };
 };
