@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CreditCard, Plus, DollarSign, Filter, CalendarIcon, Edit } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { CreditCard, Plus, DollarSign, Filter, CalendarIcon, Edit, ChevronDown, ChevronRight, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -35,6 +36,7 @@ export const PaymentTracking = () => {
   const [endDate, setEndDate] = useState<Date>();
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
+  const [isCustomerListOpen, setIsCustomerListOpen] = useState(true);
   
   const [paymentData, setPaymentData] = useState({
     customer_id: '',
@@ -537,8 +539,68 @@ export const PaymentTracking = () => {
         </div>
       </div>
 
-      {/* Customer List */}
-      <CustomerListView onCustomerSelect={handleCustomerSelect} />
+      {/* Customer List - Now Collapsible */}
+      <Collapsible open={isCustomerListOpen} onOpenChange={setIsCustomerListOpen}>
+        <Card className="shadow-sm border">
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-gray-50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <DollarSign className="h-5 w-5 text-blue-500" />
+                  <CardTitle>Müşteri Borç Durumu</CardTitle>
+                  <span className="text-sm text-gray-500">
+                    ({customerDebts.length} müşteri)
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-medium text-red-600">
+                    Toplam Borç: {formatCurrency(customerDebts.reduce((sum, debt) => sum + debt.totalDebt, 0))}
+                  </span>
+                  {isCustomerListOpen ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                </div>
+              </div>
+              <CardDescription>Müşteri borç durumları ve detayları</CardDescription>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              <CustomerListView onCustomerSelect={handleCustomerSelect} />
+              
+              {/* Outstanding Debt Warning */}
+              {customerDebts.length > 0 && (
+                <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-start space-x-3">
+                    <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
+                    <div>
+                      <h4 className="text-sm font-medium text-red-800">Ödenmemiş Borçlar</h4>
+                      <p className="text-sm text-red-700 mt-1">
+                        Toplam {customerDebts.length} müşterinin {formatCurrency(customerDebts.reduce((sum, debt) => sum + debt.totalDebt, 0))} tutarında ödenmemiş borcu bulunmaktadır.
+                      </p>
+                      <div className="mt-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {customerDebts.slice(0, 6).map((debt) => (
+                          <div key={debt.customer.id} className="text-xs bg-white rounded px-2 py-1 border border-red-200">
+                            <span className="font-medium">{debt.customer.name}:</span>
+                            <span className="text-red-600 ml-1">{formatCurrency(debt.totalDebt)}</span>
+                          </div>
+                        ))}
+                        {customerDebts.length > 6 && (
+                          <div className="text-xs text-red-600">
+                            +{customerDebts.length - 6} müşteri daha...
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Recent Transactions Table */}
       <Card className="shadow-sm border">
