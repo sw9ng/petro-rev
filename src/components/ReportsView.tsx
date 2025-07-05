@@ -59,7 +59,13 @@ export const ReportsView = () => {
     
     let filtered = allShifts.filter(shift => {
       const shiftDate = new Date(shift.start_time);
-      return shiftDate >= startDate && shiftDate <= endDate;
+      // Set time to start of day for startDate and end of day for endDate to include full days
+      const startOfDay = new Date(startDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(endDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      return shiftDate >= startOfDay && shiftDate <= endOfDay;
     });
 
     // Filter by shift type
@@ -80,7 +86,13 @@ export const ReportsView = () => {
     
     let filtered = fuelSales.filter(sale => {
       const saleDate = new Date(sale.sale_time);
-      return saleDate >= startDate && saleDate <= endDate;
+      // Set time to start of day for startDate and end of day for endDate to include full days
+      const startOfDay = new Date(startDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(endDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      return saleDate >= startOfDay && saleDate <= endOfDay;
     });
 
     // Filter by personnel if selected
