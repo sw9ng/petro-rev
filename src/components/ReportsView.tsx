@@ -25,7 +25,7 @@ interface BankDetail {
 }
 
 export const ReportsView = () => {
-  const { allShifts } = useShifts();
+  const { allShifts, getEffectiveShiftDate } = useShifts();
   const { personnel } = usePersonnel();
   const { fuelSales } = useFuelSales();
   const { getTotalOutstandingDebt } = useCustomerTransactions();
@@ -58,14 +58,16 @@ export const ReportsView = () => {
     if (!startDate || !endDate) return allShifts;
     
     let filtered = allShifts.filter(shift => {
-      const shiftDate = new Date(shift.start_time);
+      // Use effective shift date for filtering
+      const effectiveDate = getEffectiveShiftDate(shift.start_time, shift.end_time, shift.shift_number);
+      
       // Set time to start of day for startDate and end of day for endDate to include full days
       const startOfDay = new Date(startDate);
       startOfDay.setHours(0, 0, 0, 0);
       const endOfDay = new Date(endDate);
       endOfDay.setHours(23, 59, 59, 999);
       
-      return shiftDate >= startOfDay && shiftDate <= endOfDay;
+      return effectiveDate >= startOfDay && effectiveDate <= endOfDay;
     });
 
     // Filter by shift type
@@ -202,7 +204,8 @@ export const ReportsView = () => {
 
   // Prepare chart data
   const dailySalesData = filteredShifts.reduce((acc, shift) => {
-    const date = format(new Date(shift.start_time), 'dd/MM');
+    const effectiveDate = getEffectiveShiftDate(shift.start_time, shift.end_time, shift.shift_number);
+    const date = format(effectiveDate, 'dd/MM');
     const existingEntry = acc.find(entry => entry.date === date);
     const totalSale = shift.cash_sales + shift.card_sales + shift.veresiye + shift.bank_transfers + shift.loyalty_card;
     
