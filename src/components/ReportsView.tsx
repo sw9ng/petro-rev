@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CalendarIcon, TrendingUp, DollarSign, Users, Target, Calendar as CalendarDays, CreditCard, Edit, Save, X } from 'lucide-react';
+import { CalendarIcon, TrendingUp, DollarSign, Users, Target, Calendar as CalendarDays, CreditCard, Edit, Save, X, Building2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -537,6 +537,119 @@ export const ReportsView = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Bank Sales List */}
+      {Object.keys(bankCommissionData).length > 0 && (
+        <Card className="border-2 border-green-100">
+          <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-3 text-xl">
+                  <Building2 className="h-6 w-6 text-green-600" />
+                  Banka Bazlı Satış Listesi
+                </CardTitle>
+                <CardDescription className="text-base mt-2">
+                  Seçilen tarih aralığındaki bankalara göre kart satış tutarları
+                </CardDescription>
+              </div>
+              <div className="text-right">
+                <div className="text-sm text-gray-600">Toplam Banka Sayısı</div>
+                <div className="text-2xl font-bold text-green-600">{Object.keys(bankCommissionData).length}</div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {Object.entries(bankCommissionData)
+                .sort(([,a], [,b]) => b.amount - a.amount)
+                .map(([bankName, data], index) => (
+                <Card key={bankName} className="hover:shadow-md transition-shadow border-l-4 border-l-green-500">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold text-gray-800 text-sm">{bankName}</h3>
+                      <div className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                        #{index + 1}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-gray-600">Satış Tutarı</span>
+                        <span className="font-bold text-green-600">{formatCurrency(data.amount)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-gray-600">Pay Oranı</span>
+                        <span className="text-xs font-medium text-blue-600">
+                          %{((data.amount / totalCardSales) * 100).toFixed(1)}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                        <div 
+                          className="bg-green-500 h-2 rounded-full transition-all duration-300" 
+                          style={{ width: `${(data.amount / totalCardSales) * 100}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Summary Statistics */}
+            <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+                <div>
+                  <div className="text-sm text-gray-600">En Yüksek Satış</div>
+                  <div className="font-bold text-green-600">
+                    {Object.entries(bankCommissionData).length > 0 
+                      ? formatCurrency(Math.max(...Object.values(bankCommissionData).map(b => b.amount)))
+                      : '₺0'}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {Object.entries(bankCommissionData).length > 0 
+                      ? Object.entries(bankCommissionData).reduce((max, [bank, data]) => 
+                          data.amount > max.amount ? { bank, amount: data.amount } : max, 
+                          { bank: '', amount: 0 }).bank
+                      : '-'}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-600">En Düşük Satış</div>
+                  <div className="font-bold text-orange-600">
+                    {Object.entries(bankCommissionData).length > 0 
+                      ? formatCurrency(Math.min(...Object.values(bankCommissionData).map(b => b.amount)))
+                      : '₺0'}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {Object.entries(bankCommissionData).length > 0 
+                      ? Object.entries(bankCommissionData).reduce((min, [bank, data]) => 
+                          data.amount < min.amount ? { bank, amount: data.amount } : min, 
+                          { bank: '', amount: Infinity }).bank
+                      : '-'}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-600">Ortalama Satış</div>
+                  <div className="font-bold text-blue-600">
+                    {Object.entries(bankCommissionData).length > 0 
+                      ? formatCurrency(totalCardSales / Object.keys(bankCommissionData).length)
+                      : '₺0'}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Banka başına ortalama
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-600">Toplam Satış</div>
+                  <div className="font-bold text-purple-600">{formatCurrency(totalCardSales)}</div>
+                  <div className="text-xs text-gray-500">
+                    {Object.keys(bankCommissionData).length} bankada
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Bank-wise Card Sales Analysis */}
       {Object.keys(bankCommissionData).length > 0 && (
