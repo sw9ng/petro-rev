@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarIcon, TrendingUp, DollarSign, Users, Target, Calendar as CalendarDays } from 'lucide-react';
+import { CalendarIcon, TrendingUp, DollarSign, Users, Target, Calendar as CalendarDays, CreditCard } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -16,9 +17,15 @@ import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { formatCurrency } from '@/lib/numberUtils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { DateRange } from 'react-day-picker';
+import { BankSelectionDialog } from './BankSelectionDialog';
+
+interface BankDetail {
+  bank_name: string;
+  amount: number;
+}
 
 export const ReportsView = () => {
-  const { allShifts } = useShifts();
+  const { allShifts, getShiftBankDetails } = useShifts();
   const { personnel } = usePersonnel();
   const { fuelSales } = useFuelSales();
   const { getTotalOutstandingDebt, getTransactionsByDateRange, findTransactionsByDate } = useCustomerTransactions();
@@ -28,6 +35,9 @@ export const ReportsView = () => {
   const [selectedShiftType, setSelectedShiftType] = useState<string>('all');
   const [selectedPersonnel, setSelectedPersonnel] = useState<string>('all');
   const [dailyTransactions, setDailyTransactions] = useState<any[]>([]);
+  const [bankDetails, setBankDetails] = useState<{ [shiftId: string]: BankDetail[] }>({});
+  const [showBankDialog, setShowBankDialog] = useState(false);
+  const [selectedShiftForBank, setSelectedShiftForBank] = useState<string>('');
 
   // Set default date to today
   useEffect(() => {
@@ -51,6 +61,25 @@ export const ReportsView = () => {
 
     fetchDailyTransactions();
   }, [selectedDate, selectedDateRange, dateMode, findTransactionsByDate, getTransactionsByDateRange]);
+
+  // Fetch bank details for filtered shifts
+  useEffect(() => {
+    const fetchBankDetails = async () => {
+      const filtered = getFilteredShifts();
+      const details: { [shiftId: string]: BankDetail[] } = {};
+      
+      for (const shift of filtered) {
+        if (shift.card_sales && shift.card_sales > 0) {
+          const bankData = await getShiftBankDetails(shift.id);
+          details[shift.id] = bankData || [];
+        }
+      }
+      
+      setBankDetails(details);
+    };
+
+    fetchBankDetails();
+  }, [selectedDate, selectedDateRange, dateMode, selectedShiftType, selectedPersonnel, getShiftBankDetails]);
 
   // Filter data based on selected date(s), shift type, and personnel
   const getFilteredShifts = () => {
@@ -169,6 +198,19 @@ export const ReportsView = () => {
   const totalOverShort = filteredShifts.reduce((sum, shift) => sum + shift.over_short, 0);
   const totalFuelSales = filteredFuelSales.reduce((sum, sale) => sum + sale.total_amount, 0);
 
+  // Calculate bank-wise totals
+  const getBankWiseTotals = () => {
+    const bankTotals: { [bankName: string]: number } = {};
+    Object.values(bankDetails).forEach(details => {
+      details.forEach(detail => {
+        bankTotals[detail.bank_name] = (bankTotals[detail.bank_name] || 0) + detail.amount;
+      });
+    });
+    return bankTotals;
+  };
+
+  const bankWiseTotals = getBankWiseTotals();
+
   // Prepare chart data
   const dailySalesData = filteredShifts.reduce((acc, shift) => {
     const date = format(new Date(shift.start_time), 'dd/MM');
@@ -209,6 +251,12 @@ export const ReportsView = () => {
     return acc;
   }, [] as { name: string; value: number; liters: number; color: string }[]);
 
+  const bankChartData = Object.entries(bankWiseTotals).map(([bank, amount]) => ({
+    bank,
+    amount,
+    color: `hsl(${Math.floor(Math.random() * 360)}, 70%, 50%)`
+  }));
+
   const getDateRangeText = () => {
     if (dateMode === 'single' && selectedDate) {
       return format(selectedDate, "dd MMM yyyy", { locale: tr });
@@ -216,6 +264,11 @@ export const ReportsView = () => {
       return `${format(selectedDateRange.from, "dd MMM yyyy", { locale: tr })} - ${format(selectedDateRange.to, "dd MMM yyyy", { locale: tr })}`;
     }
     return "Tarih seçin";
+  };
+
+  const handleBankDetailsUpdate = async (details: BankDetail[]) => {
+    // This would typically save to database
+    console.log('Bank details updated:', details);
   };
 
   return (
@@ -269,14 +322,25 @@ export const ReportsView = () => {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 bg-white border shadow-lg z-50" align="start">
-                <Calendar
-                  mode={dateMode === 'single' ? 'single' : 'range'}
-                  selected={dateMode === 'single' ? selectedDate : selectedDateRange}
-                  onSelect={dateMode === 'single' ? setSelectedDate : setSelectedDateRange}
-                  initialFocus
-                  locale={tr}
-                  className="pointer-events-auto"
-                />
+                {dateMode === 'single' ? (
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    initialFocus
+                    locale={tr}
+                    className="pointer-events-auto"
+                  />
+                ) : (
+                  <Calendar
+                    mode="range"
+                    selected={selectedDateRange}
+                    onSelect={setSelectedDateRange}
+                    initialFocus
+                    locale={tr}
+                    className="pointer-events-auto"
+                  />
+                )}
               </PopoverContent>
             </Popover>
           </div>
@@ -386,6 +450,59 @@ export const ReportsView = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Bank Details Section */}
+      {Object.keys(bankWiseTotals).length > 0 && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                Banka Bazlı Kart Satışları
+              </CardTitle>
+              <CardDescription>
+                Seçilen tarih(ler)deki banka bazında kart satış dağılımı
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowBankDialog(true)}
+              className="text-xs"
+            >
+              Detay Görüntüle
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {Object.entries(bankWiseTotals).map(([bank, amount]) => (
+                <div key={bank} className="text-center p-4 bg-gray-50 rounded-lg">
+                  <h5 className="font-medium text-gray-900 text-sm mb-2">{bank}</h5>
+                  <p className="text-lg font-bold text-blue-600">{formatCurrency(amount)}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    %{totalCardSales > 0 ? ((amount / totalCardSales) * 100).toFixed(1) : '0'}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-6">
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={bankChartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="bank" 
+                    angle={-45}
+                    textAnchor="end"
+                  />
+                  <YAxis tickFormatter={(value) => formatCurrency(value)} />
+                  <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Tutar']} />
+                  <Bar dataKey="amount" fill="#3B82F6" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Personnel Analysis */}
       {personnelAnalysis.length > 0 && (
@@ -623,6 +740,14 @@ export const ReportsView = () => {
           </ResponsiveContainer>
         </CardContent>
       </Card>
+
+      {/* Bank Selection Dialog */}
+      <BankSelectionDialog
+        isOpen={showBankDialog}
+        onOpenChange={setShowBankDialog}
+        onBankDetailsUpdate={handleBankDetailsUpdate}
+        currentDetails={[]}
+      />
     </div>
   );
 };
