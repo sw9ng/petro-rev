@@ -18,6 +18,7 @@ import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { formatCurrency } from '@/lib/numberUtils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
+import { FuelProfitCalculator } from './FuelProfitCalculator';
 
 interface BankDetail {
   bank_name: string;
@@ -243,6 +244,13 @@ export const ReportsView = () => {
     return acc;
   }, [] as { name: string; value: number; liters: number; color: string }[]);
 
+  // Prepare fuel sales data for profit calculator
+  const fuelSalesForProfitCalc = fuelTypeData.map(fuel => ({
+    fuel_type: fuel.name,
+    total_amount: fuel.value,
+    total_liters: fuel.liters
+  }));
+
   const handleCommissionRateChange = (bankName: string, rate: string) => {
     const numericRate = parseFloat(rate) || 0;
     const updatedRates = {
@@ -418,6 +426,9 @@ export const ReportsView = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Fuel Profit Calculator */}
+      <FuelProfitCalculator fuelSalesData={fuelSalesForProfitCalc} />
 
       {/* Personnel Analysis */}
       {personnelAnalysis.length > 0 && (
