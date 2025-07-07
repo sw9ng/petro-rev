@@ -1,13 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, memo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarIcon, TrendingUp, DollarSign, Users, Target, CreditCard, Calculator, User } from 'lucide-react';
+import { CalendarIcon, CreditCard, Calculator, DollarSign, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -16,14 +15,151 @@ import { usePersonnel } from '@/hooks/usePersonnel';
 import { useFuelSales } from '@/hooks/useFuelSales';
 import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { formatCurrency } from '@/lib/numberUtils';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
 import { FuelProfitCalculator } from './FuelProfitCalculator';
+import { ReportsMetrics } from './ReportsMetrics';
+import { ReportsCharts } from './ReportsCharts';
 
 interface BankDetail {
   bank_name: string;
   amount: number;
 }
+
+// Memoized components for better performance
+const PersonnelAnalysis = memo(({ personnelAnalysis }: { personnelAnalysis: any[] }) => {
+  if (personnelAnalysis.length === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center space-x-2">
+          <User className="h-5 w-5" />
+          <span>Pompacı Performans Analizi</span>
+        </CardTitle>
+        <CardDescription>
+          Seçilen dönemde pompacıların performans verileri
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-4">
+          {personnelAnalysis.map((person) => (
+            <div key={person.name} className="border rounded-lg p-4 bg-gray-50">
+              <h5 className="font-medium text-gray-900 mb-3">{person.name}</h5>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-600">Vardiya Sayısı</p>
+                  <p className="font-semibold text-blue-600">{person.shiftCount}</p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Toplam Satış</p>
+                  <p className="font-semibold text-green-600">{formatCurrency(person.totalSales)}</p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Akaryakıt Satışı</p>
+                  <p className="font-semibold text-purple-600">{formatCurrency(person.totalFuelSales)}</p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Toplam Açık/Fazla</p>
+                  <p className={`font-semibold ${person.totalOverShort >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {person.totalOverShort >= 0 ? '+' : ''}{formatCurrency(person.totalOverShort)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Ortalama Açık/Fazla</p>
+                  <p className={`font-semibold ${person.averageOverShort >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {person.averageOverShort >= 0 ? '+' : ''}{formatCurrency(person.averageOverShort)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+});
+
+PersonnelAnalysis.displayName = 'PersonnelAnalysis';
+
+const SalesAnalysis = memo(({ 
+  totalCashSales, 
+  totalCardSales, 
+  totalBankTransfers, 
+  totalLoyaltyCard, 
+  totalCustomerDebts, 
+  totalSales 
+}: {
+  totalCashSales: number;
+  totalCardSales: number;
+  totalBankTransfers: number;
+  totalLoyaltyCard: number;
+  totalCustomerDebts: number;
+  totalSales: number;
+}) => (
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">Nakit Satışlar</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-3xl font-bold text-green-600">{formatCurrency(totalCashSales)}</div>
+        <p className="text-sm text-gray-600 mt-2">
+          Toplam satışın %{((totalCashSales / totalSales) * 100).toFixed(1)}'i
+        </p>
+      </CardContent>
+    </Card>
+
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">Kart Satışları</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-3xl font-bold text-blue-600">{formatCurrency(totalCardSales)}</div>
+        <p className="text-sm text-gray-600 mt-2">
+          Toplam satışın %{((totalCardSales / totalSales) * 100).toFixed(1)}'i
+        </p>
+      </CardContent>
+    </Card>
+
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">Banka Havaleleri</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-3xl font-bold text-purple-600">{formatCurrency(totalBankTransfers)}</div>
+        <p className="text-sm text-gray-600 mt-2">
+          Toplam satışın %{((totalBankTransfers / totalSales) * 100).toFixed(1)}'i
+        </p>
+      </CardContent>
+    </Card>
+
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">Sadakat Kartı</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-3xl font-bold text-amber-600">{formatCurrency(totalLoyaltyCard)}</div>
+        <p className="text-sm text-gray-600 mt-2">
+          Toplam satışın %{((totalLoyaltyCard / totalSales) * 100).toFixed(1)}'i
+        </p>
+      </CardContent>
+    </Card>
+
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">Müşteri Borçları</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-3xl font-bold text-red-600">{formatCurrency(totalCustomerDebts)}</div>
+        <p className="text-sm text-gray-600 mt-2">
+          Aktif borç tutarı
+        </p>
+      </CardContent>
+    </Card>
+  </div>
+));
+
+SalesAnalysis.displayName = 'SalesAnalysis';
 
 export const ReportsView = () => {
   const { allShifts, getEffectiveShiftDate } = useShifts();
@@ -54,15 +190,12 @@ export const ReportsView = () => {
     }
   }, []);
 
-  // Filter data based on date range, shift type, and personnel
-  const getFilteredShifts = () => {
+  // Memoize filtered data for better performance
+  const filteredShifts = useMemo(() => {
     if (!startDate || !endDate) return allShifts;
     
     let filtered = allShifts.filter(shift => {
-      // Use effective shift date for filtering
       const effectiveDate = getEffectiveShiftDate(shift.start_time, shift.end_time, shift.shift_number);
-      
-      // Set time to start of day for startDate and end of day for endDate to include full days
       const startOfDay = new Date(startDate);
       startOfDay.setHours(0, 0, 0, 0);
       const endOfDay = new Date(endDate);
@@ -71,25 +204,22 @@ export const ReportsView = () => {
       return effectiveDate >= startOfDay && effectiveDate <= endOfDay;
     });
 
-    // Filter by shift type
     if (selectedShiftType !== 'all') {
       filtered = filtered.filter(shift => shift.shift_number === selectedShiftType);
     }
 
-    // Filter by personnel
     if (selectedPersonnel !== 'all') {
       filtered = filtered.filter(shift => shift.personnel_id === selectedPersonnel);
     }
 
     return filtered;
-  };
+  }, [allShifts, startDate, endDate, selectedShiftType, selectedPersonnel, getEffectiveShiftDate]);
 
-  const getFilteredFuelSales = () => {
+  const filteredFuelSales = useMemo(() => {
     if (!startDate || !endDate) return fuelSales;
     
     let filtered = fuelSales.filter(sale => {
       const saleDate = new Date(sale.sale_time);
-      // Set time to start of day for startDate and end of day for endDate to include full days
       const startOfDay = new Date(startDate);
       startOfDay.setHours(0, 0, 0, 0);
       const endOfDay = new Date(endDate);
@@ -98,16 +228,12 @@ export const ReportsView = () => {
       return saleDate >= startOfDay && saleDate <= endOfDay;
     });
 
-    // Filter by personnel if selected
     if (selectedPersonnel !== 'all') {
       filtered = filtered.filter(sale => sale.personnel_id === selectedPersonnel);
     }
 
     return filtered;
-  };
-
-  const filteredShifts = getFilteredShifts();
-  const filteredFuelSales = getFilteredFuelSales();
+  }, [fuelSales, startDate, endDate, selectedPersonnel]);
 
   // Fetch bank details for filtered shifts
   useEffect(() => {
@@ -128,7 +254,6 @@ export const ReportsView = () => {
     if (error) {
       console.error('Error fetching bank details:', error);
     } else {
-      // Group by bank name and sum amounts
       const grouped = (data || []).reduce((acc, detail) => {
         const existing = acc.find(item => item.bank_name === detail.bank_name);
         if (existing) {
@@ -145,9 +270,9 @@ export const ReportsView = () => {
     }
   };
 
-  // Personnel analysis data
-  const getPersonnelAnalysis = () => {
-    const personnelStats = personnel.map(person => {
+  // Memoize personnel analysis for better performance
+  const personnelAnalysis = useMemo(() => {
+    return personnel.map(person => {
       const personShifts = filteredShifts.filter(shift => shift.personnel_id === person.id);
       const personFuelSales = filteredFuelSales.filter(sale => sale.personnel_id === person.id);
       
@@ -165,25 +290,58 @@ export const ReportsView = () => {
         averageOverShort: personShifts.length > 0 ? totalOverShort / personShifts.length : 0
       };
     }).filter(stat => stat.shiftCount > 0);
+  }, [personnel, filteredShifts, filteredFuelSales]);
 
-    return personnelStats;
-  };
+  // Memoize totals calculation
+  const totals = useMemo(() => {
+    const totalSales = filteredShifts.reduce((sum, shift) => 
+      sum + shift.cash_sales + shift.card_sales + shift.veresiye + shift.bank_transfers + shift.loyalty_card, 0);
+    const totalCashSales = filteredShifts.reduce((sum, shift) => sum + shift.cash_sales, 0);
+    const totalCardSales = filteredShifts.reduce((sum, shift) => sum + shift.card_sales, 0);
+    const totalBankTransfers = filteredShifts.reduce((sum, shift) => sum + shift.bank_transfers, 0);
+    const totalLoyaltyCard = filteredShifts.reduce((sum, shift) => sum + shift.loyalty_card, 0);
+    const totalCustomerDebts = getTotalOutstandingDebt();
+    const totalOverShort = filteredShifts.reduce((sum, shift) => sum + shift.over_short, 0);
+    const totalFuelSales = filteredFuelSales.reduce((sum, sale) => sum + sale.total_amount, 0);
 
-  const personnelAnalysis = getPersonnelAnalysis();
+    return {
+      totalSales,
+      totalCashSales,
+      totalCardSales,
+      totalBankTransfers,
+      totalLoyaltyCard,
+      totalCustomerDebts,
+      totalOverShort,
+      totalFuelSales
+    };
+  }, [filteredShifts, filteredFuelSales, getTotalOutstandingDebt]);
 
-  // Calculate totals
-  const totalSales = filteredShifts.reduce((sum, shift) => 
-    sum + shift.cash_sales + shift.card_sales + shift.veresiye + shift.bank_transfers + shift.loyalty_card, 0);
-  const totalCashSales = filteredShifts.reduce((sum, shift) => sum + shift.cash_sales, 0);
-  const totalCardSales = filteredShifts.reduce((sum, shift) => sum + shift.card_sales, 0);
-  const totalBankTransfers = filteredShifts.reduce((sum, shift) => sum + shift.bank_transfers, 0);
-  const totalLoyaltyCard = filteredShifts.reduce((sum, shift) => sum + shift.loyalty_card, 0);
-  const totalCustomerDebts = getTotalOutstandingDebt();
-  const totalOverShort = filteredShifts.reduce((sum, shift) => sum + shift.over_short, 0);
-  const totalFuelSales = filteredFuelSales.reduce((sum, sale) => sum + sale.total_amount, 0);
+  // Memoize fuel sales data for profit calculator
+  const fuelSalesForProfitCalc = useMemo(() => {
+    const fuelTypeData = filteredFuelSales.reduce((acc, sale) => {
+      const existing = acc.find(item => item.name === sale.fuel_type);
+      if (existing) {
+        existing.value += sale.total_amount;
+        existing.liters += sale.liters;
+      } else {
+        acc.push({
+          name: sale.fuel_type,
+          value: sale.total_amount,
+          liters: sale.liters
+        });
+      }
+      return acc;
+    }, [] as { name: string; value: number; liters: number }[]);
+
+    return fuelTypeData.map(fuel => ({
+      fuel_type: fuel.name,
+      total_amount: fuel.value,
+      total_liters: fuel.liters
+    }));
+  }, [filteredFuelSales]);
 
   // Calculate bank-wise net sales
-  const calculateBankWiseNetSales = () => {
+  const bankWiseNetSales = useMemo(() => {
     return bankDetails.map(bank => {
       const commissionRate = commissionRates[bank.bank_name] || 0;
       const commission = bank.amount * (commissionRate / 100);
@@ -197,34 +355,20 @@ export const ReportsView = () => {
         netAmount
       };
     });
-  };
+  }, [bankDetails, commissionRates]);
 
-  const bankWiseNetSales = calculateBankWiseNetSales();
   const totalNetCardSales = bankWiseNetSales.reduce((sum, bank) => sum + bank.netAmount, 0);
   const totalCommission = bankWiseNetSales.reduce((sum, bank) => sum + bank.commission, 0);
 
-  // Prepare chart data
-  const dailySalesData = filteredShifts.reduce((acc, shift) => {
-    const effectiveDate = getEffectiveShiftDate(shift.start_time, shift.end_time, shift.shift_number);
-    const date = format(effectiveDate, 'dd/MM');
-    const existingEntry = acc.find(entry => entry.date === date);
-    const totalSale = shift.cash_sales + shift.card_sales + shift.veresiye + shift.bank_transfers + shift.loyalty_card;
-    
-    if (existingEntry) {
-      existingEntry.sales += totalSale;
-    } else {
-      acc.push({ date, sales: totalSale });
-    }
-    return acc;
-  }, [] as { date: string; sales: number }[]);
-
-  const paymentMethodData = [
-    { name: 'Nakit', value: totalCashSales, color: '#10B981' },
-    { name: 'Kart', value: totalCardSales, color: '#3B82F6' },
-    { name: 'Banka Havale', value: totalBankTransfers, color: '#8B5CF6' },
-    { name: 'Sadakat Kartı', value: totalLoyaltyCard, color: '#F59E0B' },
-    { name: 'Müşteri Borçları', value: totalCustomerDebts, color: '#EF4444' }
-  ].filter(item => item.value > 0);
+  const handleCommissionRateChange = (bankName: string, rate: string) => {
+    const numericRate = parseFloat(rate) || 0;
+    const updatedRates = {
+      ...commissionRates,
+      [bankName]: numericRate
+    };
+    setCommissionRates(updatedRates);
+    localStorage.setItem('bankCommissionRates', JSON.stringify(updatedRates));
+  };
 
   const fuelTypeData = filteredFuelSales.reduce((acc, sale) => {
     const existing = acc.find(item => item.name === sale.fuel_type);
@@ -243,24 +387,6 @@ export const ReportsView = () => {
     }
     return acc;
   }, [] as { name: string; value: number; liters: number; color: string }[]);
-
-  // Prepare fuel sales data for profit calculator
-  const fuelSalesForProfitCalc = fuelTypeData.map(fuel => ({
-    fuel_type: fuel.name,
-    total_amount: fuel.value,
-    total_liters: fuel.liters
-  }));
-
-  const handleCommissionRateChange = (bankName: string, rate: string) => {
-    const numericRate = parseFloat(rate) || 0;
-    const updatedRates = {
-      ...commissionRates,
-      [bankName]: numericRate
-    };
-    setCommissionRates(updatedRates);
-    // Save to localStorage for persistence
-    localStorage.setItem('bankCommissionRates', JSON.stringify(updatedRates));
-  };
 
   return (
     <div className="space-y-6">
@@ -369,247 +495,44 @@ export const ReportsView = () => {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Toplam Satış</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalSales)}</div>
-            <p className="text-xs text-muted-foreground">
-              {filteredShifts.length} vardiya
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Akaryakıt Satışı</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalFuelSales)}</div>
-            <p className="text-xs text-muted-foreground">
-              {filteredFuelSales.length} işlem
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Açık/Fazla</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${totalOverShort >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {totalOverShort >= 0 ? '+' : ''}{formatCurrency(totalOverShort)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Ortalama: {formatCurrency(totalOverShort / Math.max(filteredShifts.length, 1))}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Aktif Vardiya</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {filteredShifts.filter(shift => shift.status === 'active').length}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Toplam: {filteredShifts.length}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <ReportsMetrics 
+        totalSales={totals.totalSales}
+        totalFuelSales={totals.totalFuelSales}
+        totalOverShort={totals.totalOverShort}
+        filteredShifts={filteredShifts}
+        filteredFuelSales={filteredFuelSales}
+      />
 
       {/* Fuel Profit Calculator */}
-      <FuelProfitCalculator fuelSalesData={fuelSalesForProfitCalc} />
+      <FuelProfitCalculator 
+        fuelSalesData={fuelSalesForProfitCalc} 
+        dateRange={startDate && endDate ? { startDate, endDate } : undefined}
+      />
 
       {/* Personnel Analysis */}
-      {personnelAnalysis.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <User className="h-5 w-5" />
-              <span>Pompacı Performans Analizi</span>
-            </CardTitle>
-            <CardDescription>
-              Seçilen dönemde pompacıların performans verileri
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4">
-              {personnelAnalysis.map((person) => (
-                <div key={person.name} className="border rounded-lg p-4 bg-gray-50">
-                  <h5 className="font-medium text-gray-900 mb-3">{person.name}</h5>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-                    <div>
-                      <p className="text-gray-600">Vardiya Sayısı</p>
-                      <p className="font-semibold text-blue-600">{person.shiftCount}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-600">Toplam Satış</p>
-                      <p className="font-semibold text-green-600">{formatCurrency(person.totalSales)}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-600">Akaryakıt Satışı</p>
-                      <p className="font-semibold text-purple-600">{formatCurrency(person.totalFuelSales)}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-600">Toplam Açık/Fazla</p>
-                      <p className={`font-semibold ${person.totalOverShort >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {person.totalOverShort >= 0 ? '+' : ''}{formatCurrency(person.totalOverShort)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-600">Ortalama Açık/Fazla</p>
-                      <p className={`font-semibold ${person.averageOverShort >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {person.averageOverShort >= 0 ? '+' : ''}{formatCurrency(person.averageOverShort)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <PersonnelAnalysis personnelAnalysis={personnelAnalysis} />
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Günlük Satış Trendi</CardTitle>
-            <CardDescription>Seçilen dönemdeki günlük satış performansı</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={dailySalesData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis tickFormatter={(value) => formatCurrency(value)} />
-                <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Satış']} />
-                <Line type="monotone" dataKey="sales" stroke="#3B82F6" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Ödeme Yöntemi Dağılımı</CardTitle>
-            <CardDescription>Satışların ödeme yöntemlerine göre dağılımı</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={paymentMethodData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {paymentMethodData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+      <ReportsCharts 
+        filteredShifts={filteredShifts}
+        filteredFuelSales={filteredFuelSales}
+        totalCashSales={totals.totalCashSales}
+        totalCardSales={totals.totalCardSales}
+        totalBankTransfers={totals.totalBankTransfers}
+        totalLoyaltyCard={totals.totalLoyaltyCard}
+        totalCustomerDebts={totals.totalCustomerDebts}
+        getEffectiveShiftDate={getEffectiveShiftDate}
+      />
 
       {/* Sales Analysis */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Nakit Satışlar</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-green-600">{formatCurrency(totalCashSales)}</div>
-            <p className="text-sm text-gray-600 mt-2">
-              Toplam satışın %{((totalCashSales / totalSales) * 100).toFixed(1)}'i
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Kart Satışları</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-blue-600">{formatCurrency(totalCardSales)}</div>
-            <p className="text-sm text-gray-600 mt-2">
-              Toplam satışın %{((totalCardSales / totalSales) * 100).toFixed(1)}'i
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Banka Havaleleri</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-purple-600">{formatCurrency(totalBankTransfers)}</div>
-            <p className="text-sm text-gray-600 mt-2">
-              Toplam satışın %{((totalBankTransfers / totalSales) * 100).toFixed(1)}'i
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Sadakat Kartı</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-amber-600">{formatCurrency(totalLoyaltyCard)}</div>
-            <p className="text-sm text-gray-600 mt-2">
-              Toplam satışın %{((totalLoyaltyCard / totalSales) * 100).toFixed(1)}'i
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Müşteri Borçları</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-red-600">{formatCurrency(totalCustomerDebts)}</div>
-            <p className="text-sm text-gray-600 mt-2">
-              Aktif borç tutarı
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Payment Method Comparison Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Ödeme Yöntemi Karşılaştırması</CardTitle>
-          <CardDescription>Farklı ödeme yöntemlerinin karşılaştırmalı analizi</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={paymentMethodData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis tickFormatter={(value) => formatCurrency(value)} />
-              <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Tutar']} />
-              <Bar dataKey="value" fill="#3B82F6" />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      <SalesAnalysis 
+        totalCashSales={totals.totalCashSales}
+        totalCardSales={totals.totalCardSales}
+        totalBankTransfers={totals.totalBankTransfers}
+        totalLoyaltyCard={totals.totalLoyaltyCard}
+        totalCustomerDebts={totals.totalCustomerDebts}
+        totalSales={totals.totalSales}
+      />
 
       {/* Fuel Analysis */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -631,55 +554,6 @@ export const ReportsView = () => {
             </CardContent>
           </Card>
         ))}
-      </div>
-
-      {/* Fuel Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Akaryakıt Türü Satış Dağılımı</CardTitle>
-            <CardDescription>Akaryakıt türlerine göre satış tutarları</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={fuelTypeData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {fuelTypeData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Akaryakıt Türü Karşılaştırması</CardTitle>
-            <CardDescription>Litre bazında satış karşılaştırması</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={fuelTypeData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis tickFormatter={(value) => `${value.toFixed(0)}L`} />
-                <Tooltip formatter={(value) => [`${Number(value).toFixed(2)} Litre`, 'Satış']} />
-                <Bar dataKey="liters" fill="#10B981" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Net Credit Card Calculation */}
@@ -747,7 +621,7 @@ export const ReportsView = () => {
             </div>
           )}
 
-          {/* Summary - Updated to use correct totalCardSales variable */}
+          {/* Summary */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
             <Card className="bg-blue-50 border-blue-200">
               <CardContent className="p-6">
@@ -757,7 +631,7 @@ export const ReportsView = () => {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-blue-900">Toplam Brüt Kart Satışı</p>
-                    <p className="text-2xl font-bold text-blue-700">{formatCurrency(totalCardSales)}</p>
+                    <p className="text-2xl font-bold text-blue-700">{formatCurrency(totals.totalCardSales)}</p>
                   </div>
                 </div>
               </CardContent>
