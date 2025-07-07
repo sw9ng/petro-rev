@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,10 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calculator, TrendingUp, DollarSign, Fuel, Save, History, Trash2 } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calculator, TrendingUp, DollarSign, Fuel, Save, History, Trash2, CalendarIcon, Search } from 'lucide-react';
 import { formatCurrency } from '@/lib/numberUtils';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import { useFuelProfitCalculations, SavedProfitCalculation } from '@/hooks/useFuelProfitCalculations';
 import { useToast } from '@/hooks/use-toast';
 
@@ -38,6 +40,8 @@ interface FuelProfitCalculatorProps {
 export const FuelProfitCalculator = ({ fuelSalesData, dateRange }: FuelProfitCalculatorProps) => {
   const [purchasePrices, setPurchasePrices] = useState<Record<string, number>>({});
   const [profitData, setProfitData] = useState<FuelProfitData[]>([]);
+  const [searchStartDate, setSearchStartDate] = useState<Date>();
+  const [searchEndDate, setSearchEndDate] = useState<Date>();
   const { savedCalculations, saveCalculation, deleteCalculation } = useFuelProfitCalculations();
   const { toast } = useToast();
 
@@ -74,6 +78,39 @@ export const FuelProfitCalculator = ({ fuelSalesData, dateRange }: FuelProfitCal
   useEffect(() => {
     setProfitData(calculatedProfitData);
   }, [calculatedProfitData]);
+
+  // Filter saved calculations by search date range
+  const filteredCalculations = useMemo(() => {
+    if (!searchStartDate && !searchEndDate) {
+      return savedCalculations;
+    }
+
+    return savedCalculations.filter(calculation => {
+      const calcStartDate = new Date(calculation.dateRange.startDate);
+      const calcEndDate = new Date(calculation.dateRange.endDate);
+      
+      let matches = true;
+      
+      if (searchStartDate) {
+        const searchStart = new Date(searchStartDate);
+        searchStart.setHours(0, 0, 0, 0);
+        matches = matches && (calcStartDate >= searchStart || calcEndDate >= searchStart);
+      }
+      
+      if (searchEndDate) {
+        const searchEnd = new Date(searchEndDate);
+        searchEnd.setHours(23, 59, 59, 999);
+        matches = matches && (calcStartDate <= searchEnd || calcEndDate <= searchEnd);
+      }
+      
+      return matches;
+    });
+  }, [savedCalculations, searchStartDate, searchEndDate]);
+
+  const clearSearchFilters = () => {
+    setSearchStartDate(undefined);
+    setSearchEndDate(undefined);
+  };
 
   const handlePurchasePriceChange = (fuelType: string, price: string) => {
     const numericPrice = parseFloat(price) || 0;
@@ -157,7 +194,7 @@ export const FuelProfitCalculator = ({ fuelSalesData, dateRange }: FuelProfitCal
             <TabsTrigger value="calculate">Hesapla</TabsTrigger>
             <TabsTrigger value="history" className="flex items-center space-x-2">
               <History className="h-4 w-4" />
-              <span>Geçmiş ({savedCalculations.length})</span>
+              <span>Geçmiş ({filteredCalculations.length})</span>
             </TabsTrigger>
           </TabsList>
           
@@ -312,10 +349,96 @@ export const FuelProfitCalculator = ({ fuelSalesData, dateRange }: FuelProfitCal
           </TabsContent>
 
           <TabsContent value="history" className="space-y-4">
-            {savedCalculations.length > 0 ? (
+            {/* Search Filters */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="text-lg font-semibold flex items-center space-x-2">
+                  <Search className="h-4 w-4" />
+                  <span>Hesaplama Arama</span>
+                </h4>
+                {(searchStartDate || searchEndDate) && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={clearSearchFilters}
+                  >
+                    Filtreleri Temizle
+                  </Button>
+                )}
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Başlangıç Tarihi</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !searchStartDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {searchStartDate ? format(searchStartDate, "dd MMM yyyy", { locale: tr }) : "Başlangıç tarihi seçin"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-white border shadow-lg z-50" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={searchStartDate}
+                        onSelect={setSearchStartDate}
+                        initialFocus
+                        locale={tr}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Bitiş Tarihi</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !searchEndDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {searchEndDate ? format(searchEndDate, "dd MMM yyyy", { locale: tr }) : "Bitiş tarihi seçin"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-white border shadow-lg z-50" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={searchEndDate}
+                        onSelect={setSearchEndDate}
+                        initialFocus
+                        locale={tr}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {filteredCalculations.length > 0 ? (
               <div className="space-y-4">
-                <h4 className="text-lg font-semibold">Kaydedilmiş Hesaplamalar</h4>
-                {savedCalculations.map((calculation) => (
+                <div className="flex items-center justify-between">
+                  <h4 className="text-lg font-semibold">
+                    Kaydedilmiş Hesaplamalar 
+                    {(searchStartDate || searchEndDate) && (
+                      <span className="text-sm font-normal text-gray-600 ml-2">
+                        ({filteredCalculations.length} sonuç)
+                      </span>
+                    )}
+                  </h4>
+                </div>
+                {filteredCalculations.map((calculation) => (
                   <Card key={calculation.id} className="bg-gray-50">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
@@ -365,9 +488,19 @@ export const FuelProfitCalculator = ({ fuelSalesData, dateRange }: FuelProfitCal
               </div>
             ) : (
               <div className="text-center py-8 text-gray-500">
-                <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Henüz kaydedilmiş hesaplama bulunmuyor.</p>
-                <p className="text-sm">Hesaplama yaptıktan sonra "Hesaplamayı Kaydet" butonunu kullanın.</p>
+                {(searchStartDate || searchEndDate) ? (
+                  <>
+                    <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>Seçilen tarih aralığında hesaplama bulunamadı.</p>
+                    <p className="text-sm">Farklı bir tarih aralığı deneyin.</p>
+                  </>
+                ) : (
+                  <>
+                    <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>Henüz kaydedilmiş hesaplama bulunmuyor.</p>
+                    <p className="text-sm">Hesaplama yaptıktan sonra "Hesaplamayı Kaydet" butonunu kullanın.</p>
+                  </>
+                )}
               </div>
             )}
           </TabsContent>
