@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,6 +15,7 @@ export const ReportsView = () => {
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const { shifts } = useShifts();
   const { customers } = useCustomers();
+  const { transactions } = useCustomerTransactions();
 
   // Tarih aralığına göre vardiya filtreleme
   const filteredShifts = shifts.filter(shift => {
@@ -33,26 +33,17 @@ export const ReportsView = () => {
   const totalSales = totalCardSales + totalCashSales + totalBankTransfers + totalVersiye;
 
   // Cari satış istatistikleri (minimal)
-  const getAllCustomerTransactions = () => {
-    let allTransactions: any[] = [];
-    customers.forEach(customer => {
-      const { transactions } = useCustomerTransactions(customer.id);
-      const filteredTransactions = transactions.filter(t => {
-        const transactionDate = parseISO(t.transaction_date);
-        const start = startOfDay(parseISO(startDate));
-        const end = endOfDay(parseISO(endDate));
-        return transactionDate >= start && transactionDate <= end;
-      });
-      allTransactions = [...allTransactions, ...filteredTransactions];
-    });
-    return allTransactions;
-  };
+  const filteredTransactions = transactions.filter(t => {
+    const transactionDate = parseISO(t.transaction_date);
+    const start = startOfDay(parseISO(startDate));
+    const end = endOfDay(parseISO(endDate));
+    return transactionDate >= start && transactionDate <= end;
+  });
 
-  const customerTransactions = getAllCustomerTransactions();
-  const totalDebt = customerTransactions
+  const totalDebt = filteredTransactions
     .filter(t => t.transaction_type === 'debt')
     .reduce((sum, t) => sum + Number(t.amount), 0);
-  const totalPayments = customerTransactions
+  const totalPayments = filteredTransactions
     .filter(t => t.transaction_type === 'payment')
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
@@ -229,18 +220,18 @@ export const ReportsView = () => {
                 </div>
                 <div className="flex justify-between">
                   <span>Toplam İşlem:</span>
-                  <span className="font-medium">{customerTransactions.length}</span>
+                  <span className="font-medium">{filteredTransactions.length}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Borç İşlemleri:</span>
                   <span className="font-medium text-red-600">
-                    {customerTransactions.filter(t => t.transaction_type === 'debt').length}
+                    {filteredTransactions.filter(t => t.transaction_type === 'debt').length}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Ödeme İşlemleri:</span>
                   <span className="font-medium text-green-600">
-                    {customerTransactions.filter(t => t.transaction_type === 'payment').length}
+                    {filteredTransactions.filter(t => t.transaction_type === 'payment').length}
                   </span>
                 </div>
               </div>

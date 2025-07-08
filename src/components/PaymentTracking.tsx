@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +20,7 @@ import { CustomerDetailView } from "@/components/CustomerDetailView";
 export const PaymentTracking = () => {
   const { user } = useAuth();
   const { customers } = useCustomers();
+  const { transactions } = useCustomerTransactions();
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('balance');
@@ -49,11 +49,11 @@ export const PaymentTracking = () => {
 
   // Müşteri bakiyelerini hesaplama
   const customersWithBalance = customers.map(customer => {
-    const { transactions } = useCustomerTransactions(customer.id);
-    const totalDebt = transactions
+    const customerTransactions = transactions.filter(t => t.customer_id === customer.id);
+    const totalDebt = customerTransactions
       .filter(t => t.transaction_type === 'debt')
       .reduce((sum, t) => sum + Number(t.amount), 0);
-    const totalPayment = transactions
+    const totalPayment = customerTransactions
       .filter(t => t.transaction_type === 'payment')
       .reduce((sum, t) => sum + Number(t.amount), 0);
     
@@ -62,11 +62,10 @@ export const PaymentTracking = () => {
       balance: totalDebt - totalPayment,
       totalDebt,
       totalPayment,
-      transactionCount: transactions.length
+      transactionCount: customerTransactions.length
     };
   });
 
-  // Filtreleme ve sıralama
   const filteredCustomers = customersWithBalance
     .filter(customer => 
       customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -86,7 +85,6 @@ export const PaymentTracking = () => {
       }
     });
 
-  // Genel istatistikler
   const totalDebt = customersWithBalance.reduce((sum, customer) => sum + customer.totalDebt, 0);
   const totalPayment = customersWithBalance.reduce((sum, customer) => sum + customer.totalPayment, 0);
   const netDebt = totalDebt - totalPayment;

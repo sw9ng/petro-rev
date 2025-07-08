@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,12 +15,15 @@ interface CustomerDetailViewProps {
 }
 
 export const CustomerDetailView = ({ customer, onBack }: CustomerDetailViewProps) => {
-  const { transactions } = useCustomerTransactions(customer.id);
+  const { transactions } = useCustomerTransactions();
   const [dateFilter, setDateFilter] = useState('');
 
+  // Filter transactions for this specific customer
+  const customerTransactions = transactions.filter(t => t.customer_id === customer.id);
+
   const filteredTransactions = dateFilter
-    ? transactions.filter(t => t.transaction_date.includes(dateFilter))
-    : transactions;
+    ? customerTransactions.filter(t => t.transaction_date.includes(dateFilter))
+    : customerTransactions;
 
   const totalDebt = filteredTransactions
     .filter(t => t.transaction_type === 'debt')
