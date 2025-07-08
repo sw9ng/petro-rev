@@ -65,7 +65,12 @@ export const useInvoices = (companyId: string) => {
         .order('invoice_date', { ascending: false });
 
       if (incomeError) throw incomeError;
-      setIncomeInvoices(incomeData || []);
+      // Cast the payment_status to the correct type
+      const typedIncomeData = incomeData?.map(item => ({
+        ...item,
+        payment_status: item.payment_status as 'paid' | 'unpaid'
+      })) || [];
+      setIncomeInvoices(typedIncomeData as Invoice[]);
 
       // Fetch expense invoices
       const { data: expenseData, error: expenseError } = await supabase
@@ -78,7 +83,12 @@ export const useInvoices = (companyId: string) => {
         .order('invoice_date', { ascending: false });
 
       if (expenseError) throw expenseError;
-      setExpenseInvoices(expenseData || []);
+      // Cast the payment_status to the correct type
+      const typedExpenseData = expenseData?.map(item => ({
+        ...item,
+        payment_status: item.payment_status as 'paid' | 'unpaid'
+      })) || [];
+      setExpenseInvoices(typedExpenseData as Invoice[]);
 
     } catch (err) {
       console.error('Error fetching company data:', err);
@@ -112,7 +122,7 @@ export const useInvoices = (companyId: string) => {
       }
 
       // Update local accounts state
-      setAccounts(prev => [...prev, data[0]]);
+      setAccounts(prev => [...prev, data[0] as CompanyAccount]);
       return { data: data[0] };
     } catch (err: any) {
       return { error: err };
@@ -150,9 +160,14 @@ export const useInvoices = (companyId: string) => {
         return { error };
       }
 
+      const typedData = data.map(item => ({
+        ...item,
+        payment_status: item.payment_status as 'paid' | 'unpaid'
+      }));
+
       // Update local income invoices state
-      setIncomeInvoices(prev => [data[0], ...prev]);
-      return { data: data[0] };
+      setIncomeInvoices(prev => [typedData[0] as Invoice, ...prev]);
+      return { data: typedData[0] };
     } catch (err: any) {
       return { error: err };
     }
@@ -189,9 +204,14 @@ export const useInvoices = (companyId: string) => {
         return { error };
       }
 
+      const typedData = data.map(item => ({
+        ...item,
+        payment_status: item.payment_status as 'paid' | 'unpaid'
+      }));
+
       // Update local expense invoices state
-      setExpenseInvoices(prev => [data[0], ...prev]);
-      return { data: data[0] };
+      setExpenseInvoices(prev => [typedData[0] as Invoice, ...prev]);
+      return { data: typedData[0] };
     } catch (err: any) {
       return { error: err };
     }
@@ -221,11 +241,16 @@ export const useInvoices = (companyId: string) => {
         return { error };
       }
 
+      const typedData = data.map(item => ({
+        ...item,
+        payment_status: item.payment_status as 'paid' | 'unpaid'
+      }));
+
       // Update local income invoices state
       setIncomeInvoices(prev => 
-        prev.map(invoice => invoice.id === invoiceId ? data[0] : invoice)
+        prev.map(invoice => invoice.id === invoiceId ? typedData[0] as Invoice : invoice)
       );
-      return { data: data[0] };
+      return { data: typedData[0] };
     } catch (err: any) {
       return { error: err };
     }
@@ -255,11 +280,16 @@ export const useInvoices = (companyId: string) => {
         return { error };
       }
 
+      const typedData = data.map(item => ({
+        ...item,
+        payment_status: item.payment_status as 'paid' | 'unpaid'
+      }));
+
       // Update local expense invoices state
       setExpenseInvoices(prev => 
-        prev.map(invoice => invoice.id === invoiceId ? data[0] : invoice)
+        prev.map(invoice => invoice.id === invoiceId ? typedData[0] as Invoice : invoice)
       );
-      return { data: data[0] };
+      return { data: typedData[0] };
     } catch (err: any) {
       return { error: err };
     }

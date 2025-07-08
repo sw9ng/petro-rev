@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -18,6 +17,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/numberUtils';
 import { useInvoices } from '@/hooks/useInvoices';
+import { DateRange } from 'react-day-picker';
 
 interface CompanyCashManagementProps {
   companyId: string;
@@ -39,10 +39,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
 
   // Filters state
   const [searchTerm, setSearchTerm] = useState('');
-  const [dateRange, setDateRange] = useState<{
-    from: Date | undefined;
-    to: Date | undefined;
-  }>({
+  const [dateRange, setDateRange] = useState<DateRange>({
     from: undefined,
     to: undefined,
   });
@@ -57,7 +54,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
     amount: '',
     invoice_date: new Date(),
     account_id: '',
-    payment_status: 'unpaid',
+    payment_status: 'unpaid' as 'paid' | 'unpaid',
     payment_date: undefined as Date | undefined,
   });
 
@@ -67,7 +64,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
     amount: '',
     invoice_date: new Date(),
     account_id: '',
-    payment_status: 'unpaid',
+    payment_status: 'unpaid' as 'paid' | 'unpaid',
     payment_date: undefined as Date | undefined,
   });
 
@@ -137,7 +134,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
         amount: parseFloat(newIncomeInvoice.amount),
         invoice_date: format(newIncomeInvoice.invoice_date, 'yyyy-MM-dd'),
         account_id: newIncomeInvoice.account_id || undefined,
-        payment_status: newIncomeInvoice.payment_status as 'paid' | 'unpaid',
+        payment_status: newIncomeInvoice.payment_status,
         payment_date: newIncomeInvoice.payment_date 
           ? format(newIncomeInvoice.payment_date, 'yyyy-MM-dd') 
           : undefined
@@ -171,7 +168,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
         amount: parseFloat(newExpenseInvoice.amount),
         invoice_date: format(newExpenseInvoice.invoice_date, 'yyyy-MM-dd'),
         account_id: newExpenseInvoice.account_id || undefined,
-        payment_status: newExpenseInvoice.payment_status as 'paid' | 'unpaid',
+        payment_status: newExpenseInvoice.payment_status,
         payment_date: newExpenseInvoice.payment_date 
           ? format(newExpenseInvoice.payment_date, 'yyyy-MM-dd') 
           : undefined
@@ -738,7 +735,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
                       <Calendar
                         mode="range"
                         selected={dateRange}
-                        onSelect={setDateRange}
+                        onSelect={(range) => setDateRange(range || { from: undefined, to: undefined })}
                         initialFocus
                         numberOfMonths={2}
                         className="p-3 pointer-events-auto"
@@ -1081,7 +1078,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
                       <Calendar
                         mode="range"
                         selected={dateRange}
-                        onSelect={setDateRange}
+                        onSelect={(range) => setDateRange(range || { from: undefined, to: undefined })}
                         initialFocus
                         numberOfMonths={2}
                         className="p-3 pointer-events-auto"
