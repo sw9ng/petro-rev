@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,6 +40,7 @@ export const PaymentTracking = () => {
   const navigate = useNavigate();
 
   const handleCustomerClick = (customerId: string) => {
+    console.log('Navigating to customer:', customerId);
     navigate(`/customer/${customerId}`);
   };
 
@@ -255,9 +257,11 @@ export const PaymentTracking = () => {
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-lg font-semibold">{group.customer.name}</h3>
+                        <h3 className="text-lg font-semibold hover:text-blue-600 transition-colors">
+                          {group.customer.name}
+                        </h3>
                         <p className="text-sm text-gray-600">
-                          {group.transactions.length} işlem
+                          {group.transactions.length} işlem • Detay için tıklayın
                         </p>
                       </div>
                       <div className="text-right">

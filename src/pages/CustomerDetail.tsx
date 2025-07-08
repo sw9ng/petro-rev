@@ -12,11 +12,11 @@ const CustomerDetail = () => {
 
   console.log('CustomerDetail - ID from params:', id);
 
-  if (!id) {
-    console.error('CustomerDetail - No ID provided');
+  if (!id || id === ':id') {
+    console.error('CustomerDetail - Invalid ID provided:', id);
     return (
       <div className="p-8 text-center">
-        <p>Müşteri ID bulunamadı.</p>
+        <p>Geçersiz müşteri ID.</p>
         <button 
           className="mt-4 px-4 py-2 bg-blue-600 text-white rounded" 
           onClick={handleBack}
