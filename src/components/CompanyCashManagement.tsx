@@ -39,7 +39,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
 
   // Filters state
   const [searchTerm, setSearchTerm] = useState('');
-  const [dateRange, setDateRange] = useState<DateRange>({
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: undefined,
     to: undefined,
   });
@@ -253,8 +253,8 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
       // Date range filter
       const invoiceDate = new Date(invoice.invoice_date);
       const matchesDateRange = 
-        (!dateRange.from || invoiceDate >= dateRange.from) &&
-        (!dateRange.to || invoiceDate <= dateRange.to);
+        (!dateRange?.from || invoiceDate >= dateRange.from) &&
+        (!dateRange?.to || invoiceDate <= dateRange.to);
 
       // Account filter
       const matchesAccount = 
@@ -292,8 +292,8 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
 
   // Date range helpers
   const isDateInRange = (date: Date) => {
-    return (!dateRange.from || date >= dateRange.from) &&
-           (!dateRange.to || date <= dateRange.to);
+    return (!dateRange?.from || date >= dateRange.from) &&
+           (!dateRange?.to || date <= dateRange.to);
   };
 
   return (
@@ -641,7 +641,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
                         <Label htmlFor="payment-status">Ödeme Durumu</Label>
                         <Select 
                           value={newIncomeInvoice.payment_status} 
-                          onValueChange={(value) => setNewIncomeInvoice({
+                          onValueChange={(value: 'paid' | 'unpaid') => setNewIncomeInvoice({
                             ...newIncomeInvoice, 
                             payment_status: value,
                             payment_date: value === 'paid' ? new Date() : undefined
@@ -716,15 +716,15 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
                         variant={"outline"}
                         className={cn(
                           "justify-start text-left font-normal",
-                          !dateRange.from && !dateRange.to && "text-muted-foreground"
+                          !dateRange?.from && !dateRange?.to && "text-muted-foreground"
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateRange.from || dateRange.to ? (
+                        {dateRange?.from || dateRange?.to ? (
                           <>
-                            {dateRange.from ? format(dateRange.from, "PPP", { locale: tr }) : "..."}
+                            {dateRange?.from ? format(dateRange.from, "PPP", { locale: tr }) : "..."}
                             {" - "}
-                            {dateRange.to ? format(dateRange.to, "PPP", { locale: tr }) : "..."}
+                            {dateRange?.to ? format(dateRange.to, "PPP", { locale: tr }) : "..."}
                           </>
                         ) : (
                           <span>Tarih aralığı seç</span>
@@ -984,7 +984,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
                         <Label htmlFor="expense-payment-status">Ödeme Durumu</Label>
                         <Select 
                           value={newExpenseInvoice.payment_status} 
-                          onValueChange={(value) => setNewExpenseInvoice({
+                          onValueChange={(value: 'paid' | 'unpaid') => setNewExpenseInvoice({
                             ...newExpenseInvoice, 
                             payment_status: value,
                             payment_date: value === 'paid' ? new Date() : undefined
@@ -1059,15 +1059,15 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
                         variant={"outline"}
                         className={cn(
                           "justify-start text-left font-normal",
-                          !dateRange.from && !dateRange.to && "text-muted-foreground"
+                          !dateRange?.from && !dateRange?.to && "text-muted-foreground"
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateRange.from || dateRange.to ? (
+                        {dateRange?.from || dateRange?.to ? (
                           <>
-                            {dateRange.from ? format(dateRange.from, "PPP", { locale: tr }) : "..."}
+                            {dateRange?.from ? format(dateRange.from, "PPP", { locale: tr }) : "..."}
                             {" - "}
-                            {dateRange.to ? format(dateRange.to, "PPP", { locale: tr }) : "..."}
+                            {dateRange?.to ? format(dateRange.to, "PPP", { locale: tr }) : "..."}
                           </>
                         ) : (
                           <span>Tarih aralığı seç</span>
