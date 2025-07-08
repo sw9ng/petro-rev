@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,11 +16,17 @@ interface CustomerDetailViewProps {
 }
 
 export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewProps) => {
-  const { customers } = useCustomers();
-  const { getCustomerTransactions, getCustomerBalance, deleteTransaction } = useCustomerTransactions();
+  const { customers, loading: customersLoading } = useCustomers();
+  const { getCustomerTransactions, getCustomerBalance, deleteTransaction, loading: transactionsLoading } = useCustomerTransactions();
   const { toast } = useToast();
   
+  console.log('CustomerDetailView - customerId:', customerId);
+  console.log('CustomerDetailView - customers:', customers);
+  console.log('CustomerDetailView - customersLoading:', customersLoading);
+  
   const customer = customers.find(c => c.id === customerId);
+  console.log('CustomerDetailView - found customer:', customer);
+  
   const customerTransactions = getCustomerTransactions(customerId);
   const balance = getCustomerBalance(customerId);
 
@@ -61,11 +68,30 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
     }
   };
 
+  if (customersLoading || transactionsLoading) {
+    return (
+      <Card className="shadow-sm border">
+        <CardContent className="text-center py-8">
+          <p className="text-gray-600">Yükleniyor...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (!customer) {
+    console.error('CustomerDetailView - Customer not found for ID:', customerId);
+    console.log('CustomerDetailView - Available customers:', customers.map(c => ({ id: c.id, name: c.name })));
+    
     return (
       <Card className="shadow-sm border">
         <CardContent className="text-center py-8">
           <p className="text-gray-600">Müşteri bulunamadı.</p>
+          <p className="text-sm text-gray-500 mt-2">
+            Aranan ID: {customerId}
+          </p>
+          <p className="text-sm text-gray-500">
+            Toplam müşteri sayısı: {customers.length}
+          </p>
           <Button onClick={onBack} className="mt-4">
             Geri Dön
           </Button>

@@ -10,7 +10,10 @@ const CustomerDetail = () => {
     navigate('/');
   };
 
+  console.log('CustomerDetail - ID from params:', id);
+
   if (!id) {
+    console.error('CustomerDetail - No ID provided');
     return (
       <div className="p-8 text-center">
         <p>Müşteri ID bulunamadı.</p>
