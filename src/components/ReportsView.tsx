@@ -1,388 +1,835 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo, memo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  Calendar,
-  Download,
-  Filter,
-  Crown,
-  Users,
-  Fuel,
-  CreditCard
-} from 'lucide-react';
-import { ReportsCharts } from './ReportsCharts';
-import { ReportsMetrics } from './ReportsMetrics';
+import { CalendarIcon, CreditCard, Calculator, DollarSign, User, FileText } from 'lucide-react';
+import { format } from 'date-fns';
+import { tr } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import { useShifts } from '@/hooks/useShifts';
+import { usePersonnel } from '@/hooks/usePersonnel';
 import { useFuelSales } from '@/hooks/useFuelSales';
 import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
-import { useCustomers } from '@/hooks/useCustomers';
 import { formatCurrency } from '@/lib/numberUtils';
+import { supabase } from '@/integrations/supabase/client';
+import { FuelProfitCalculator } from './FuelProfitCalculator';
+import { ReportsMetrics } from './ReportsMetrics';
+import { ReportsCharts } from './ReportsCharts';
+
+interface BankDetail {
+  bank_name: string;
+  amount: number;
+}
+
+// Memoized components for better performance
+const PersonnelAnalysis = memo(({ personnelAnalysis }: { personnelAnalysis: any[] }) => {
+  if (personnelAnalysis.length === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center space-x-2">
+          <User className="h-5 w-5" />
+          <span>Pompacı Performans Analizi</span>
+        </CardTitle>
+        <CardDescription>
+          Seçilen dönemde pompacıların performans verileri
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-4">
+          {personnelAnalysis.map((person) => (
+            <div key={person.name} className="border rounded-lg p-4 bg-gray-50">
+              <h5 className="font-medium text-gray-900 mb-3">{person.name}</h5>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-600">Vardiya Sayısı</p>
+                  <p className="font-semibold text-blue-600">{person.shiftCount}</p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Toplam Satış</p>
+                  <p className="font-semibold text-green-600">{formatCurrency(person.totalSales)}</p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Akaryakıt Satışı</p>
+                  <p className="font-semibold text-purple-600">{formatCurrency(person.totalFuelSales)}</p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Toplam Açık/Fazla</p>
+                  <p className={`font-semibold ${person.totalOverShort >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {person.totalOverShort >= 0 ? '+' : ''}{formatCurrency(person.totalOverShort)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Ortalama Açık/Fazla</p>
+                  <p className={`font-semibold ${person.averageOverShort >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {person.averageOverShort >= 0 ? '+' : ''}{formatCurrency(person.averageOverShort)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+});
+
+PersonnelAnalysis.displayName = 'PersonnelAnalysis';
+
+const SalesAnalysis = memo(({ 
+  totalCashSales, 
+  totalCardSales, 
+  totalBankTransfers, 
+  totalLoyaltyCard, 
+  totalCustomerDebts, 
+  totalSales 
+}: {
+  totalCashSales: number;
+  totalCardSales: number;
+  totalBankTransfers: number;
+  totalLoyaltyCard: number;
+  totalCustomerDebts: number;
+  totalSales: number;
+}) => (
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">Nakit Satışlar</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-3xl font-bold text-green-600">{formatCurrency(totalCashSales)}</div>
+        <p className="text-sm text-gray-600 mt-2">
+          Toplam satışın %{((totalCashSales / totalSales) * 100).toFixed(1)}'i
+        </p>
+      </CardContent>
+    </Card>
+
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">Kart Satışları</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-3xl font-bold text-blue-600">{formatCurrency(totalCardSales)}</div>
+        <p className="text-sm text-gray-600 mt-2">
+          Toplam satışın %{((totalCardSales / totalSales) * 100).toFixed(1)}'i
+        </p>
+      </CardContent>
+    </Card>
+
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">Banka Havaleleri</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-3xl font-bold text-purple-600">{formatCurrency(totalBankTransfers)}</div>
+        <p className="text-sm text-gray-600 mt-2">
+          Toplam satışın %{((totalBankTransfers / totalSales) * 100).toFixed(1)}'i
+        </p>
+      </CardContent>
+    </Card>
+
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">Sadakat Kartı</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-3xl font-bold text-amber-600">{formatCurrency(totalLoyaltyCard)}</div>
+        <p className="text-sm text-gray-600 mt-2">
+          Toplam satışın %{((totalLoyaltyCard / totalSales) * 100).toFixed(1)}'i
+        </p>
+      </CardContent>
+    </Card>
+
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">Müşteri Borçları</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-3xl font-bold text-red-600">{formatCurrency(totalCustomerDebts)}</div>
+        <p className="text-sm text-gray-600 mt-2">
+          Aktif borç tutarı
+        </p>
+      </CardContent>
+    </Card>
+  </div>
+));
+
+SalesAnalysis.displayName = 'SalesAnalysis';
+
+const CustomerTransactionsSummary = memo(({ 
+  customerTransactions, 
+  startDate, 
+  endDate 
+}: { 
+  customerTransactions: any[];
+  startDate?: Date;
+  endDate?: Date;
+}) => {
+  const filteredTransactions = useMemo(() => {
+    if (!startDate || !endDate) return customerTransactions;
+    
+    return customerTransactions.filter(transaction => {
+      const transactionDate = new Date(transaction.transaction_date);
+      const startOfDay = new Date(startDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(endDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      return transactionDate >= startOfDay && transactionDate <= endOfDay;
+    });
+  }, [customerTransactions, startDate, endDate]);
+
+  const totals = useMemo(() => {
+    const totalDebts = filteredTransactions
+      .filter(t => t.transaction_type === 'debt')
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    const totalPayments = filteredTransactions
+      .filter(t => t.transaction_type === 'payment')
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    return { totalDebts, totalPayments, netDebt: totalDebts - totalPayments };
+  }, [filteredTransactions]);
+
+  if (filteredTransactions.length === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center space-x-2">
+          <FileText className="h-5 w-5" />
+          <span>Cari Müşteri Hareketleri</span>
+        </CardTitle>
+        <CardDescription>
+          Seçilen dönemde müşteri borç ve ödeme hareketleri
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="bg-red-50 border-red-200">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-red-100 rounded-lg">
+                  <FileText className="h-6 w-6 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-red-900">Toplam Borç</p>
+                  <p className="text-2xl font-bold text-red-700">{formatCurrency(totals.totalDebts)}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-green-50 border-green-200">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <DollarSign className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-green-900">Toplam Ödeme</p>
+                  <p className="text-2xl font-bold text-green-700">{formatCurrency(totals.totalPayments)}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-blue-50 border-blue-200">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Calculator className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-blue-900">Net Borç</p>
+                  <p className={`text-2xl font-bold ${totals.netDebt >= 0 ? 'text-blue-700' : 'text-green-700'}`}>
+                    {formatCurrency(Math.abs(totals.netDebt))}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="mt-6">
+          <h4 className="text-lg font-semibold mb-4">Hareket Detayları</h4>
+          <div className="max-h-60 overflow-y-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 sticky top-0">
+                <tr>
+                  <th className="px-4 py-2 text-left">Tarih</th>
+                  <th className="px-4 py-2 text-left">Müşteri</th>
+                  <th className="px-4 py-2 text-left">İşlem</th>
+                  <th className="px-4 py-2 text-right">Tutar</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredTransactions.map((transaction) => (
+                  <tr key={transaction.id} className="border-b">
+                    <td className="px-4 py-2">
+                      {format(new Date(transaction.transaction_date), 'dd/MM/yyyy', { locale: tr })}
+                    </td>
+                    <td className="px-4 py-2">{transaction.customer.name}</td>
+                    <td className="px-4 py-2">
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        transaction.transaction_type === 'debt' 
+                          ? 'bg-red-100 text-red-700' 
+                          : 'bg-green-100 text-green-700'
+                      }`}>
+                        {transaction.transaction_type === 'debt' ? 'Borç' : 'Ödeme'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-right font-medium">
+                      {formatCurrency(transaction.amount)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+});
+
+CustomerTransactionsSummary.displayName = 'CustomerTransactionsSummary';
 
 export const ReportsView = () => {
-  const { shifts } = useShifts();
+  const { allShifts, getEffectiveShiftDate } = useShifts();
+  const { personnel } = usePersonnel();
   const { fuelSales } = useFuelSales();
-  const { transactions } = useCustomerTransactions();
-  const { customers } = useCustomers();
+  const { transactions, getTotalOutstandingDebt } = useCustomerTransactions();
+  const [startDate, setStartDate] = useState<Date>();
+  const [endDate, setEndDate] = useState<Date>();
+  const [selectedShiftType, setSelectedShiftType] = useState<string>('all');
+  const [selectedPersonnel, setSelectedPersonnel] = useState<string>('all');
+  const [commissionRates, setCommissionRates] = useState<Record<string, number>>({});
+  const [bankDetails, setBankDetails] = useState<BankDetail[]>([]);
 
-  const [dateFilter, setDateFilter] = useState('');
-  const [reportType, setReportType] = useState('overview');
+  // Set default date range to current month
+  useEffect(() => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    setStartDate(startOfMonth);
+    setEndDate(endOfMonth);
+  }, []);
 
-  const filterDataByDate = (data: any[], dateField: string = 'created_at') => {
-    if (!dateFilter) return data;
-    return data.filter(item => {
-      const itemDate = new Date(item[dateField]);
-      const filterDate = new Date(dateFilter);
-      return itemDate.getFullYear() === filterDate.getFullYear() && 
-             itemDate.getMonth() === filterDate.getMonth();
+  // Load saved commission rates from localStorage
+  useEffect(() => {
+    const savedRates = localStorage.getItem('bankCommissionRates');
+    if (savedRates) {
+      setCommissionRates(JSON.parse(savedRates));
+    }
+  }, []);
+
+  // Memoize filtered data for better performance
+  const filteredShifts = useMemo(() => {
+    if (!startDate || !endDate) return allShifts;
+    
+    let filtered = allShifts.filter(shift => {
+      const effectiveDate = getEffectiveShiftDate(shift.start_time, shift.end_time, shift.shift_number);
+      const startOfDay = new Date(startDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(endDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      return effectiveDate >= startOfDay && effectiveDate <= endOfDay;
     });
+
+    if (selectedShiftType !== 'all') {
+      filtered = filtered.filter(shift => shift.shift_number === selectedShiftType);
+    }
+
+    if (selectedPersonnel !== 'all') {
+      filtered = filtered.filter(shift => shift.personnel_id === selectedPersonnel);
+    }
+
+    return filtered;
+  }, [allShifts, startDate, endDate, selectedShiftType, selectedPersonnel, getEffectiveShiftDate]);
+
+  const filteredFuelSales = useMemo(() => {
+    if (!startDate || !endDate) return fuelSales;
+    
+    let filtered = fuelSales.filter(sale => {
+      const saleDate = new Date(sale.sale_time);
+      const startOfDay = new Date(startDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(endDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      return saleDate >= startOfDay && saleDate <= endOfDay;
+    });
+
+    if (selectedPersonnel !== 'all') {
+      filtered = filtered.filter(sale => sale.personnel_id === selectedPersonnel);
+    }
+
+    return filtered;
+  }, [fuelSales, startDate, endDate, selectedPersonnel]);
+
+  // Fetch bank details for filtered shifts
+  useEffect(() => {
+    if (filteredShifts.length > 0) {
+      fetchBankDetails();
+    }
+  }, [filteredShifts]);
+
+  const fetchBankDetails = async () => {
+    const shiftIds = filteredShifts.map(shift => shift.id);
+    if (shiftIds.length === 0) return;
+
+    const { data, error } = await supabase
+      .from('shift_bank_details')
+      .select('*')
+      .in('shift_id', shiftIds);
+
+    if (error) {
+      console.error('Error fetching bank details:', error);
+    } else {
+      const grouped = (data || []).reduce((acc, detail) => {
+        const existing = acc.find(item => item.bank_name === detail.bank_name);
+        if (existing) {
+          existing.amount += detail.amount;
+        } else {
+          acc.push({
+            bank_name: detail.bank_name,
+            amount: detail.amount
+          });
+        }
+        return acc;
+      }, [] as BankDetail[]);
+      setBankDetails(grouped);
+    }
   };
 
-  const filteredShifts = filterDataByDate(shifts, 'start_time');
-  const filteredFuelSales = filterDataByDate(fuelSales, 'sale_time');
-  const filteredTransactions = filterDataByDate(transactions, 'transaction_date');
+  // Memoize personnel analysis for better performance
+  const personnelAnalysis = useMemo(() => {
+    return personnel.map(person => {
+      const personShifts = filteredShifts.filter(shift => shift.personnel_id === person.id);
+      const personFuelSales = filteredFuelSales.filter(sale => sale.personnel_id === person.id);
+      
+      const totalSales = personShifts.reduce((sum, shift) => 
+        sum + shift.cash_sales + shift.card_sales + shift.veresiye + shift.bank_transfers + shift.loyalty_card, 0);
+      const totalOverShort = personShifts.reduce((sum, shift) => sum + shift.over_short, 0);
+      const totalFuelSales = personFuelSales.reduce((sum, sale) => sum + sale.total_amount, 0);
+      
+      return {
+        name: person.name,
+        shiftCount: personShifts.length,
+        totalSales,
+        totalFuelSales,
+        totalOverShort,
+        averageOverShort: personShifts.length > 0 ? totalOverShort / personShifts.length : 0
+      };
+    }).filter(stat => stat.shiftCount > 0);
+  }, [personnel, filteredShifts, filteredFuelSales]);
 
-  // Genel İstatistikler
-  const totalRevenue = filteredShifts.reduce((sum, shift) => {
-    return sum + (shift.cash_sales || 0) + (shift.card_sales || 0) + (shift.bank_transfers || 0);
-  }, 0);
+  // Memoize totals calculation
+  const totals = useMemo(() => {
+    const totalSales = filteredShifts.reduce((sum, shift) => 
+      sum + shift.cash_sales + shift.card_sales + shift.veresiye + shift.bank_transfers + shift.loyalty_card, 0);
+    const totalCashSales = filteredShifts.reduce((sum, shift) => sum + shift.cash_sales, 0);
+    const totalCardSales = filteredShifts.reduce((sum, shift) => sum + shift.card_sales, 0);
+    const totalBankTransfers = filteredShifts.reduce((sum, shift) => sum + shift.bank_transfers, 0);
+    const totalLoyaltyCard = filteredShifts.reduce((sum, shift) => sum + shift.loyalty_card, 0);
+    const totalCustomerDebts = getTotalOutstandingDebt();
+    const totalOverShort = filteredShifts.reduce((sum, shift) => sum + shift.over_short, 0);
+    const totalFuelSales = filteredFuelSales.reduce((sum, sale) => sum + sale.total_amount, 0);
 
-  const totalFuelRevenue = filteredFuelSales.reduce((sum, sale) => sum + sale.total_amount, 0);
-  
-  const totalCustomerPayments = filteredTransactions
-    .filter(t => t.transaction_type === 'payment')
-    .reduce((sum, t) => sum + t.amount, 0);
+    return {
+      totalSales,
+      totalCashSales,
+      totalCardSales,
+      totalBankTransfers,
+      totalLoyaltyCard,
+      totalCustomerDebts,
+      totalOverShort,
+      totalFuelSales
+    };
+  }, [filteredShifts, filteredFuelSales, getTotalOutstandingDebt]);
 
-  const totalCustomerDebts = filteredTransactions
-    .filter(t => t.transaction_type === 'debt')
-    .reduce((sum, t) => sum + t.amount, 0);
+  // Memoize fuel sales data for profit calculator
+  const fuelSalesForProfitCalc = useMemo(() => {
+    const fuelTypeData = filteredFuelSales.reduce((acc, sale) => {
+      const existing = acc.find(item => item.name === sale.fuel_type);
+      if (existing) {
+        existing.value += sale.total_amount;
+        existing.liters += sale.liters;
+      } else {
+        acc.push({
+          name: sale.fuel_type,
+          value: sale.total_amount,
+          liters: sale.liters
+        });
+      }
+      return acc;
+    }, [] as { name: string; value: number; liters: number }[]);
 
-  const completedShifts = filteredShifts.filter(s => s.status === 'completed').length;
-  const activeCustomers = customers.filter(c => {
-    const hasRecentTransaction = transactions.some(t => 
-      t.customer_id === c.id && 
-      new Date(t.transaction_date) >= new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-    );
-    return hasRecentTransaction;
-  }).length;
+    return fuelTypeData.map(fuel => ({
+      fuel_type: fuel.name,
+      total_amount: fuel.value,
+      total_liters: fuel.liters
+    }));
+  }, [filteredFuelSales]);
 
-  // Calculate additional metrics for charts and metrics components
-  const totalCashSales = filteredShifts.reduce((sum, shift) => sum + (shift.cash_sales || 0), 0);
-  const totalCardSales = filteredShifts.reduce((sum, shift) => sum + (shift.card_sales || 0), 0);
-  const totalBankTransfers = filteredShifts.reduce((sum, shift) => sum + (shift.bank_transfers || 0), 0);
-  const totalOverShort = filteredShifts.reduce((sum, shift) => sum + (shift.over_short || 0), 0);
-  const totalSales = totalCashSales + totalCardSales + totalBankTransfers;
+  // Calculate bank-wise net sales
+  const bankWiseNetSales = useMemo(() => {
+    return bankDetails.map(bank => {
+      const commissionRate = commissionRates[bank.bank_name] || 0;
+      const commission = bank.amount * (commissionRate / 100);
+      const netAmount = bank.amount - commission;
+      
+      return {
+        bankName: bank.bank_name,
+        grossAmount: bank.amount,
+        commissionRate,
+        commission,
+        netAmount
+      };
+    });
+  }, [bankDetails, commissionRates]);
+
+  const totalNetCardSales = bankWiseNetSales.reduce((sum, bank) => sum + bank.netAmount, 0);
+  const totalCommission = bankWiseNetSales.reduce((sum, bank) => sum + bank.commission, 0);
+
+  const handleCommissionRateChange = (bankName: string, rate: string) => {
+    const numericRate = parseFloat(rate) || 0;
+    const updatedRates = {
+      ...commissionRates,
+      [bankName]: numericRate
+    };
+    setCommissionRates(updatedRates);
+    localStorage.setItem('bankCommissionRates', JSON.stringify(updatedRates));
+  };
+
+  const fuelTypeData = filteredFuelSales.reduce((acc, sale) => {
+    const existing = acc.find(item => item.name === sale.fuel_type);
+    if (existing) {
+      existing.value += sale.total_amount;
+      existing.liters += sale.liters;
+    } else {
+      acc.push({
+        name: sale.fuel_type,
+        value: sale.total_amount,
+        liters: sale.liters,
+        color: sale.fuel_type === 'MOTORİN' ? '#3B82F6' : 
+               sale.fuel_type === 'BENZİN' ? '#10B981' :
+               sale.fuel_type === 'LPG' ? '#F59E0B' : '#8B5CF6'
+      });
+    }
+    return acc;
+  }, [] as { name: string; value: number; liters: number; color: string }[]);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
-            <BarChart3 className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <h2 className="text-xl lg:text-2xl font-bold text-gray-900 flex items-center space-x-2">
-              <span>Raporlar ve Analizler</span>
-              <Badge className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-                <Crown className="h-3 w-3 mr-1" />
-                Premium
-              </Badge>
-            </h2>
-            <p className="text-sm text-gray-600">İstasyon performansını detaylı olarak analiz edin</p>
-          </div>
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+            Raporlar ve Analizler
+          </h2>
+          <p className="text-gray-600 mt-2">Detaylı satış raporları ve performans analizleri</p>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Rapor İndir
-          </Button>
+        {/* Filter Controls */}
+        <div className="flex flex-col lg:flex-row items-start lg:items-center space-y-4 lg:space-y-0 lg:space-x-4">
+          {/* Date Range Selector */}
+          <div className="flex items-center space-x-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Başlangıç Tarihi</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-[200px] justify-start text-left font-normal",
+                      !startDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {startDate ? format(startDate, "dd MMM yyyy", { locale: tr }) : "Başlangıç tarihi"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 bg-white border shadow-lg z-50" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={startDate}
+                    onSelect={setStartDate}
+                    initialFocus
+                    locale={tr}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Bitiş Tarihi</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-[200px] justify-start text-left font-normal",
+                      !endDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {endDate ? format(endDate, "dd MMM yyyy", { locale: tr }) : "Bitiş tarihi"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 bg-white border shadow-lg z-50" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={endDate}
+                    onSelect={setEndDate}
+                    initialFocus
+                    locale={tr}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+
+          {/* Filter Controls */}
+          <div className="flex items-center space-x-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Vardiya Tipi</Label>
+              <Select value={selectedShiftType} onValueChange={setSelectedShiftType}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="Vardiya" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tümü</SelectItem>
+                  <SelectItem value="V1">V1</SelectItem>
+                  <SelectItem value="V2">V2</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Pompacı</Label>
+              <Select value={selectedPersonnel} onValueChange={setSelectedPersonnel}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Pompacı" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tümü</SelectItem>
+                  {personnel.map((person) => (
+                    <SelectItem key={person.id} value={person.id}>
+                      {person.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Filtreler */}
-      <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-        <div className="flex items-center space-x-2">
-          <Calendar className="h-4 w-4 text-gray-400" />
-          <Input
-            type="month"
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
-            className="w-auto"
-            placeholder="Tarih seçiniz"
-          />
-        </div>
-        <div className="flex items-center space-x-2">
-          <Filter className="h-4 w-4 text-gray-400" />
-          <Select value={reportType} onValueChange={setReportType}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="overview">Genel Bakış</SelectItem>
-              <SelectItem value="fuel">Yakıt Satışları</SelectItem>
-              <SelectItem value="customers">Müşteri Analizi</SelectItem>
-              <SelectItem value="personnel">Personel Performansı</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        {dateFilter && (
-          <Button variant="outline" size="sm" onClick={() => setDateFilter('')}>
-            Filtreyi Temizle
-          </Button>
-        )}
-      </div>
+      {/* Key Metrics */}
+      <ReportsMetrics 
+        totalSales={totals.totalSales}
+        totalFuelSales={totals.totalFuelSales}
+        totalOverShort={totals.totalOverShort}
+        filteredShifts={filteredShifts}
+        filteredFuelSales={filteredFuelSales}
+      />
 
-      {/* Özet Kartları */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="shadow-sm border">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <DollarSign className="h-5 w-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Toplam Ciro</p>
-                <p className="text-lg font-bold text-green-600">{formatCurrency(totalRevenue)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Fuel Profit Calculator */}
+      <FuelProfitCalculator 
+        fuelSalesData={fuelSalesForProfitCalc} 
+        dateRange={startDate && endDate ? { startDate, endDate } : undefined}
+      />
 
-        <Card className="shadow-sm border">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Fuel className="h-5 w-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Yakıt Satışı</p>
-                <p className="text-lg font-bold text-blue-600">{formatCurrency(totalFuelRevenue)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Customer Transactions Summary */}
+      <CustomerTransactionsSummary 
+        customerTransactions={transactions}
+        startDate={startDate}
+        endDate={endDate}
+      />
 
-        <Card className="shadow-sm border">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                <CreditCard className="h-5 w-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Müşteri Ödemeleri</p>
-                <p className="text-lg font-bold text-purple-600">{formatCurrency(totalCustomerPayments)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Personnel Analysis */}
+      <PersonnelAnalysis personnelAnalysis={personnelAnalysis} />
 
-        <Card className="shadow-sm border">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                <Users className="h-5 w-5 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Aktif Müşteri</p>
-                <p className="text-lg font-bold text-orange-600">{activeCustomers}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Charts */}
+      <ReportsCharts 
+        filteredShifts={filteredShifts}
+        filteredFuelSales={filteredFuelSales}
+        totalCashSales={totals.totalCashSales}
+        totalCardSales={totals.totalCardSales}
+        totalBankTransfers={totals.totalBankTransfers}
+        totalLoyaltyCard={totals.totalLoyaltyCard}
+        totalCustomerDebts={totals.totalCustomerDebts}
+        getEffectiveShiftDate={getEffectiveShiftDate}
+      />
 
-      {/* Detaylı Raporlar */}
-      <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
-          <TabsTrigger value="overview">Genel Bakış</TabsTrigger>
-          <TabsTrigger value="charts">Grafikler</TabsTrigger>
-          <TabsTrigger value="metrics">Metrikler</TabsTrigger>
-          <TabsTrigger value="analysis">Detay Analiz</TabsTrigger>
-        </TabsList>
+      {/* Sales Analysis */}
+      <SalesAnalysis 
+        totalCashSales={totals.totalCashSales}
+        totalCardSales={totals.totalCardSales}
+        totalBankTransfers={totals.totalBankTransfers}
+        totalLoyaltyCard={totals.totalLoyaltyCard}
+        totalCustomerDebts={totals.totalCustomerDebts}
+        totalSales={totals.totalSales}
+      />
 
-        <TabsContent value="overview" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="shadow-sm border">
-              <CardHeader>
-                <CardTitle className="text-green-600">Gelir Özeti</CardTitle>
-                <CardDescription>Toplam gelirinizin kaynakları</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Nakit Satışlar</span>
-                  <span className="font-medium text-green-600">
-                    {formatCurrency(filteredShifts.reduce((sum, s) => sum + (s.cash_sales || 0), 0))}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Kart Satışları</span>
-                  <span className="font-medium text-green-600">
-                    {formatCurrency(filteredShifts.reduce((sum, s) => sum + (s.card_sales || 0), 0))}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Banka Transferleri</span>
-                  <span className="font-medium text-green-600">
-                    {formatCurrency(filteredShifts.reduce((sum, s) => sum + (s.bank_transfers || 0), 0))}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Müşteri Ödemeleri</span>
-                  <span className="font-medium text-green-600">
-                    {formatCurrency(totalCustomerPayments)}
-                  </span>
-                </div>
-                <div className="border-t pt-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-gray-900">Toplam Gelir</span>
-                    <span className="font-bold text-green-600">
-                      {formatCurrency(totalRevenue + totalCustomerPayments)}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-sm border">
-              <CardHeader>
-                <CardTitle className="text-blue-600">Operasyonel Durum</CardTitle>
-                <CardDescription>İstasyon operasyonları hakkında genel bilgiler</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Tamamlanan Vardiya</span>
-                  <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
-                    {completedShifts} adet
-                  </Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Toplam Müşteri</span>
-                  <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
-                    {customers.length} müşteri
-                  </Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Aktif Müşteri (30 gün)</span>
-                  <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-200">
-                    {activeCustomers} müşteri
-                  </Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Toplam İşlem</span>
-                  <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-200">
-                    {filteredTransactions.length} işlem
-                  </Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Bekleyen Alacak</span>
-                  <span className="font-medium text-red-600">
-                    {formatCurrency(totalCustomerDebts)}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Minimal Müşteri Satış Bilgileri */}
-          <Card className="shadow-sm border">
+      {/* Fuel Analysis */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {fuelTypeData.map((fuel) => (
+          <Card key={fuel.name}>
             <CardHeader>
-              <CardTitle className="text-purple-600">En Fazla İşlem Yapan Müşteriler</CardTitle>
-              <CardDescription>En aktif müşterilerinizin özet bilgileri</CardDescription>
+              <CardTitle className="text-lg">{fuel.name}</CardTitle>
             </CardHeader>
             <CardContent>
-              {(() => {
-                const customerStats = customers.map(customer => {
-                  const customerTransactions = transactions.filter(t => t.customer_id === customer.id);
-                  const totalAmount = customerTransactions.reduce((sum, t) => sum + t.amount, 0);
-                  const transactionCount = customerTransactions.length;
-                  
-                  return {
-                    customer,
-                    totalAmount,
-                    transactionCount
-                  };
-                }).sort((a, b) => b.transactionCount - a.transactionCount).slice(0, 5);
+              <div className="text-2xl font-bold" style={{ color: fuel.color }}>
+                {formatCurrency(fuel.value)}
+              </div>
+              <p className="text-sm text-gray-600 mt-2">
+                {fuel.liters.toFixed(2)} Litre
+              </p>
+              <p className="text-xs text-gray-500">
+                Ort. Fiyat: {formatCurrency(fuel.value / fuel.liters)}/L
+              </p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
-                return customerStats.length > 0 ? (
-                  <div className="space-y-3">
-                    {customerStats.map(({ customer, totalAmount, transactionCount }) => (
-                      <div key={customer.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <div>
-                          <p className="font-medium text-gray-900">{customer.name}</p>
-                          <p className="text-sm text-gray-600">{transactionCount} işlem</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium text-purple-600">{formatCurrency(totalAmount)}</p>
-                          <p className="text-xs text-gray-500">toplam tutar</p>
-                        </div>
+      {/* Net Credit Card Calculation */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <CreditCard className="h-5 w-5" />
+            <span>Banka Bazında Net Kredi Kartı Hesaplaması</span>
+          </CardTitle>
+          <CardDescription>
+            Banka komisyon oranlarını girerek banka bazında net kredi kartı satışını hesaplayın
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Commission Rate Inputs */}
+          {bankDetails.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {bankDetails.map((bank) => (
+                <div key={bank.bank_name} className="space-y-2">
+                  <Label className="text-sm font-medium">{bank.bank_name} Komisyon Oranı (%)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="10"
+                    placeholder="0.00"
+                    value={commissionRates[bank.bank_name] || ''}
+                    onChange={(e) => handleCommissionRateChange(bank.bank_name, e.target.value)}
+                    className="text-sm"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Bank-wise breakdown */}
+          {bankWiseNetSales.length > 0 && (
+            <div className="space-y-4">
+              <h4 className="text-lg font-semibold">Banka Bazında Detay</h4>
+              <div className="grid gap-4">
+                {bankWiseNetSales.map((bank) => (
+                  <div key={bank.bankName} className="border rounded-lg p-4 bg-gray-50">
+                    <h5 className="font-medium text-gray-900 mb-3">{bank.bankName}</h5>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <p className="text-gray-600">Brüt Satış</p>
+                        <p className="font-semibold text-blue-600">{formatCurrency(bank.grossAmount)}</p>
                       </div>
-                    ))}
+                      <div>
+                        <p className="text-gray-600">Komisyon Oranı</p>
+                        <p className="font-semibold">%{bank.commissionRate.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600">Komisyon Tutarı</p>
+                        <p className="font-semibold text-red-600">{formatCurrency(bank.commission)}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600">Net Satış</p>
+                        <p className="font-semibold text-green-600">{formatCurrency(bank.netAmount)}</p>
+                      </div>
+                    </div>
                   </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">Henüz müşteri işlemi bulunmuyor.</p>
-                  </div>
-                );
-              })()}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="charts">
-          <ReportsCharts 
-            filteredShifts={filteredShifts}
-            filteredFuelSales={filteredFuelSales}
-            totalCashSales={totalCashSales}
-            totalCardSales={totalCardSales}
-            totalBankTransfers={totalBankTransfers}
-            totalFuelSales={totalFuelRevenue}
-            totalCustomerPayments={totalCustomerPayments}
-          />
-        </TabsContent>
-
-        <TabsContent value="metrics">
-          <ReportsMetrics 
-            totalSales={totalSales}
-            totalFuelSales={totalFuelRevenue}
-            totalOverShort={totalOverShort}
-            filteredShifts={filteredShifts}
-            filteredFuelSales={filteredFuelSales}
-          />
-        </TabsContent>
-
-        <TabsContent value="analysis">
-          <Card className="shadow-sm border">
-            <CardHeader>
-              <CardTitle>Detaylı Analiz</CardTitle>
-              <CardDescription>
-                Gelişmiş analiz araçları yakında eklenecek
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12">
-                <BarChart3 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Detaylı Analiz</h3>
-                <p className="text-gray-600 mb-4">
-                  Gelişmiş analiz araçları ve özel raporlar yakında kullanıma sunulacak.
-                </p>
-                <Badge className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-                  <Crown className="h-3 w-3 mr-1" />
-                  Çok Yakında
-                </Badge>
+                ))}
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </div>
+          )}
+
+          {/* Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+            <Card className="bg-blue-50 border-blue-200">
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <CreditCard className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-blue-900">Toplam Brüt Kart Satışı</p>
+                    <p className="text-2xl font-bold text-blue-700">{formatCurrency(totals.totalCardSales)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-red-50 border-red-200">
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-red-100 rounded-lg">
+                    <Calculator className="h-6 w-6 text-red-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-red-900">Toplam Komisyon</p>
+                    <p className="text-2xl font-bold text-red-700">{formatCurrency(totalCommission)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-green-50 border-green-200">
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <DollarSign className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-green-900">Toplam Net Kart Satışı</p>
+                    <p className="text-2xl font-bold text-green-700">{formatCurrency(totalNetCardSales)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <div className="flex items-start space-x-3">
+              <div className="p-1 bg-amber-100 rounded">
+                <svg className="h-4 w-4 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-amber-800">Bilgi</p>
+                <p className="text-sm text-amber-700 mt-1">
+                  Komisyon oranları bir kez girildiğinde otomatik olarak kaydedilir ve sonraki ziyaretlerde korunur. 
+                  Gerçek komisyon tutarları bankanızın kesintilerine göre değişiklik gösterebilir.
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

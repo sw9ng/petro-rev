@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,7 +16,7 @@ interface CustomerDetailViewProps {
 
 export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewProps) => {
   const { customers } = useCustomers();
-  const { transactions, getCustomerTransactions, getCustomerBalance, deleteTransaction } = useCustomerTransactions();
+  const { getCustomerTransactions, getCustomerBalance, deleteTransaction } = useCustomerTransactions();
   const { toast } = useToast();
   
   const customer = customers.find(c => c.id === customerId);
