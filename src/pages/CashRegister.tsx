@@ -58,7 +58,7 @@ const CashRegister = () => {
   if (error) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg text-red-600">Hata: {error.message}</div>
+        <div className="text-lg text-red-600">Hata: {error}</div>
       </div>
     );
   }
