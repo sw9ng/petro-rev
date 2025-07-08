@@ -14,33 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      companies: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: string
-          name: string
-          owner_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          name: string
-          owner_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          name?: string
-          owner_id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       customer_transactions: {
         Row: {
           amount: number
@@ -134,50 +107,6 @@ export type Database = {
         }
         Relationships: []
       }
-      expense_invoices: {
-        Row: {
-          amount: number
-          company_id: string
-          created_at: string
-          created_by: string
-          description: string
-          id: string
-          invoice_date: string
-          invoice_number: string | null
-          updated_at: string
-        }
-        Insert: {
-          amount?: number
-          company_id: string
-          created_at?: string
-          created_by: string
-          description: string
-          id?: string
-          invoice_date?: string
-          invoice_number?: string | null
-          updated_at?: string
-        }
-        Update: {
-          amount?: number
-          company_id?: string
-          created_at?: string
-          created_by?: string
-          description?: string
-          id?: string
-          invoice_date?: string
-          invoice_number?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "expense_invoices_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       fuel_sales: {
         Row: {
           amount: number
@@ -219,50 +148,6 @@ export type Database = {
           total_amount?: number
         }
         Relationships: []
-      }
-      income_invoices: {
-        Row: {
-          amount: number
-          company_id: string
-          created_at: string
-          created_by: string
-          description: string
-          id: string
-          invoice_date: string
-          invoice_number: string | null
-          updated_at: string
-        }
-        Insert: {
-          amount?: number
-          company_id: string
-          created_at?: string
-          created_by: string
-          description: string
-          id?: string
-          invoice_date?: string
-          invoice_number?: string | null
-          updated_at?: string
-        }
-        Update: {
-          amount?: number
-          company_id?: string
-          created_at?: string
-          created_by?: string
-          description?: string
-          id?: string
-          invoice_date?: string
-          invoice_number?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "income_invoices_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       personnel: {
         Row: {
