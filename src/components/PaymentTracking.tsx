@@ -1,5 +1,5 @@
-
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,6 +35,12 @@ export const PaymentTracking = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [sortBy, setSortBy] = useState<string>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  const navigate = useNavigate();
+
+  const handleCustomerClick = (customerId: string) => {
+    navigate(`/customer/${customerId}`);
+  };
 
   const groupedTransactions = getAllTransactionsGroupedByCustomer();
   const totalOutstandingDebt = getTotalOutstandingDebt();
@@ -241,7 +247,11 @@ export const PaymentTracking = () => {
 
             <div className="grid gap-4">
               {filteredAndSortedTransactions.map((group) => (
-                <Card key={group.customer.name} className="hover:shadow-md transition-shadow">
+                <Card 
+                  key={group.customer.id} 
+                  className="hover:shadow-md transition-shadow cursor-pointer" 
+                  onClick={() => handleCustomerClick(group.customer.id)}
+                >
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>

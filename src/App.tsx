@@ -8,6 +8,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import { Landing } from "./pages/Landing";
 import Auth from "./pages/Auth";
+import CustomerDetail from "./pages/CustomerDetail";
+import CashRegister from "./pages/CashRegister";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +24,8 @@ const App = () => (
             <Route path="/landing" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/" element={<Index />} />
+            <Route path="/customer/:id" element={<CustomerDetail />} />
+            <Route path="/cash-register" element={<CashRegister />} />
           </Routes>
         </AuthProvider>
       </BrowserRouter>
