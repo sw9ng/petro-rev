@@ -3,21 +3,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-export interface CompanyAccount {
-  id: string;
-  company_id: string;
-  name: string;
-  phone?: string;
-  address?: string;
-  notes?: string;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface Invoice {
   id: string;
   company_id: string;
-  account_id?: string;
   invoice_number?: string;
   description: string;
   amount: number;
@@ -27,14 +15,12 @@ export interface Invoice {
   created_by: string;
   created_at: string;
   updated_at: string;
-  account?: CompanyAccount;
 }
 
 export const useInvoices = (companyId?: string) => {
   const { user } = useAuth();
   const [incomeInvoices, setIncomeInvoices] = useState<Invoice[]>([]);
   const [expenseInvoices, setExpenseInvoices] = useState<Invoice[]>([]);
-  const [accounts, setAccounts] = useState<CompanyAccount[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchInvoices = async () => {
@@ -45,42 +31,26 @@ export const useInvoices = (companyId?: string) => {
     // Gelir faturaları
     const { data: incomeData, error: incomeError } = await supabase
       .from('income_invoices')
-      .select(`
-        *,
-        account:company_accounts(*)
-      `)
+      .select('*')
       .eq('company_id', companyId)
       .order('invoice_date', { ascending: false });
 
     // Gider faturaları
     const { data: expenseData, error: expenseError } = await supabase
       .from('expense_invoices')
-      .select(`
-        *,
-        account:company_accounts(*)
-      `)
+      .select('*')
       .eq('company_id', companyId)
       .order('invoice_date', { ascending: false });
 
-    // Cari hesaplar
-    const { data: accountsData, error: accountsError } = await supabase
-      .from('company_accounts')
-      .select('*')
-      .eq('company_id', companyId)
-      .order('name', { ascending: true });
-
     if (incomeError) console.error('Error fetching income invoices:', incomeError);
     if (expenseError) console.error('Error fetching expense invoices:', expenseError);
-    if (accountsError) console.error('Error fetching accounts:', accountsError);
 
     setIncomeInvoices(incomeData || []);
     setExpenseInvoices(expenseData || []);
-    setAccounts(accountsData || []);
     setLoading(false);
   };
 
   const addIncomeInvoice = async (invoiceData: {
-    account_id?: string;
     invoice_number?: string;
     description: string;
     amount: number;
@@ -99,10 +69,7 @@ export const useInvoices = (companyId?: string) => {
           created_by: user.id
         }
       ])
-      .select(`
-        *,
-        account:company_accounts(*)
-      `)
+      .select()
       .single();
 
     if (!error && data) {
@@ -113,7 +80,6 @@ export const useInvoices = (companyId?: string) => {
   };
 
   const addExpenseInvoice = async (invoiceData: {
-    account_id?: string;
     invoice_number?: string;
     description: string;
     amount: number;
@@ -132,40 +98,11 @@ export const useInvoices = (companyId?: string) => {
           created_by: user.id
         }
       ])
-      .select(`
-        *,
-        account:company_accounts(*)
-      `)
-      .single();
-
-    if (!error && data) {
-      setExpenseInvoices(prev => [data, ...prev]);
-    }
-
-    return { data, error };
-  };
-
-  const addAccount = async (accountData: {
-    name: string;
-    phone?: string;
-    address?: string;
-    notes?: string;
-  }) => {
-    if (!user || !companyId) return { error: 'Kullanıcı doğrulanmadı' };
-
-    const { data, error } = await supabase
-      .from('company_accounts')
-      .insert([
-        {
-          ...accountData,
-          company_id: companyId
-        }
-      ])
       .select()
       .single();
 
     if (!error && data) {
-      setAccounts(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
+      setExpenseInvoices(prev => [data, ...prev]);
     }
 
     return { data, error };
@@ -189,10 +126,7 @@ export const useInvoices = (companyId?: string) => {
         updated_at: new Date().toISOString()
       })
       .eq('id', invoiceId)
-      .select(`
-        *,
-        account:company_accounts(*)
-      `)
+      .select()
       .single();
 
     if (!error && data) {
@@ -217,11 +151,9 @@ export const useInvoices = (companyId?: string) => {
   return {
     incomeInvoices,
     expenseInvoices,
-    accounts,
     loading,
     addIncomeInvoice,
     addExpenseInvoice,
-    addAccount,
     updateInvoicePaymentStatus,
     refreshInvoices: fetchInvoices
   };

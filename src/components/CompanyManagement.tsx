@@ -36,9 +36,10 @@ export const CompanyManagement = () => {
     const { error } = await addCompany(formData);
     
     if (error) {
+      const errorMessage = typeof error === 'string' ? error : error.message || 'Şirket oluşturulurken bir hata oluştu.';
       toast({
         title: "Hata",
-        description: error.message || "Şirket oluşturulurken bir hata oluştu.",
+        description: errorMessage,
         variant: "destructive",
       });
     } else {

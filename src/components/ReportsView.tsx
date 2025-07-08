@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -72,6 +73,13 @@ export const ReportsView = () => {
     );
     return hasRecentTransaction;
   }).length;
+
+  // Calculate additional metrics for charts and metrics components
+  const totalCashSales = filteredShifts.reduce((sum, shift) => sum + (shift.cash_sales || 0), 0);
+  const totalCardSales = filteredShifts.reduce((sum, shift) => sum + (shift.card_sales || 0), 0);
+  const totalBankTransfers = filteredShifts.reduce((sum, shift) => sum + (shift.bank_transfers || 0), 0);
+  const totalOverShort = filteredShifts.reduce((sum, shift) => sum + (shift.over_short || 0), 0);
+  const totalSales = totalCashSales + totalCardSales + totalBankTransfers;
 
   return (
     <div className="space-y-6">
@@ -331,11 +339,25 @@ export const ReportsView = () => {
         </TabsContent>
 
         <TabsContent value="charts">
-          <ReportsCharts />
+          <ReportsCharts 
+            filteredShifts={filteredShifts}
+            filteredFuelSales={filteredFuelSales}
+            totalCashSales={totalCashSales}
+            totalCardSales={totalCardSales}
+            totalBankTransfers={totalBankTransfers}
+            totalFuelRevenue={totalFuelRevenue}
+            totalCustomerPayments={totalCustomerPayments}
+          />
         </TabsContent>
 
         <TabsContent value="metrics">
-          <ReportsMetrics />
+          <ReportsMetrics 
+            totalSales={totalSales}
+            totalFuelSales={totalFuelRevenue}
+            totalOverShort={totalOverShort}
+            filteredShifts={filteredShifts}
+            filteredFuelSales={filteredFuelSales}
+          />
         </TabsContent>
 
         <TabsContent value="analysis">

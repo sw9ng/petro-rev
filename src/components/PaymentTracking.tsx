@@ -31,7 +31,7 @@ export const PaymentTracking = () => {
     transactions, 
     getCustomerTransactions, 
     getCustomerBalance, 
-    addTransaction, 
+    addPayment, 
     loading: transactionsLoading 
   } = useCustomerTransactions();
   const { personnel } = usePersonnel();
@@ -64,10 +64,13 @@ export const PaymentTracking = () => {
       return;
     }
 
-    const { error } = await addTransaction({
-      ...formData,
+    const { error } = await addPayment({
+      customer_id: formData.customer_id,
+      personnel_id: formData.personnel_id,
       amount: parseFloat(formData.amount),
-      payment_method: formData.payment_method || undefined
+      payment_method: formData.payment_method || undefined,
+      description: formData.description,
+      transaction_date: new Date().toISOString().split('T')[0]
     });
     
     if (error) {
