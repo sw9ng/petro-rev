@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -345,7 +344,7 @@ export const ReportsView = () => {
             totalCashSales={totalCashSales}
             totalCardSales={totalCardSales}
             totalBankTransfers={totalBankTransfers}
-            totalFuelRevenue={totalFuelRevenue}
+            totalFuelSales={totalFuelRevenue}
             totalCustomerPayments={totalCustomerPayments}
           />
         </TabsContent>

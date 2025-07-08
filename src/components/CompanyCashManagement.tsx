@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -93,9 +92,12 @@ export const CompanyCashManagement = ({ company, onBack }: CompanyCashManagement
     }
 
     const { error } = await addIncomeInvoice({
-      ...incomeFormData,
       account_id: incomeFormData.account_id || undefined,
+      invoice_number: incomeFormData.invoice_number,
+      description: incomeFormData.description,
       amount: parseFloat(incomeFormData.amount),
+      invoice_date: incomeFormData.invoice_date,
+      payment_status: incomeFormData.payment_status,
       payment_date: incomeFormData.payment_status === 'paid' ? incomeFormData.payment_date : undefined
     });
     
@@ -136,9 +138,12 @@ export const CompanyCashManagement = ({ company, onBack }: CompanyCashManagement
     }
 
     const { error } = await addExpenseInvoice({
-      ...expenseFormData,
       account_id: expenseFormData.account_id || undefined,
+      invoice_number: expenseFormData.invoice_number,
+      description: expenseFormData.description,
       amount: parseFloat(expenseFormData.amount),
+      invoice_date: expenseFormData.invoice_date,
+      payment_status: expenseFormData.payment_status,
       payment_date: expenseFormData.payment_status === 'paid' ? expenseFormData.payment_date : undefined
     });
     
@@ -225,6 +230,12 @@ export const CompanyCashManagement = ({ company, onBack }: CompanyCashManagement
     return invoices.filter(invoice => 
       invoice.invoice_date.includes(dateFilter)
     );
+  };
+
+  const getAccountName = (accountId?: string) => {
+    if (!accountId) return '-';
+    const account = accounts.find(acc => acc.id === accountId);
+    return account ? account.name : '-';
   };
 
   const totalIncome = incomeInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
@@ -710,7 +721,7 @@ export const CompanyCashManagement = ({ company, onBack }: CompanyCashManagement
                         <TableRow key={invoice.id}>
                           <TableCell className="font-medium">{invoice.description}</TableCell>
                           <TableCell>
-                            {invoice.account ? invoice.account.name : '-'}
+                            {getAccountName((invoice as any).account_id)}
                           </TableCell>
                           <TableCell>
                             {new Date(invoice.invoice_date).toLocaleDateString('tr-TR')}
@@ -791,7 +802,7 @@ export const CompanyCashManagement = ({ company, onBack }: CompanyCashManagement
                         <TableRow key={invoice.id}>
                           <TableCell className="font-medium">{invoice.description}</TableCell>
                           <TableCell>
-                            {invoice.account ? invoice.account.name : '-'}
+                            {getAccountName((invoice as any).account_id)}
                           </TableCell>
                           <TableCell>
                             {new Date(invoice.invoice_date).toLocaleDateString('tr-TR')}
