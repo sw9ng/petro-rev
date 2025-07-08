@@ -20,10 +20,16 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 const fuelTypes = [
-  { value: 'MOTORİN', label: 'Motorin' },
   { value: 'BENZİN', label: 'Benzin' },
   { value: 'LPG', label: 'LPG' },
-  { value: 'MOTORİN(DİĞER)', label: 'Köy Tankeri (Motorin)' }
+  { value: 'MOTORİN', label: 'Motorin' },
+  { value: 'MOTORİN(DİĞER)', label: 'Motorin (Diğer)' },
+  { value: 'TRANSFER(KÖY-TANKERİ)', label: 'Transfer (Köy Tankeri)' }
+];
+
+const shiftOptions = [
+  { value: 'V1', label: 'Vardiya 1' },
+  { value: 'V2', label: 'Vardiya 2' }
 ];
 
 export const FuelSalesManagement = () => {
@@ -35,19 +41,20 @@ export const FuelSalesManagement = () => {
   const [newSale, setNewSale] = useState({
     fuel_type: '',
     liters: '',
-    price_per_liter: '',
+    total_amount: '',
+    shift: '',
     sale_time: format(new Date(), 'yyyy-MM-dd')
   });
 
   // Köy tankeri satışlarını motorinden çıkar
   const adjustedFuelSales = useMemo(() => {
-    const koytankeriSales = fuelSales.filter(sale => sale.fuel_type === 'MOTORİN(DİĞER)');
-    const koytankeriTotal = koytankeriSales.reduce((sum, sale) => sum + sale.liters, 0);
+    const transferSales = fuelSales.filter(sale => sale.fuel_type === 'TRANSFER(KÖY-TANKERİ)');
+    const transferTotal = transferSales.reduce((sum, sale) => sum + sale.liters, 0);
     
     return fuelSales.map(sale => {
       if (sale.fuel_type === 'MOTORİN') {
-        // Motorin satışından köy tankeri miktarını çıkar
-        const adjustedLiters = Math.max(0, sale.liters - (koytankeriTotal / fuelSales.filter(s => s.fuel_type === 'MOTORİN').length || 0));
+        // Motorin satışından transfer miktarını çıkar
+        const adjustedLiters = Math.max(0, sale.liters - (transferTotal / fuelSales.filter(s => s.fuel_type === 'MOTORİN').length || 0));
         return {
           ...sale,
           liters: adjustedLiters,
@@ -58,22 +65,39 @@ export const FuelSalesManagement = () => {
     });
   }, [fuelSales]);
 
+  const calculatePricePerLiter = () => {
+    const liters = parseFloat(newSale.liters);
+    const totalAmount = parseFloat(newSale.total_amount);
+    
+    if (liters > 0 && totalAmount > 0) {
+      return (totalAmount / liters).toFixed(3);
+    }
+    return '0.000';
+  };
+
   const handleAddSale = async () => {
-    if (!newSale.fuel_type || !newSale.liters || !newSale.price_per_liter) {
-      toast.error('Lütfen tüm alanları doldurun');
+    if (!newSale.fuel_type || !newSale.liters || !newSale.total_amount) {
+      toast.error('Lütfen yakıt türü, litre ve toplam fiyat alanlarını doldurun');
       return;
     }
 
     const liters = parseFloat(newSale.liters);
-    const pricePerLiter = parseFloat(newSale.price_per_liter);
+    const totalAmount = parseFloat(newSale.total_amount);
+    const pricePerLiter = totalAmount / liters;
+
+    if (liters <= 0 || totalAmount <= 0) {
+      toast.error('Litre ve toplam fiyat sıfırdan büyük olmalıdır');
+      return;
+    }
 
     const saleData = {
-      fuel_type: newSale.fuel_type as 'MOTORİN' | 'LPG' | 'BENZİN' | 'MOTORİN(DİĞER)',
+      fuel_type: newSale.fuel_type as 'MOTORİN' | 'LPG' | 'BENZİN' | 'MOTORİN(DİĞER)' | 'TRANSFER(KÖY-TANKERİ)',
       liters: liters,
       price_per_liter: pricePerLiter,
-      total_amount: liters * pricePerLiter,
-      amount: liters * pricePerLiter,
-      sale_time: new Date(newSale.sale_time).toISOString()
+      total_amount: totalAmount,
+      amount: totalAmount,
+      sale_time: new Date(newSale.sale_time).toISOString(),
+      shift: newSale.shift || undefined
     };
 
     const { error } = await addFuelSale(saleData);
@@ -85,7 +109,8 @@ export const FuelSalesManagement = () => {
       setNewSale({
         fuel_type: '',
         liters: '',
-        price_per_liter: '',
+        total_amount: '',
+        shift: '',
         sale_time: format(new Date(), 'yyyy-MM-dd')
       });
       setIsDialogOpen(false);
@@ -218,7 +243,7 @@ export const FuelSalesManagement = () => {
                 </Select>
               </div>
               <div>
-                <Label>Litre</Label>
+                <Label>Satılan Litre</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -228,14 +253,41 @@ export const FuelSalesManagement = () => {
                 />
               </div>
               <div>
-                <Label>Litre Fiyatı (₺)</Label>
+                <Label>Toplam Fiyat (₺)</Label>
                 <Input
                   type="number"
                   step="0.01"
-                  value={newSale.price_per_liter}
-                  onChange={(e) => setNewSale({...newSale, price_per_liter: e.target.value})}
+                  value={newSale.total_amount}
+                  onChange={(e) => setNewSale({...newSale, total_amount: e.target.value})}
                   placeholder="0.00"
                 />
+              </div>
+              {newSale.liters && newSale.total_amount && (
+                <div>
+                  <Label>Birim Fiyat (Otomatik)</Label>
+                  <Input
+                    type="text"
+                    value={`₺${calculatePricePerLiter()}`}
+                    readOnly
+                    className="bg-gray-100"
+                  />
+                </div>
+              )}
+              <div>
+                <Label>Vardiya (Opsiyonel)</Label>
+                <Select value={newSale.shift} onValueChange={(value) => setNewSale({...newSale, shift: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vardiya seçin (opsiyonel)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Vardiya seçmeyin</SelectItem>
+                    {shiftOptions.map(shift => (
+                      <SelectItem key={shift.value} value={shift.value}>
+                        {shift.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label>Satış Tarihi</Label>
@@ -281,6 +333,7 @@ export const FuelSalesManagement = () => {
               selected={selectedDate}
               onSelect={setSelectedDate}
               initialFocus
+              className="p-3 pointer-events-auto"
             />
           </PopoverContent>
         </Popover>
@@ -326,7 +379,7 @@ export const FuelSalesManagement = () => {
       </div>
 
       {/* Yakıt Türü Detayları */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {Object.entries(stats.fuelTypes).map(([fuelType, data]) => (
           <Card key={fuelType}>
             <CardHeader className="pb-3">
@@ -368,6 +421,7 @@ export const FuelSalesManagement = () => {
                   <TableRow>
                     <TableHead>Tarih</TableHead>
                     <TableHead>Yakıt Türü</TableHead>
+                    <TableHead>Vardiya</TableHead>
                     <TableHead>Litre</TableHead>
                     <TableHead>Birim Fiyat</TableHead>
                     <TableHead>Toplam</TableHead>
@@ -378,12 +432,21 @@ export const FuelSalesManagement = () => {
                   {currentSales.map((sale) => (
                     <TableRow key={sale.id}>
                       <TableCell>
-                        {format(new Date(sale.sale_time), 'dd/MM/yyyy HH:mm')}
+                        {format(new Date(sale.sale_time), 'dd/MM/yyyy HH:mm', { locale: tr })}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
                           {fuelTypes.find(f => f.value === sale.fuel_type)?.label || sale.fuel_type}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {sale.shift ? (
+                          <Badge variant="secondary">
+                            {shiftOptions.find(s => s.value === sale.shift)?.label || sale.shift}
+                          </Badge>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
                       </TableCell>
                       <TableCell>{sale.liters.toFixed(2)} L</TableCell>
                       <TableCell>{formatCurrency(sale.price_per_liter)}</TableCell>
