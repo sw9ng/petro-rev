@@ -43,7 +43,7 @@ export const FuelSalesManagement = () => {
     MOTORİN: { liters: '', total_amount: '' },
     'MOTORİN(DİĞER)': { liters: '', total_amount: '' },
     'TRANSFER(KÖY-TANKERİ)': { liters: '', total_amount: '' },
-    shift: 'none',
+    shift: '',
     sale_time: format(getIstanbulTime(), 'yyyy-MM-dd')
   });
 
@@ -94,7 +94,7 @@ export const FuelSalesManagement = () => {
           total_amount: totalAmount,
           amount: totalAmount,
           sale_time: istanbulTime.toISOString(),
-          shift: newSales.shift !== 'none' ? newSales.shift : undefined
+          shift: newSales.shift || null
         });
       }
     }
@@ -108,12 +108,18 @@ export const FuelSalesManagement = () => {
 
     // Tüm satışları ekle
     for (const saleData of salesToAdd) {
-      const { error } = await addFuelSale(saleData);
-      
-      if (error) {
-        console.error('Fuel sale error:', error);
-        const errorMessage = typeof error === 'string' ? error : (error as any)?.message || 'Bilinmeyen hata';
-        toast.error(`${fuelTypes.find(f => f.value === saleData.fuel_type)?.label} satışı eklenirken hata oluştu: ${errorMessage}`);
+      try {
+        const { error } = await addFuelSale(saleData);
+        
+        if (error) {
+          console.error('Fuel sale error:', error);
+          const errorMessage = typeof error === 'string' ? error : (error as any)?.message || 'Bilinmeyen hata';
+          toast.error(`${fuelTypes.find(f => f.value === saleData.fuel_type)?.label} satışı eklenirken hata oluştu: ${errorMessage}`);
+          hasErrors = true;
+        }
+      } catch (err) {
+        console.error('Unexpected error:', err);
+        toast.error(`${fuelTypes.find(f => f.value === saleData.fuel_type)?.label} satışı eklenirken beklenmeyen hata oluştu`);
         hasErrors = true;
       }
     }
@@ -126,7 +132,7 @@ export const FuelSalesManagement = () => {
         MOTORİN: { liters: '', total_amount: '' },
         'MOTORİN(DİĞER)': { liters: '', total_amount: '' },
         'TRANSFER(KÖY-TANKERİ)': { liters: '', total_amount: '' },
-        shift: 'none',
+        shift: '',
         sale_time: format(getIstanbulTime(), 'yyyy-MM-dd')
       });
       setIsDialogOpen(false);
@@ -235,79 +241,83 @@ export const FuelSalesManagement = () => {
               Yakıt Satışı Ekle
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl">
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Tüm Yakıt Satışları</DialogTitle>
               <DialogDescription>
                 Tüm yakıt türlerini tek seferde girin
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-6 max-h-96 overflow-y-auto">
-              {fuelTypes.map(fuelType => (
-                <Card key={fuelType.value} className="p-4">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">{fuelType.label}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label>Satılan Litre</Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={(newSales[fuelType.value as keyof typeof newSales] as any).liters}
-                          onChange={(e) => setNewSales({
-                            ...newSales,
-                            [fuelType.value]: {
-                              ...(newSales[fuelType.value as keyof typeof newSales] as any),
-                              liters: e.target.value
-                            }
-                          })}
-                          placeholder="0.00"
-                        />
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {fuelTypes.map(fuelType => (
+                  <Card key={fuelType.value} className="border border-gray-200 shadow-sm">
+                    <CardHeader className="pb-3 bg-gray-50 rounded-t-lg">
+                      <CardTitle className="text-lg text-gray-800">{fuelType.label}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4 p-4">
+                      <div className="grid grid-cols-1 gap-3">
+                        <div>
+                          <Label className="text-sm font-medium text-gray-700">Satılan Litre</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={(newSales[fuelType.value as keyof typeof newSales] as any).liters}
+                            onChange={(e) => setNewSales({
+                              ...newSales,
+                              [fuelType.value]: {
+                                ...(newSales[fuelType.value as keyof typeof newSales] as any),
+                                liters: e.target.value
+                              }
+                            })}
+                            placeholder="0.00"
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium text-gray-700">Toplam Fiyat (₺)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={(newSales[fuelType.value as keyof typeof newSales] as any).total_amount}
+                            onChange={(e) => setNewSales({
+                              ...newSales,
+                              [fuelType.value]: {
+                                ...(newSales[fuelType.value as keyof typeof newSales] as any),
+                                total_amount: e.target.value
+                              }
+                            })}
+                            placeholder="0.00"
+                            className="mt-1"
+                          />
+                        </div>
+                        {(newSales[fuelType.value as keyof typeof newSales] as any).liters && 
+                         (newSales[fuelType.value as keyof typeof newSales] as any).total_amount && (
+                          <div>
+                            <Label className="text-sm font-medium text-gray-700">Birim Fiyat (Otomatik)</Label>
+                            <Input
+                              type="text"
+                              value={`₺${calculatePricePerLiter(fuelType.value)}`}
+                              readOnly
+                              className="bg-green-50 border-green-200 text-green-800 mt-1"
+                            />
+                          </div>
+                        )}
                       </div>
-                      <div>
-                        <Label>Toplam Fiyat (₺)</Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={(newSales[fuelType.value as keyof typeof newSales] as any).total_amount}
-                          onChange={(e) => setNewSales({
-                            ...newSales,
-                            [fuelType.value]: {
-                              ...(newSales[fuelType.value as keyof typeof newSales] as any),
-                              total_amount: e.target.value
-                            }
-                          })}
-                          placeholder="0.00"
-                        />
-                      </div>
-                    </div>
-                    {(newSales[fuelType.value as keyof typeof newSales] as any).liters && 
-                     (newSales[fuelType.value as keyof typeof newSales] as any).total_amount && (
-                      <div>
-                        <Label>Birim Fiyat (Otomatik)</Label>
-                        <Input
-                          type="text"
-                          value={`₺${calculatePricePerLiter(fuelType.value)}`}
-                          readOnly
-                          className="bg-gray-100"
-                        />
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200">
                 <div>
-                  <Label>Vardiya (Opsiyonel)</Label>
+                  <Label className="text-sm font-medium text-gray-700">Vardiya (Opsiyonel)</Label>
                   <Select value={newSales.shift} onValueChange={(value) => setNewSales({...newSales, shift: value})}>
-                    <SelectTrigger>
+                    <SelectTrigger className="mt-1">
                       <SelectValue placeholder="Vardiya seçin (opsiyonel)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Vardiya seçmeyin</SelectItem>
+                      <SelectItem value="">Vardiya seçmeyin</SelectItem>
                       {shiftOptions.map(shift => (
                         <SelectItem key={shift.value} value={shift.value}>
                           {shift.label}
@@ -317,20 +327,21 @@ export const FuelSalesManagement = () => {
                   </Select>
                 </div>
                 <div>
-                  <Label>Satış Tarihi</Label>
+                  <Label className="text-sm font-medium text-gray-700">Satış Tarihi</Label>
                   <Input
                     type="date"
                     value={newSales.sale_time}
                     onChange={(e) => setNewSales({...newSales, sale_time: e.target.value})}
+                    className="mt-1"
                   />
                 </div>
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="border-t pt-4">
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                 İptal
               </Button>
-              <Button onClick={handleAddSales}>
+              <Button onClick={handleAddSales} className="bg-blue-600 hover:bg-blue-700">
                 Satışları Ekle
               </Button>
             </DialogFooter>

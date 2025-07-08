@@ -245,6 +245,7 @@ export type Database = {
           personnel_id: string
           price_per_liter: number
           sale_time: string
+          shift: string | null
           shift_id: string | null
           station_id: string
           total_amount: number
@@ -258,6 +259,7 @@ export type Database = {
           personnel_id: string
           price_per_liter?: number
           sale_time?: string
+          shift?: string | null
           shift_id?: string | null
           station_id: string
           total_amount?: number
@@ -271,6 +273,7 @@ export type Database = {
           personnel_id?: string
           price_per_liter?: number
           sale_time?: string
+          shift?: string | null
           shift_id?: string | null
           station_id?: string
           total_amount?: number
