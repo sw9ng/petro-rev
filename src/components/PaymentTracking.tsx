@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,13 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { CustomerDetailView } from './CustomerDetailView';
-import { CustomerListView } from './CustomerListView';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { usePersonnel } from '@/hooks/usePersonnel';
 import { formatCurrency } from '@/lib/numberUtils';
-import { Plus, Search, CreditCard, ArrowUpDown } from 'lucide-react';
+import { Plus, Search, CreditCard, ArrowUpDown, Calendar, Users, TrendingUp, TrendingDown } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const PaymentTracking = () => {
@@ -130,6 +130,10 @@ export const PaymentTracking = () => {
     }
   };
 
+  // Separate transactions by type for history
+  const paymentTransactions = transactions.filter(t => t.transaction_type === 'payment');
+  const debtTransactions = transactions.filter(t => t.transaction_type === 'debt');
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -146,243 +150,398 @@ export const PaymentTracking = () => {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Genel Bakış</TabsTrigger>
-          <TabsTrigger value="payment">Ödeme Al</TabsTrigger>
-          <TabsTrigger value="debt">Borç Kaydet</TabsTrigger>
-          <TabsTrigger value="customers">Müşteriler</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-6">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="flex items-center space-x-4 flex-1">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Müşteri ara..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+      <div className="grid gap-6">
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-2">
+                <Users className="h-5 w-5 text-blue-500" />
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Toplam Müşteri</p>
+                  <p className="text-2xl font-bold">{customers.length}</p>
+                </div>
               </div>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <ArrowUpDown className="h-4 w-4 text-gray-500" />
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Sıralama" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="name">İsim (A-Z)</SelectItem>
-                  <SelectItem value="balance-high">Borç (Yüksek-Düşük)</SelectItem>
-                  <SelectItem value="balance-low">Borç (Düşük-Yüksek)</SelectItem>
-                  <SelectItem value="date-newest">Tarih (Yeni-Eski)</SelectItem>
-                  <SelectItem value="date-oldest">Tarih (Eski-Yeni)</SelectItem>
-                </SelectContent>
-              </Select>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-2">
+                <TrendingUp className="h-5 w-5 text-red-500" />
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Borçlu Müşteri</p>
+                  <p className="text-2xl font-bold">{groupedTransactions.filter(g => g.balance > 0).length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-2">
+                <TrendingDown className="h-5 w-5 text-green-500" />
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Toplam İşlem</p>
+                  <p className="text-2xl font-bold">{transactions.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Content */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="overview">Genel Bakış</TabsTrigger>
+            <TabsTrigger value="payment">Ödeme Al</TabsTrigger>
+            <TabsTrigger value="debt">Borç Kaydet</TabsTrigger>
+            <TabsTrigger value="payment-history">Ödeme Geçmişi</TabsTrigger>
+            <TabsTrigger value="debt-history">Borç Geçmişi</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <div className="flex items-center space-x-4 flex-1">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Müşteri ara..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
               
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-              >
-                {sortOrder === 'asc' ? '↑' : '↓'}
-              </Button>
+              <div className="flex items-center space-x-2">
+                <ArrowUpDown className="h-4 w-4 text-gray-500" />
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Sıralama" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name">İsim (A-Z)</SelectItem>
+                    <SelectItem value="balance-high">Borç (Yüksek-Düşük)</SelectItem>
+                    <SelectItem value="balance-low">Borç (Düşük-Yüksek)</SelectItem>
+                    <SelectItem value="date-newest">Tarih (Yeni-Eski)</SelectItem>
+                    <SelectItem value="date-oldest">Tarih (Eski-Yeni)</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                >
+                  {sortOrder === 'asc' ? '↑' : '↓'}
+                </Button>
+              </div>
             </div>
-          </div>
 
-          <div className="grid gap-4">
-            {filteredAndSortedTransactions.map((group) => (
-              <Card key={group.customer.name} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold">{group.customer.name}</h3>
-                      <p className="text-sm text-gray-600">
-                        {group.transactions.length} işlem
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className={`text-2xl font-bold ${
-                        group.balance > 0 ? 'text-red-600' : 'text-green-600'
-                      }`}>
-                        {group.balance > 0 ? '+' : ''}
-                        {formatCurrency(Math.abs(group.balance))}
+            <div className="grid gap-4">
+              {filteredAndSortedTransactions.map((group) => (
+                <Card key={group.customer.name} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-semibold">{group.customer.name}</h3>
+                        <p className="text-sm text-gray-600">
+                          {group.transactions.length} işlem
+                        </p>
                       </div>
-                      <p className="text-sm text-gray-600">
-                        {group.balance > 0 ? 'Borç' : group.balance < 0 ? 'Avans' : 'Denge'}
-                      </p>
+                      <div className="text-right">
+                        <div className={`text-2xl font-bold ${
+                          group.balance > 0 ? 'text-red-600' : 'text-green-600'
+                        }`}>
+                          {group.balance > 0 ? '+' : ''}
+                          {formatCurrency(Math.abs(group.balance))}
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          {group.balance > 0 ? 'Borç' : group.balance < 0 ? 'Avans' : 'Denge'}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="mt-4 pt-4 border-t">
-                    <div className="flex justify-between text-sm text-gray-600">
-                      <span>Son İşlem: {group.transactions.length > 0 ? 
-                        new Date(Math.max(...group.transactions.map(t => new Date(t.transaction_date).getTime())))
-                          .toLocaleDateString('tr-TR') : 'Yok'
-                      }</span>
-                      <span>
-                        Borç: {formatCurrency(group.transactions.filter(t => t.transaction_type === 'debt').reduce((sum, t) => sum + t.amount, 0))} | 
-                        Ödeme: {formatCurrency(group.transactions.filter(t => t.transaction_type === 'payment').reduce((sum, t) => sum + t.amount, 0))}
-                      </span>
+                    
+                    <div className="mt-4 pt-4 border-t">
+                      <div className="flex justify-between text-sm text-gray-600">
+                        <span>Son İşlem: {group.transactions.length > 0 ? 
+                          new Date(Math.max(...group.transactions.map(t => new Date(t.transaction_date).getTime())))
+                            .toLocaleDateString('tr-TR') : 'Yok'
+                        }</span>
+                        <span>
+                          Borç: {formatCurrency(group.transactions.filter(t => t.transaction_type === 'debt').reduce((sum, t) => sum + t.amount, 0))} | 
+                          Ödeme: {formatCurrency(group.transactions.filter(t => t.transaction_type === 'payment').reduce((sum, t) => sum + t.amount, 0))}
+                        </span>
+                      </div>
                     </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="payment" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Ödeme Al</CardTitle>
+                <CardDescription>Müşteri ödemesi kaydet</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Müşteri</Label>
+                    <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Müşteri seçin" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {customers.map((customer) => (
+                          <SelectItem key={customer.id} value={customer.id}>
+                            {customer.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
 
-        <TabsContent value="payment" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Ödeme Al</CardTitle>
-              <CardDescription>Müşteri ödemesi kaydet</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Müşteri</Label>
-                <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Müşteri seçin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {customers.map((customer) => (
-                      <SelectItem key={customer.id} value={customer.id}>
-                        {customer.name}
-                      </SelectItem>
+                  <div className="space-y-2">
+                    <Label>Personel</Label>
+                    <Select value={selectedPersonnel} onValueChange={setSelectedPersonnel}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Personel seçin" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {personnel.map((person) => (
+                          <SelectItem key={person.id} value={person.id}>
+                            {person.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Tutar</Label>
+                    <Input
+                      type="number"
+                      placeholder="0.00"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Ödeme Yöntemi</Label>
+                    <Input
+                      type="text"
+                      placeholder="Nakit, Kredi Kartı, Havale..."
+                      value={paymentMethod}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Açıklama</Label>
+                    <Input
+                      type="text"
+                      placeholder="Ödeme açıklaması..."
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <Button onClick={handleAddPayment} className="w-full">
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Ödeme Kaydet
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="debt" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Borç Kaydet</CardTitle>
+                <CardDescription>Müşteri borcu kaydet</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Müşteri</Label>
+                    <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Müşteri seçin" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {customers.map((customer) => (
+                          <SelectItem key={customer.id} value={customer.id}>
+                            {customer.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Personel</Label>
+                    <Select value={selectedPersonnel} onValueChange={setSelectedPersonnel}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Personel seçin" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {personnel.map((person) => (
+                          <SelectItem key={person.id} value={person.id}>
+                            {person.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Tutar</Label>
+                    <Input
+                      type="number"
+                      placeholder="0.00"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Açıklama</Label>
+                    <Input
+                      type="text"
+                      placeholder="Borç açıklaması..."
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <Button onClick={handleAddVeresiye} className="w-full">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Borç Kaydet
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="payment-history" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <CreditCard className="h-5 w-5 text-green-600" />
+                  <span>Ödeme Geçmişi</span>
+                </CardTitle>
+                <CardDescription>Tüm ödeme işlemleri</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tarih</TableHead>
+                      <TableHead>Müşteri</TableHead>
+                      <TableHead>Personel</TableHead>
+                      <TableHead>Tutar</TableHead>
+                      <TableHead>Ödeme Yöntemi</TableHead>
+                      <TableHead>Açıklama</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paymentTransactions.map((transaction) => (
+                      <TableRow key={transaction.id}>
+                        <TableCell>
+                          {new Date(transaction.transaction_date).toLocaleDateString('tr-TR')}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {transaction.customer.name}
+                        </TableCell>
+                        <TableCell>
+                          {transaction.personnel?.name || 'Bilinmiyor'}
+                        </TableCell>
+                        <TableCell className="text-green-600 font-medium">
+                          {formatCurrency(transaction.amount)}
+                        </TableCell>
+                        <TableCell>
+                          {transaction.payment_method || '-'}
+                        </TableCell>
+                        <TableCell>
+                          {transaction.description || '-'}
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                  </TableBody>
+                </Table>
+                {paymentTransactions.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    Henüz ödeme kaydı yok
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-              <div className="space-y-2">
-                <Label>Personel</Label>
-                <Select value={selectedPersonnel} onValueChange={setSelectedPersonnel}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Personel seçin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {personnel.map((person) => (
-                      <SelectItem key={person.id} value={person.id}>
-                        {person.name}
-                      </SelectItem>
+          <TabsContent value="debt-history" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Calendar className="h-5 w-5 text-red-600" />
+                  <span>Borç Geçmişi</span>
+                </CardTitle>
+                <CardDescription>Tüm borç kayıtları</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tarih</TableHead>
+                      <TableHead>Müşteri</TableHead>
+                      <TableHead>Personel</TableHead>
+                      <TableHead>Tutar</TableHead>
+                      <TableHead>Açıklama</TableHead>
+                      <TableHead>Durum</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {debtTransactions.map((transaction) => (
+                      <TableRow key={transaction.id}>
+                        <TableCell>
+                          {new Date(transaction.transaction_date).toLocaleDateString('tr-TR')}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {transaction.customer.name}
+                        </TableCell>
+                        <TableCell>
+                          {transaction.personnel?.name || 'Bilinmiyor'}
+                        </TableCell>
+                        <TableCell className="text-red-600 font-medium">
+                          {formatCurrency(transaction.amount)}
+                        </TableCell>
+                        <TableCell>
+                          {transaction.description || '-'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={transaction.status === 'completed' ? 'default' : 'secondary'}>
+                            {transaction.status === 'completed' ? 'Tamamlandı' : 'Beklemede'}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Tutar</Label>
-                <Input
-                  type="number"
-                  placeholder="0.00"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Ödeme Yöntemi</Label>
-                <Input
-                  type="text"
-                  placeholder="Nakit, Kredi Kartı, Havale..."
-                  value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Açıklama</Label>
-                <Input
-                  type="text"
-                  placeholder="Ödeme açıklaması..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
-              </div>
-
-              <Button onClick={handleAddPayment} className="w-full">
-                <CreditCard className="h-4 w-4 mr-2" />
-                Ödeme Kaydet
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="debt" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Borç Kaydet</CardTitle>
-              <CardDescription>Müşteri borcu kaydet</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Müşteri</Label>
-                <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Müşteri seçin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {customers.map((customer) => (
-                      <SelectItem key={customer.id} value={customer.id}>
-                        {customer.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Personel</Label>
-                <Select value={selectedPersonnel} onValueChange={setSelectedPersonnel}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Personel seçin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {personnel.map((person) => (
-                      <SelectItem key={person.id} value={person.id}>
-                        {person.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Tutar</Label>
-                <Input
-                  type="number"
-                  placeholder="0.00"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Açıklama</Label>
-                <Input
-                  type="text"
-                  placeholder="Borç açıklaması..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
-              </div>
-
-              <Button onClick={handleAddVeresiye} className="w-full">
-                <Plus className="h-4 w-4 mr-2" />
-                Borç Kaydet
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="customers" className="space-y-6">
-          <CustomerListView />
-        </TabsContent>
-      </Tabs>
+                  </TableBody>
+                </Table>
+                {debtTransactions.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    Henüz borç kaydı yok
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 };
