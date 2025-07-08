@@ -30,8 +30,9 @@ export const formatTimeForInput = (date: Date): string => {
 // Get current date in Istanbul timezone (for new entries)
 export const getIstanbulTime = (date?: Date): Date => {
   const d = date || new Date();
+  // Create date in Istanbul timezone (UTC+3)
   const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
-  const istanbul = new Date(utc + (3 * 3600000)); // UTC+3
+  const istanbul = new Date(utc + (3 * 3600000));
   return istanbul;
 };
 
