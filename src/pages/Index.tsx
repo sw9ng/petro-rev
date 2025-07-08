@@ -27,6 +27,7 @@ import { FuelSalesManagement } from "@/components/FuelSalesManagement";
 import { CustomerManagement } from "@/components/CustomerManagement";
 import { PaymentTracking } from "@/components/PaymentTracking";
 import { AdminPanel } from "@/components/AdminPanel";
+import CashRegister from "@/pages/CashRegister";
 
 const Index = () => {
   const { user, signOut } = useAuth();

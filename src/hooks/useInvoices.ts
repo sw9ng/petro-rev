@@ -14,6 +14,12 @@ export interface CompanyAccount {
   updated_at: string;
 }
 
+// Simplified account type that matches what Supabase returns for joined accounts
+interface AccountJoin {
+  id: string;
+  name: string;
+}
+
 export interface Invoice {
   id: string;
   company_id: string;
@@ -24,7 +30,7 @@ export interface Invoice {
   payment_status: 'paid' | 'unpaid';
   payment_date?: string;
   account_id?: string;
-  account?: CompanyAccount;
+  account?: AccountJoin;
   created_at: string;
   updated_at: string;
 }
@@ -65,12 +71,14 @@ export const useInvoices = (companyId: string) => {
         .order('invoice_date', { ascending: false });
 
       if (incomeError) throw incomeError;
-      // Cast the payment_status to the correct type
-      const typedIncomeData = incomeData?.map(item => ({
+      
+      // Cast the payment_status to the correct type and map to Invoice type
+      const typedIncomeData = (incomeData || []).map(item => ({
         ...item,
         payment_status: item.payment_status as 'paid' | 'unpaid'
-      })) || [];
-      setIncomeInvoices(typedIncomeData as Invoice[]);
+      }));
+      
+      setIncomeInvoices(typedIncomeData as unknown as Invoice[]);
 
       // Fetch expense invoices
       const { data: expenseData, error: expenseError } = await supabase
@@ -83,12 +91,14 @@ export const useInvoices = (companyId: string) => {
         .order('invoice_date', { ascending: false });
 
       if (expenseError) throw expenseError;
-      // Cast the payment_status to the correct type
-      const typedExpenseData = expenseData?.map(item => ({
+      
+      // Cast the payment_status to the correct type and map to Invoice type
+      const typedExpenseData = (expenseData || []).map(item => ({
         ...item,
         payment_status: item.payment_status as 'paid' | 'unpaid'
-      })) || [];
-      setExpenseInvoices(typedExpenseData as Invoice[]);
+      }));
+      
+      setExpenseInvoices(typedExpenseData as unknown as Invoice[]);
 
     } catch (err) {
       console.error('Error fetching company data:', err);
@@ -166,7 +176,7 @@ export const useInvoices = (companyId: string) => {
       }));
 
       // Update local income invoices state
-      setIncomeInvoices(prev => [typedData[0] as Invoice, ...prev]);
+      setIncomeInvoices(prev => [typedData[0] as unknown as Invoice, ...prev]);
       return { data: typedData[0] };
     } catch (err: any) {
       return { error: err };
@@ -210,7 +220,7 @@ export const useInvoices = (companyId: string) => {
       }));
 
       // Update local expense invoices state
-      setExpenseInvoices(prev => [typedData[0] as Invoice, ...prev]);
+      setExpenseInvoices(prev => [typedData[0] as unknown as Invoice, ...prev]);
       return { data: typedData[0] };
     } catch (err: any) {
       return { error: err };
@@ -248,7 +258,7 @@ export const useInvoices = (companyId: string) => {
 
       // Update local income invoices state
       setIncomeInvoices(prev => 
-        prev.map(invoice => invoice.id === invoiceId ? typedData[0] as Invoice : invoice)
+        prev.map(invoice => invoice.id === invoiceId ? typedData[0] as unknown as Invoice : invoice)
       );
       return { data: typedData[0] };
     } catch (err: any) {
@@ -287,7 +297,7 @@ export const useInvoices = (companyId: string) => {
 
       // Update local expense invoices state
       setExpenseInvoices(prev => 
-        prev.map(invoice => invoice.id === invoiceId ? typedData[0] as Invoice : invoice)
+        prev.map(invoice => invoice.id === invoiceId ? typedData[0] as unknown as Invoice : invoice)
       );
       return { data: typedData[0] };
     } catch (err: any) {
