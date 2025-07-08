@@ -24,7 +24,7 @@ const fuelTypes = [
   { value: 'LPG', label: 'LPG' },
   { value: 'MOTORİN', label: 'Motorin' },
   { value: 'MOTORİN(DİĞER)', label: 'Motorin (Diğer)' },
-  { value: 'TRANSFER(KÖY-TANKERİ)', label: 'Transfer (Köy Tankeri)' }
+  { value: 'TRANSFER(KÖY-TANKERİ)', label: 'Köy Tankeri (Transfer)' }
 ];
 
 const shiftOptions = [
@@ -43,26 +43,12 @@ export const FuelSalesManagement = () => {
     liters: '',
     total_amount: '',
     shift: '',
-    sale_time: format(new Date(), 'yyyy-MM-dd')
+        sale_time: format(new Date(), 'yyyy-MM-dd')
   });
 
-  // Köy tankeri satışlarını motorinden çıkar
+  // Köy tankeri ve Motorin (Diğer) ayrı tutulacak - hesaplamadan çıkarılmadı
   const adjustedFuelSales = useMemo(() => {
-    const transferSales = fuelSales.filter(sale => sale.fuel_type === 'TRANSFER(KÖY-TANKERİ)');
-    const transferTotal = transferSales.reduce((sum, sale) => sum + sale.liters, 0);
-    
-    return fuelSales.map(sale => {
-      if (sale.fuel_type === 'MOTORİN') {
-        // Motorin satışından transfer miktarını çıkar
-        const adjustedLiters = Math.max(0, sale.liters - (transferTotal / fuelSales.filter(s => s.fuel_type === 'MOTORİN').length || 0));
-        return {
-          ...sale,
-          liters: adjustedLiters,
-          total_amount: adjustedLiters * sale.price_per_liter
-        };
-      }
-      return sale;
-    });
+    return fuelSales;
   }, [fuelSales]);
 
   const calculatePricePerLiter = () => {
@@ -97,7 +83,7 @@ export const FuelSalesManagement = () => {
       total_amount: totalAmount,
       amount: totalAmount,
       sale_time: new Date(newSale.sale_time).toISOString(),
-      shift: newSale.shift || undefined
+      shift: newSale.shift !== 'none' ? newSale.shift : undefined
     };
 
     const { error } = await addFuelSale(saleData);
@@ -110,7 +96,7 @@ export const FuelSalesManagement = () => {
         fuel_type: '',
         liters: '',
         total_amount: '',
-        shift: '',
+        shift: 'none',
         sale_time: format(new Date(), 'yyyy-MM-dd')
       });
       setIsDialogOpen(false);
@@ -280,7 +266,7 @@ export const FuelSalesManagement = () => {
                     <SelectValue placeholder="Vardiya seçin (opsiyonel)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Vardiya seçmeyin</SelectItem>
+                    <SelectItem value="none">Vardiya seçmeyin</SelectItem>
                     {shiftOptions.map(shift => (
                       <SelectItem key={shift.value} value={shift.value}>
                         {shift.label}
