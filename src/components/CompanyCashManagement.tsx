@@ -721,7 +721,7 @@ export const CompanyCashManagement = ({ company, onBack }: CompanyCashManagement
                         <TableRow key={invoice.id}>
                           <TableCell className="font-medium">{invoice.description}</TableCell>
                           <TableCell>
-                            {getAccountName((invoice as any).account_id)}
+                            {getAccountName(invoice.account_id)}
                           </TableCell>
                           <TableCell>
                             {new Date(invoice.invoice_date).toLocaleDateString('tr-TR')}
@@ -802,7 +802,7 @@ export const CompanyCashManagement = ({ company, onBack }: CompanyCashManagement
                         <TableRow key={invoice.id}>
                           <TableCell className="font-medium">{invoice.description}</TableCell>
                           <TableCell>
-                            {getAccountName((invoice as any).account_id)}
+                            {getAccountName(invoice.account_id)}
                           </TableCell>
                           <TableCell>
                             {new Date(invoice.invoice_date).toLocaleDateString('tr-TR')}

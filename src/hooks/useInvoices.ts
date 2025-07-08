@@ -15,6 +15,7 @@ export interface Invoice {
   created_by: string;
   created_at: string;
   updated_at: string;
+  account_id?: string;
 }
 
 export interface CompanyAccount {
@@ -40,35 +41,50 @@ export const useInvoices = (companyId?: string) => {
     
     setLoading(true);
     
-    // Gelir faturaları
-    const { data: incomeData, error: incomeError } = await supabase
-      .from('income_invoices')
-      .select('*')
-      .eq('company_id', companyId)
-      .order('invoice_date', { ascending: false });
+    try {
+      // Gelir faturaları
+      const { data: incomeData, error: incomeError } = await supabase
+        .from('income_invoices')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('invoice_date', { ascending: false });
 
-    // Gider faturaları
-    const { data: expenseData, error: expenseError } = await supabase
-      .from('expense_invoices')
-      .select('*')
-      .eq('company_id', companyId)
-      .order('invoice_date', { ascending: false });
+      // Gider faturaları
+      const { data: expenseData, error: expenseError } = await supabase
+        .from('expense_invoices')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('invoice_date', { ascending: false });
 
-    // Cari hesaplar
-    const { data: accountsData, error: accountsError } = await supabase
-      .from('company_accounts')
-      .select('*')
-      .eq('company_id', companyId)
-      .order('name', { ascending: true });
+      // Cari hesaplar
+      const { data: accountsData, error: accountsError } = await supabase
+        .from('company_accounts')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('name', { ascending: true });
 
-    if (incomeError) console.error('Error fetching income invoices:', incomeError);
-    if (expenseError) console.error('Error fetching expense invoices:', expenseError);
-    if (accountsError) console.error('Error fetching accounts:', accountsError);
+      if (incomeError) {
+        console.error('Error fetching income invoices:', incomeError);
+      } else {
+        setIncomeInvoices(incomeData || []);
+      }
 
-    setIncomeInvoices(incomeData || []);
-    setExpenseInvoices(expenseData || []);
-    setAccounts(accountsData || []);
-    setLoading(false);
+      if (expenseError) {
+        console.error('Error fetching expense invoices:', expenseError);
+      } else {
+        setExpenseInvoices(expenseData || []);
+      }
+
+      if (accountsError) {
+        console.error('Error fetching accounts:', accountsError);
+      } else {
+        setAccounts(accountsData || []);
+      }
+    } catch (error) {
+      console.error('Error in fetchInvoices:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const addIncomeInvoice = async (invoiceData: {

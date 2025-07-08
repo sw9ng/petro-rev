@@ -41,6 +41,47 @@ export type Database = {
         }
         Relationships: []
       }
+      company_accounts: {
+        Row: {
+          address: string | null
+          company_id: string
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_accounts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_transactions: {
         Row: {
           amount: number
@@ -136,6 +177,7 @@ export type Database = {
       }
       expense_invoices: {
         Row: {
+          account_id: string | null
           amount: number
           company_id: string
           created_at: string
@@ -144,9 +186,12 @@ export type Database = {
           id: string
           invoice_date: string
           invoice_number: string | null
+          payment_date: string | null
+          payment_status: string
           updated_at: string
         }
         Insert: {
+          account_id?: string | null
           amount?: number
           company_id: string
           created_at?: string
@@ -155,9 +200,12 @@ export type Database = {
           id?: string
           invoice_date?: string
           invoice_number?: string | null
+          payment_date?: string | null
+          payment_status?: string
           updated_at?: string
         }
         Update: {
+          account_id?: string | null
           amount?: number
           company_id?: string
           created_at?: string
@@ -166,9 +214,18 @@ export type Database = {
           id?: string
           invoice_date?: string
           invoice_number?: string | null
+          payment_date?: string | null
+          payment_status?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "expense_invoices_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "company_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "expense_invoices_company_id_fkey"
             columns: ["company_id"]
@@ -222,6 +279,7 @@ export type Database = {
       }
       income_invoices: {
         Row: {
+          account_id: string | null
           amount: number
           company_id: string
           created_at: string
@@ -230,9 +288,12 @@ export type Database = {
           id: string
           invoice_date: string
           invoice_number: string | null
+          payment_date: string | null
+          payment_status: string
           updated_at: string
         }
         Insert: {
+          account_id?: string | null
           amount?: number
           company_id: string
           created_at?: string
@@ -241,9 +302,12 @@ export type Database = {
           id?: string
           invoice_date?: string
           invoice_number?: string | null
+          payment_date?: string | null
+          payment_status?: string
           updated_at?: string
         }
         Update: {
+          account_id?: string | null
           amount?: number
           company_id?: string
           created_at?: string
@@ -252,9 +316,18 @@ export type Database = {
           id?: string
           invoice_date?: string
           invoice_number?: string | null
+          payment_date?: string | null
+          payment_status?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "income_invoices_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "company_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "income_invoices_company_id_fkey"
             columns: ["company_id"]
