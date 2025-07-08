@@ -317,7 +317,6 @@ export const FuelSalesManagement = () => {
                       <SelectValue placeholder="Vardiya seçin (opsiyonel)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Vardiya seçmeyin</SelectItem>
                       {shiftOptions.map(shift => (
                         <SelectItem key={shift.value} value={shift.value}>
                           {shift.label}
