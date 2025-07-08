@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarIcon, CreditCard, Calculator, DollarSign, User } from 'lucide-react';
+import { CalendarIcon, CreditCard, Calculator, DollarSign, User, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -161,11 +161,150 @@ const SalesAnalysis = memo(({
 
 SalesAnalysis.displayName = 'SalesAnalysis';
 
+const CustomerTransactionsSummary = memo(({ 
+  customerTransactions, 
+  startDate, 
+  endDate 
+}: { 
+  customerTransactions: any[];
+  startDate?: Date;
+  endDate?: Date;
+}) => {
+  const filteredTransactions = useMemo(() => {
+    if (!startDate || !endDate) return customerTransactions;
+    
+    return customerTransactions.filter(transaction => {
+      const transactionDate = new Date(transaction.transaction_date);
+      const startOfDay = new Date(startDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(endDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      return transactionDate >= startOfDay && transactionDate <= endOfDay;
+    });
+  }, [customerTransactions, startDate, endDate]);
+
+  const totals = useMemo(() => {
+    const totalDebts = filteredTransactions
+      .filter(t => t.transaction_type === 'debt')
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    const totalPayments = filteredTransactions
+      .filter(t => t.transaction_type === 'payment')
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    return { totalDebts, totalPayments, netDebt: totalDebts - totalPayments };
+  }, [filteredTransactions]);
+
+  if (filteredTransactions.length === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center space-x-2">
+          <FileText className="h-5 w-5" />
+          <span>Cari Müşteri Hareketleri</span>
+        </CardTitle>
+        <CardDescription>
+          Seçilen dönemde müşteri borç ve ödeme hareketleri
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="bg-red-50 border-red-200">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-red-100 rounded-lg">
+                  <FileText className="h-6 w-6 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-red-900">Toplam Borç</p>
+                  <p className="text-2xl font-bold text-red-700">{formatCurrency(totals.totalDebts)}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-green-50 border-green-200">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <DollarSign className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-green-900">Toplam Ödeme</p>
+                  <p className="text-2xl font-bold text-green-700">{formatCurrency(totals.totalPayments)}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-blue-50 border-blue-200">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Calculator className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-blue-900">Net Borç</p>
+                  <p className={`text-2xl font-bold ${totals.netDebt >= 0 ? 'text-blue-700' : 'text-green-700'}`}>
+                    {formatCurrency(Math.abs(totals.netDebt))}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="mt-6">
+          <h4 className="text-lg font-semibold mb-4">Hareket Detayları</h4>
+          <div className="max-h-60 overflow-y-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 sticky top-0">
+                <tr>
+                  <th className="px-4 py-2 text-left">Tarih</th>
+                  <th className="px-4 py-2 text-left">Müşteri</th>
+                  <th className="px-4 py-2 text-left">İşlem</th>
+                  <th className="px-4 py-2 text-right">Tutar</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredTransactions.map((transaction) => (
+                  <tr key={transaction.id} className="border-b">
+                    <td className="px-4 py-2">
+                      {format(new Date(transaction.transaction_date), 'dd/MM/yyyy', { locale: tr })}
+                    </td>
+                    <td className="px-4 py-2">{transaction.customer.name}</td>
+                    <td className="px-4 py-2">
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        transaction.transaction_type === 'debt' 
+                          ? 'bg-red-100 text-red-700' 
+                          : 'bg-green-100 text-green-700'
+                      }`}>
+                        {transaction.transaction_type === 'debt' ? 'Borç' : 'Ödeme'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-right font-medium">
+                      {formatCurrency(transaction.amount)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+});
+
+CustomerTransactionsSummary.displayName = 'CustomerTransactionsSummary';
+
 export const ReportsView = () => {
   const { allShifts, getEffectiveShiftDate } = useShifts();
   const { personnel } = usePersonnel();
   const { fuelSales } = useFuelSales();
-  const { getTotalOutstandingDebt } = useCustomerTransactions();
+  const { transactions, getTotalOutstandingDebt } = useCustomerTransactions();
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
   const [selectedShiftType, setSelectedShiftType] = useState<string>('all');
@@ -507,6 +646,13 @@ export const ReportsView = () => {
       <FuelProfitCalculator 
         fuelSalesData={fuelSalesForProfitCalc} 
         dateRange={startDate && endDate ? { startDate, endDate } : undefined}
+      />
+
+      {/* Customer Transactions Summary */}
+      <CustomerTransactionsSummary 
+        customerTransactions={transactions}
+        startDate={startDate}
+        endDate={endDate}
       />
 
       {/* Personnel Analysis */}
