@@ -170,7 +170,8 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
 
     const invoiceData = {
       ...newIncomeInvoice,
-      account_id: newIncomeInvoice.account_id || undefined,
+      account_id: newIncomeInvoice.account_id && newIncomeInvoice.account_id !== 'all' ? 
+        newIncomeInvoice.account_id : undefined,
       payment_date: newIncomeInvoice.payment_status === 'paid' ? 
         (newIncomeInvoice.payment_date || new Date()).toISOString().split('T')[0] : 
         undefined
@@ -199,7 +200,8 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
 
     const invoiceData = {
       ...newExpenseInvoice,
-      account_id: newExpenseInvoice.account_id || undefined,
+      account_id: newExpenseInvoice.account_id && newExpenseInvoice.account_id !== 'all' ? 
+        newExpenseInvoice.account_id : undefined,
       payment_date: newExpenseInvoice.payment_status === 'paid' ? 
         (newExpenseInvoice.payment_date || new Date()).toISOString().split('T')[0] : 
         undefined
@@ -253,11 +255,11 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
 
     // Account filter
     const matchesAccount = 
-      !selectedAccount || invoice.account_id === selectedAccount;
+      !selectedAccount || selectedAccount === 'all' || invoice.account_id === selectedAccount;
 
     // Status filter
     const matchesStatus = 
-      !selectedStatus || invoice.payment_status === selectedStatus;
+      !selectedStatus || selectedStatus === 'all' || invoice.payment_status === selectedStatus;
 
     return matchesSearch && matchesDateRange && matchesAccount && matchesStatus;
   });
@@ -277,11 +279,11 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
 
     // Account filter
     const matchesAccount = 
-      !selectedAccount || invoice.account_id === selectedAccount;
+      !selectedAccount || selectedAccount === 'all' || invoice.account_id === selectedAccount;
 
     // Status filter
     const matchesStatus = 
-      !selectedStatus || invoice.payment_status === selectedStatus;
+      !selectedStatus || selectedStatus === 'all' || invoice.payment_status === selectedStatus;
 
     return matchesSearch && matchesDateRange && matchesAccount && matchesStatus;
   });
@@ -439,7 +441,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
                       <SelectValue placeholder="Cari hesap seç" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Cari hesap seçmeyin</SelectItem>
+                      <SelectItem value="all">Cari hesap seçmeyin</SelectItem>
                       {accounts.map((account) => (
                         <SelectItem key={account.id} value={account.id}>
                           {account.name}
@@ -566,7 +568,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
                       <SelectValue placeholder="Cari hesap seç" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Cari hesap seçmeyin</SelectItem>
+                      <SelectItem value="all">Cari hesap seçmeyin</SelectItem>
                       {accounts.map((account) => (
                         <SelectItem key={account.id} value={account.id}>
                           {account.name}
@@ -721,7 +723,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
                   <SelectValue placeholder="Tüm hesaplar" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tüm hesaplar</SelectItem>
+                  <SelectItem value="all">Tüm hesaplar</SelectItem>
                   {accounts.map((account) => (
                     <SelectItem key={account.id} value={account.id}>
                       {account.name}
@@ -738,7 +740,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
                   <SelectValue placeholder="Tüm durumlar" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tüm durumlar</SelectItem>
+                  <SelectItem value="all">Tüm durumlar</SelectItem>
                   <SelectItem value="paid">Ödendi</SelectItem>
                   <SelectItem value="unpaid">Ödenmedi</SelectItem>
                 </SelectContent>
