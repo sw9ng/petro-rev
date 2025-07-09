@@ -12,11 +12,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useFuelSales } from '@/hooks/useFuelSales';
 import { formatCurrency, getIstanbulTime } from '@/lib/numberUtils';
-import { Plus, Fuel, Calendar as CalendarIcon, TrendingUp, BarChart3, Trash2 } from 'lucide-react';
+import { Plus, Fuel, Calendar as CalendarIcon, TrendingUp, BarChart3, Trash2, Edit } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { FuelSalesEditDialog } from './FuelSalesEditDialog';
 
 const fuelTypes = [
   { value: 'BENZİN', label: 'Benzin' },
@@ -36,6 +37,12 @@ export const FuelSalesManagement = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [activeTab, setActiveTab] = useState('daily');
+  const [editingSale, setEditingSale] = useState<any>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  
+  // Weekly date range states
+  const [weekStartDate, setWeekStartDate] = useState<Date | undefined>();
+  const [weekEndDate, setWeekEndDate] = useState<Date | undefined>();
   
   const [newSales, setNewSales] = useState({
     BENZİN: { liters: '', total_amount: '' },
@@ -149,6 +156,11 @@ export const FuelSalesManagement = () => {
     }
   };
 
+  const handleEditSale = (sale: any) => {
+    setEditingSale(sale);
+    setIsEditDialogOpen(true);
+  };
+
   // Günlük satışlar
   const dailySales = useMemo(() => {
     if (!selectedDate) return [];
@@ -156,17 +168,31 @@ export const FuelSalesManagement = () => {
     return adjustedFuelSales.filter(sale => sale.sale_time.startsWith(dateStr));
   }, [adjustedFuelSales, selectedDate]);
 
-  // Haftalık satışlar
+  // Haftalık satışlar - custom date range support
   const weeklySales = useMemo(() => {
-    if (!selectedDate) return [];
-    const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
-    const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
-    
-    return adjustedFuelSales.filter(sale => {
-      const saleDate = new Date(sale.sale_time);
-      return isWithinInterval(saleDate, { start: weekStart, end: weekEnd });
-    });
-  }, [adjustedFuelSales, selectedDate]);
+    if (weekStartDate && weekEndDate) {
+      // Use custom date range
+      const startOfDay = new Date(weekStartDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(weekEndDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      return adjustedFuelSales.filter(sale => {
+        const saleDate = new Date(sale.sale_time);
+        return saleDate >= startOfDay && saleDate <= endOfDay;
+      });
+    } else if (selectedDate) {
+      // Use default weekly range
+      const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
+      const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
+      
+      return adjustedFuelSales.filter(sale => {
+        const saleDate = new Date(sale.sale_time);
+        return isWithinInterval(saleDate, { start: weekStart, end: weekEnd });
+      });
+    }
+    return [];
+  }, [adjustedFuelSales, selectedDate, weekStartDate, weekEndDate]);
 
   // Aylık satışlar
   const monthlySales = useMemo(() => {
@@ -211,6 +237,10 @@ export const FuelSalesManagement = () => {
   const stats = getSalesStats(currentSales);
 
   const getPeriodText = () => {
+    if (activeTab === 'weekly' && weekStartDate && weekEndDate) {
+      return `${format(weekStartDate, 'dd MMM', { locale: tr })} - ${format(weekEndDate, 'dd MMM yyyy', { locale: tr })}`;
+    }
+    
     if (!selectedDate) return '';
     switch (activeTab) {
       case 'daily': return format(selectedDate, 'dd MMMM yyyy', { locale: tr });
@@ -358,23 +388,86 @@ export const FuelSalesManagement = () => {
           </TabsList>
         </Tabs>
 
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className="flex items-center gap-2">
-              <CalendarIcon className="h-4 w-4" />
-              {getPeriodText()}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="end">
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={setSelectedDate}
-              initialFocus
-              className="p-3 pointer-events-auto"
-            />
-          </PopoverContent>
-        </Popover>
+        <div className="flex items-center gap-4">
+          {activeTab === 'weekly' && (
+            <>
+              <div className="flex items-center gap-2">
+                <Label className="text-sm">Başlangıç:</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="text-sm">
+                      <CalendarIcon className="h-4 w-4 mr-2" />
+                      {weekStartDate ? format(weekStartDate, 'dd/MM/yyyy') : 'Başlangıç'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                      mode="single"
+                      selected={weekStartDate}
+                      onSelect={setWeekStartDate}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Label className="text-sm">Bitiş:</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="text-sm">
+                      <CalendarIcon className="h-4 w-4 mr-2" />
+                      {weekEndDate ? format(weekEndDate, 'dd/MM/yyyy') : 'Bitiş'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                      mode="single"
+                      selected={weekEndDate}
+                      onSelect={setWeekEndDate}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {(weekStartDate || weekEndDate) && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    setWeekStartDate(undefined);
+                    setWeekEndDate(undefined);
+                  }}
+                >
+                  Temizle
+                </Button>
+              )}
+            </>
+          )}
+
+          {activeTab !== 'weekly' && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4" />
+                  {getPeriodText()}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -492,14 +585,24 @@ export const FuelSalesManagement = () => {
                         {formatCurrency(sale.total_amount)}
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteSale(sale.id)}
-                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditSale(sale)}
+                            className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteSale(sale.id)}
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -513,6 +616,15 @@ export const FuelSalesManagement = () => {
           )}
         </CardContent>
       </Card>
+
+      <FuelSalesEditDialog 
+        sale={editingSale}
+        isOpen={isEditDialogOpen}
+        onClose={() => {
+          setIsEditDialogOpen(false);
+          setEditingSale(null);
+        }}
+      />
     </div>
   );
 };

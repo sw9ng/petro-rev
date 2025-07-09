@@ -80,6 +80,38 @@ export const useFuelSales = () => {
     return { data, error };
   };
 
+  const updateFuelSale = async (fuelSaleId: string, fuelSaleData: any) => {
+    if (!user) return { error: 'Kullanıcı doğrulanmadı' };
+
+    const { data, error } = await supabase
+      .from('fuel_sales')
+      .update({
+        fuel_type: fuelSaleData.fuel_type,
+        amount: fuelSaleData.amount,
+        price_per_liter: fuelSaleData.price_per_liter,
+        total_amount: fuelSaleData.total_amount,
+        liters: fuelSaleData.liters,
+        sale_time: fuelSaleData.sale_time,
+        shift: fuelSaleData.shift
+      })
+      .eq('id', fuelSaleId)
+      .eq('station_id', user.id)
+      .select('*')
+      .single();
+
+    if (!error && data) {
+      // Type cast the updated sale data
+      const typedSale = {
+        ...data,
+        fuel_type: data.fuel_type as 'MOTORİN' | 'LPG' | 'BENZİN' | 'MOTORİN(DİĞER)' | 'TRANSFER(KÖY-TANKERİ)'
+      } as FuelSale;
+      
+      setFuelSales(prev => prev.map(sale => sale.id === fuelSaleId ? typedSale : sale));
+    }
+
+    return { data, error };
+  };
+
   const deleteFuelSale = async (fuelSaleId: string) => {
     if (!user) return { error: 'Kullanıcı doğrulanmadı' };
 
@@ -131,6 +163,7 @@ export const useFuelSales = () => {
     fuelSales,
     loading,
     addFuelSale,
+    updateFuelSale,
     deleteFuelSale,
     getTotalFuelSales,
     getFuelSalesByType,
