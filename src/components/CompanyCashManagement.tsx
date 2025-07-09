@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,6 @@ import { useInvoices } from '@/hooks/useInvoices';
 import { formatCurrency } from '@/lib/numberUtils';
 import { Plus, FileText, Receipt, TrendingUp, TrendingDown, Edit, Trash2, Calendar, DollarSign, Users, Building } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 
 interface CompanyCashManagementProps {
   companyId: string;
@@ -33,7 +33,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
     deleteIncomeInvoice,
     deleteExpenseInvoice,
     addAccount,
-    refreshInvoices
+    refreshData
   } = useInvoices(companyId);
 
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -52,7 +52,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
     invoice_number: '',
     invoice_date: new Date().toISOString().split('T')[0],
     payment_date: '',
-    payment_status: 'unpaid' as const,
+    payment_status: 'unpaid' as 'paid' | 'unpaid',
     account_id: ''
   });
 
@@ -62,7 +62,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
     invoice_number: '',
     invoice_date: new Date().toISOString().split('T')[0],
     payment_date: '',
-    payment_status: 'unpaid' as const,
+    payment_status: 'unpaid' as 'paid' | 'unpaid',
     account_id: ''
   });
 
@@ -134,8 +134,8 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
     const result = await addIncomeInvoice({
       ...incomeForm,
       amount: parseFloat(incomeForm.amount),
-      payment_date: incomeForm.payment_date || null,
-      account_id: incomeForm.account_id || null
+      payment_date: incomeForm.payment_date || undefined,
+      account_id: incomeForm.account_id || undefined
     });
 
     if (result.error) {
@@ -164,8 +164,8 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
     const result = await addExpenseInvoice({
       ...expenseForm,
       amount: parseFloat(expenseForm.amount),
-      payment_date: expenseForm.payment_date || null,
-      account_id: expenseForm.account_id || null
+      payment_date: expenseForm.payment_date || undefined,
+      account_id: expenseForm.account_id || undefined
     });
 
     if (result.error) {
@@ -244,8 +244,8 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
     const result = await updateIncomeInvoice(editingInvoice.id, {
       ...incomeForm,
       amount: parseFloat(incomeForm.amount),
-      payment_date: incomeForm.payment_date || null,
-      account_id: incomeForm.account_id || null
+      payment_date: incomeForm.payment_date || undefined,
+      account_id: incomeForm.account_id || undefined
     });
 
     if (result.error) {
@@ -275,8 +275,8 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
     const result = await updateExpenseInvoice(editingInvoice.id, {
       ...expenseForm,
       amount: parseFloat(expenseForm.amount),
-      payment_date: expenseForm.payment_date || null,
-      account_id: expenseForm.account_id || null
+      payment_date: expenseForm.payment_date || undefined,
+      account_id: expenseForm.account_id || undefined
     });
 
     if (result.error) {
@@ -570,7 +570,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
                       <Label>Ödeme Durumu</Label>
                       <Select 
                         value={incomeForm.payment_status} 
-                        onValueChange={(value) => setIncomeForm({...incomeForm, payment_status: value as 'paid' | 'unpaid'})}
+                        onValueChange={(value: 'paid' | 'unpaid') => setIncomeForm({...incomeForm, payment_status: value})}
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -591,7 +591,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
                           <SelectValue placeholder="Cari hesap seçin" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Cari hesap yok</SelectItem>
+                          <SelectItem value="none">Cari hesap yok</SelectItem>
                           {accounts.map((account) => (
                             <SelectItem key={account.id} value={account.id}>
                               {account.name}
@@ -745,7 +745,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
                       <Label>Ödeme Durumu</Label>
                       <Select 
                         value={expenseForm.payment_status} 
-                        onValueChange={(value) => setExpenseForm({...expenseForm, payment_status: value as 'paid' | 'unpaid'})}
+                        onValueChange={(value: 'paid' | 'unpaid') => setExpenseForm({...expenseForm, payment_status: value})}
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -766,7 +766,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
                           <SelectValue placeholder="Cari hesap seçin" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Cari hesap yok</SelectItem>
+                          <SelectItem value="none">Cari hesap yok</SelectItem>
                           {accounts.map((account) => (
                             <SelectItem key={account.id} value={account.id}>
                               {account.name}
@@ -916,7 +916,6 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
           <div className="mb-4">
             <Label htmlFor="select-account">Cari Hesap Seç</Label>
             <Select
-              id="select-account"
               value={selectedAccountId}
               onValueChange={setSelectedAccountId}
             >
@@ -924,7 +923,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
                 <SelectValue placeholder="Cari hesap seçin" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Seçim yok</SelectItem>
+                <SelectItem value="none">Seçim yok</SelectItem>
                 {accounts.map((account) => (
                   <SelectItem key={account.id} value={account.id}>
                     {account.name}
@@ -932,7 +931,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
                 ))}
               </SelectContent>
             </Select>
-            {selectedAccountId && (
+            {selectedAccountId && selectedAccountId !== 'none' && (
               <div className="mt-2 text-right text-lg font-semibold">
                 Seçilen Cari Hesap Bakiyesi: {formatCurrency(selectedAccountTotal)}
               </div>
