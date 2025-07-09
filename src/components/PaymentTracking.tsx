@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,11 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { usePersonnel } from '@/hooks/usePersonnel';
 import { formatCurrency } from '@/lib/numberUtils';
-import { Plus, Search, CreditCard, ArrowUpDown, Calendar, Users, TrendingUp, TrendingDown } from 'lucide-react';
+import { Plus, Search, CreditCard, ArrowUpDown, Calendar, Users, TrendingUp, TrendingDown, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const PaymentTracking = () => {
@@ -23,6 +24,8 @@ export const PaymentTracking = () => {
     transactions, 
     addPayment, 
     addVeresiye, 
+    updateTransaction,
+    deleteTransaction,
     getAllTransactionsGroupedByCustomer,
     getTotalOutstandingDebt 
   } = useCustomerTransactions();
@@ -36,6 +39,13 @@ export const PaymentTracking = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [sortBy, setSortBy] = useState<string>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<any>(null);
+  const [editAmount, setEditAmount] = useState<string>('');
+  const [editPaymentMethod, setEditPaymentMethod] = useState<string>('');
+  const [editDescription, setEditDescription] = useState<string>('');
 
   const navigate = useNavigate();
 
@@ -135,6 +145,48 @@ export const PaymentTracking = () => {
       setSelectedPersonnel('');
       setAmount('');
       setDescription('');
+    }
+  };
+
+  const handleEditTransaction = (transaction: any) => {
+    setEditingTransaction(transaction);
+    setEditAmount(transaction.amount.toString());
+    setEditPaymentMethod(transaction.payment_method || '');
+    setEditDescription(transaction.description || '');
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdateTransaction = async () => {
+    if (!editingTransaction || !editAmount) {
+      toast.error('Lütfen gerekli alanları doldurun');
+      return;
+    }
+
+    const result = await updateTransaction(editingTransaction.id, {
+      amount: parseFloat(editAmount),
+      payment_method: editPaymentMethod,
+      description: editDescription
+    });
+
+    if (result.error) {
+      toast.error('İşlem güncellenirken hata oluştu');
+    } else {
+      toast.success('İşlem başarıyla güncellendi');
+      setEditDialogOpen(false);
+      setEditingTransaction(null);
+      setEditAmount('');
+      setEditPaymentMethod('');
+      setEditDescription('');
+    }
+  };
+
+  const handleDeleteTransaction = async (transactionId: string) => {
+    const result = await deleteTransaction(transactionId);
+
+    if (result.error) {
+      toast.error('İşlem silinirken hata oluştu');
+    } else {
+      toast.success('İşlem başarıyla silindi');
     }
   };
 
@@ -462,6 +514,7 @@ export const PaymentTracking = () => {
                       <TableHead>Tutar</TableHead>
                       <TableHead>Ödeme Yöntemi</TableHead>
                       <TableHead>Açıklama</TableHead>
+                      <TableHead>İşlemler</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -484,6 +537,38 @@ export const PaymentTracking = () => {
                         </TableCell>
                         <TableCell>
                           {transaction.description || '-'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditTransaction(transaction)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>İşlemi Sil</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Bu ödeme işlemini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>İptal</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteTransaction(transaction.id)}>
+                                    Sil
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -517,6 +602,7 @@ export const PaymentTracking = () => {
                       <TableHead>Tutar</TableHead>
                       <TableHead>Açıklama</TableHead>
                       <TableHead>Durum</TableHead>
+                      <TableHead>İşlemler</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -542,6 +628,38 @@ export const PaymentTracking = () => {
                             {transaction.status === 'completed' ? 'Tamamlandı' : 'Beklemede'}
                           </Badge>
                         </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditTransaction(transaction)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>İşlemi Sil</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Bu borç işlemini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>İptal</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteTransaction(transaction.id)}>
+                                    Sil
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -556,6 +674,60 @@ export const PaymentTracking = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Edit Transaction Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>İşlemi Düzenle</DialogTitle>
+            <DialogDescription>
+              {editingTransaction?.transaction_type === 'payment' ? 'Ödeme' : 'Borç'} işlemini düzenleyin
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-amount">Tutar</Label>
+              <Input
+                id="edit-amount"
+                type="number"
+                placeholder="0.00"
+                value={editAmount}
+                onChange={(e) => setEditAmount(e.target.value)}
+              />
+            </div>
+            {editingTransaction?.transaction_type === 'payment' && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-payment-method">Ödeme Yöntemi</Label>
+                <Input
+                  id="edit-payment-method"
+                  type="text"
+                  placeholder="Nakit, Kredi Kartı, Havale..."
+                  value={editPaymentMethod}
+                  onChange={(e) => setEditPaymentMethod(e.target.value)}
+                />
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Açıklama</Label>
+              <Input
+                id="edit-description"
+                type="text"
+                placeholder="Açıklama..."
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              İptal
+            </Button>
+            <Button onClick={handleUpdateTransaction}>
+              Güncelle
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

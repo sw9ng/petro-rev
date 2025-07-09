@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,35 +5,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { 
-  Plus, 
-  TrendingUp, 
-  TrendingDown, 
-  FileText, 
-  Search, 
-  Filter, 
-  CalendarIcon,
-  Edit,
-  Trash2,
-  Building2,
-  UserPlus,
-  DollarSign,
-  Receipt,
-  Eye,
-  X
-} from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useInvoices } from '@/hooks/useInvoices';
 import { formatCurrency } from '@/lib/numberUtils';
-import { format } from 'date-fns';
-import { tr } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
+import { Plus, FileText, Receipt, TrendingUp, TrendingDown, Edit, Trash2, Calendar, DollarSign, Users, Building } from 'lucide-react';
 import { toast } from 'sonner';
-import type { DateRange } from 'react-day-picker';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CompanyCashManagementProps {
   companyId: string;
@@ -48,250 +28,293 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
     loading,
     addIncomeInvoice,
     addExpenseInvoice,
-    addAccount,
     updateIncomeInvoice,
     updateExpenseInvoice,
     deleteIncomeInvoice,
     deleteExpenseInvoice,
-    deleteAccount
+    addAccount,
+    refreshInvoices
   } = useInvoices(companyId);
 
-  // Filters state
-  const [searchTerm, setSearchTerm] = useState('');
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: undefined,
-    to: undefined,
-  });
-  const [selectedAccount, setSelectedAccount] = useState<string>('');
-  const [selectedStatus, setSelectedStatus] = useState<string>('');
-
-  // Dialog states
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [isIncomeDialogOpen, setIsIncomeDialogOpen] = useState(false);
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
   const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false);
+  const [editingInvoice, setEditingInvoice] = useState<any>(null);
+  const [accountBalances, setAccountBalances] = useState<Record<string, number>>({});
+  const [selectedAccountId, setSelectedAccountId] = useState<string>('');
+  const [selectedAccountTotal, setSelectedAccountTotal] = useState<number>(0);
 
   // Form states
-  const [newIncomeInvoice, setNewIncomeInvoice] = useState({
-    invoice_number: '',
+  const [incomeForm, setIncomeForm] = useState({
     description: '',
-    amount: 0,
+    amount: '',
+    invoice_number: '',
     invoice_date: new Date().toISOString().split('T')[0],
-    payment_status: 'unpaid' as 'paid' | 'unpaid',
-    payment_date: undefined as Date | undefined,
+    payment_date: '',
+    payment_status: 'unpaid' as const,
     account_id: ''
   });
 
-  const [newExpenseInvoice, setNewExpenseInvoice] = useState({
-    invoice_number: '',
+  const [expenseForm, setExpenseForm] = useState({
     description: '',
-    amount: 0,
+    amount: '',
+    invoice_number: '',
     invoice_date: new Date().toISOString().split('T')[0],
-    payment_status: 'unpaid' as 'paid' | 'unpaid',
-    payment_date: undefined as Date | undefined,
+    payment_date: '',
+    payment_status: 'unpaid' as const,
     account_id: ''
   });
 
-  const [newAccount, setNewAccount] = useState({
+  const [accountForm, setAccountForm] = useState({
     name: '',
     phone: '',
     address: '',
     notes: ''
   });
 
-  // Reset forms when dialogs close
+  // Fetch account balances when accounts change
   useEffect(() => {
-    if (!isIncomeDialogOpen) {
-      setNewIncomeInvoice({
-        invoice_number: '',
+    const fetchAccountBalances = async () => {
+      if (!accounts.length) return;
+
+      const balances: Record<string, number> = {};
+      
+      for (const account of accounts) {
+        // Get income invoices for this account
+        const incomeTotal = incomeInvoices
+          .filter(invoice => invoice.account_id === account.id)
+          .reduce((sum, invoice) => sum + invoice.amount, 0);
+
+        // Get expense invoices for this account
+        const expenseTotal = expenseInvoices
+          .filter(invoice => invoice.account_id === account.id)
+          .reduce((sum, invoice) => sum + invoice.amount, 0);
+
+        balances[account.id] = incomeTotal - expenseTotal;
+      }
+
+      setAccountBalances(balances);
+    };
+
+    fetchAccountBalances();
+  }, [accounts, incomeInvoices, expenseInvoices]);
+
+  // Update selected account total when selectedAccountId or invoices change
+  useEffect(() => {
+    if (!selectedAccountId) {
+      setSelectedAccountTotal(0);
+      return;
+    }
+    const incomeTotal = incomeInvoices
+      .filter(invoice => invoice.account_id === selectedAccountId)
+      .reduce((sum, invoice) => sum + invoice.amount, 0);
+    const expenseTotal = expenseInvoices
+      .filter(invoice => invoice.account_id === selectedAccountId)
+      .reduce((sum, invoice) => sum + invoice.amount, 0);
+    setSelectedAccountTotal(incomeTotal - expenseTotal);
+  }, [selectedAccountId, incomeInvoices, expenseInvoices]);
+
+  // Calculate totals
+  const totalIncome = incomeInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
+  const totalExpense = expenseInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
+  const netBalance = totalIncome - totalExpense;
+
+  const paidIncome = incomeInvoices.filter(inv => inv.payment_status === 'paid').reduce((sum, inv) => sum + inv.amount, 0);
+  const paidExpense = expenseInvoices.filter(inv => inv.payment_status === 'paid').reduce((sum, inv) => sum + inv.amount, 0);
+  const unpaidIncome = incomeInvoices.filter(inv => inv.payment_status === 'unpaid').reduce((sum, inv) => sum + inv.amount, 0);
+  const unpaidExpense = expenseInvoices.filter(inv => inv.payment_status === 'unpaid').reduce((sum, inv) => sum + inv.amount, 0);
+
+  const handleAddIncome = async () => {
+    if (!incomeForm.description || !incomeForm.amount) {
+      toast.error('Lütfen gerekli alanları doldurun');
+      return;
+    }
+
+    const result = await addIncomeInvoice({
+      ...incomeForm,
+      amount: parseFloat(incomeForm.amount),
+      payment_date: incomeForm.payment_date || null,
+      account_id: incomeForm.account_id || null
+    });
+
+    if (result.error) {
+      toast.error('Gelir faturası eklenirken hata oluştu');
+    } else {
+      toast.success('Gelir faturası başarıyla eklendi');
+      setIncomeForm({
         description: '',
-        amount: 0,
+        amount: '',
+        invoice_number: '',
         invoice_date: new Date().toISOString().split('T')[0],
+        payment_date: '',
         payment_status: 'unpaid',
-        payment_date: undefined,
         account_id: ''
       });
+      setIsIncomeDialogOpen(false);
     }
-  }, [isIncomeDialogOpen]);
+  };
 
-  useEffect(() => {
-    if (!isExpenseDialogOpen) {
-      setNewExpenseInvoice({
-        invoice_number: '',
+  const handleAddExpense = async () => {
+    if (!expenseForm.description || !expenseForm.amount) {
+      toast.error('Lütfen gerekli alanları doldurun');
+      return;
+    }
+
+    const result = await addExpenseInvoice({
+      ...expenseForm,
+      amount: parseFloat(expenseForm.amount),
+      payment_date: expenseForm.payment_date || null,
+      account_id: expenseForm.account_id || null
+    });
+
+    if (result.error) {
+      toast.error('Gider faturası eklenirken hata oluştu');
+    } else {
+      toast.success('Gider faturası başarıyla eklendi');
+      setExpenseForm({
         description: '',
-        amount: 0,
+        amount: '',
+        invoice_number: '',
         invoice_date: new Date().toISOString().split('T')[0],
+        payment_date: '',
         payment_status: 'unpaid',
-        payment_date: undefined,
         account_id: ''
       });
+      setIsExpenseDialogOpen(false);
     }
-  }, [isExpenseDialogOpen]);
+  };
 
-  useEffect(() => {
-    if (!isAccountDialogOpen) {
-      setNewAccount({
+  const handleAddAccount = async () => {
+    if (!accountForm.name) {
+      toast.error('Cari hesap adı zorunludur');
+      return;
+    }
+
+    const result = await addAccount(accountForm);
+
+    if (result.error) {
+      toast.error('Cari hesap eklenirken hata oluştu');
+    } else {
+      toast.success('Cari hesap başarıyla eklendi');
+      setAccountForm({
         name: '',
         phone: '',
         address: '',
         notes: ''
       });
-    }
-  }, [isAccountDialogOpen]);
-
-  // Calculate totals
-  const totalIncome = incomeInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
-  const totalExpense = expenseInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
-  const netProfit = totalIncome - totalExpense;
-
-  const paidIncome = incomeInvoices
-    .filter(invoice => invoice.payment_status === 'paid')
-    .reduce((sum, invoice) => sum + invoice.amount, 0);
-  
-  const paidExpense = expenseInvoices
-    .filter(invoice => invoice.payment_status === 'paid')
-    .reduce((sum, invoice) => sum + invoice.amount, 0);
-
-  const unpaidIncome = incomeInvoices
-    .filter(invoice => invoice.payment_status === 'unpaid')
-    .reduce((sum, invoice) => sum + invoice.amount, 0);
-  
-  const unpaidExpense = expenseInvoices
-    .filter(invoice => invoice.payment_status === 'unpaid')
-    .reduce((sum, invoice) => sum + invoice.amount, 0);
-
-  // Handle form submissions
-  const handleIncomeSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!newIncomeInvoice.description || newIncomeInvoice.amount <= 0) {
-      toast.error("Lütfen gerekli alanları doldurun.");
-      return;
-    }
-
-    const invoiceData = {
-      ...newIncomeInvoice,
-      account_id: newIncomeInvoice.account_id && newIncomeInvoice.account_id !== 'all' ? 
-        newIncomeInvoice.account_id : undefined,
-      payment_date: newIncomeInvoice.payment_status === 'paid' ? 
-        (newIncomeInvoice.payment_date || new Date()).toISOString().split('T')[0] : 
-        undefined
-    };
-
-    console.log('Submitting income invoice:', invoiceData);
-
-    const { error } = await addIncomeInvoice(invoiceData);
-    
-    if (error) {
-      console.error('Error adding income invoice:', error);
-      toast.error("Gelir faturası eklenirken bir hata oluştu.");
-    } else {
-      toast.success("Gelir faturası başarıyla eklendi.");
-      setIsIncomeDialogOpen(false);
-    }
-  };
-
-  const handleExpenseSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!newExpenseInvoice.description || newExpenseInvoice.amount <= 0) {
-      toast.error("Lütfen gerekli alanları doldurun.");
-      return;
-    }
-
-    const invoiceData = {
-      ...newExpenseInvoice,
-      account_id: newExpenseInvoice.account_id && newExpenseInvoice.account_id !== 'all' ? 
-        newExpenseInvoice.account_id : undefined,
-      payment_date: newExpenseInvoice.payment_status === 'paid' ? 
-        (newExpenseInvoice.payment_date || new Date()).toISOString().split('T')[0] : 
-        undefined
-    };
-
-    console.log('Submitting expense invoice:', invoiceData);
-
-    const { error } = await addExpenseInvoice(invoiceData);
-    
-    if (error) {
-      console.error('Error adding expense invoice:', error);
-      toast.error("Gider faturası eklenirken bir hata oluştu.");
-    } else {
-      toast.success("Gider faturası başarıyla eklendi.");
-      setIsExpenseDialogOpen(false);
-    }
-  };
-
-  const handleAccountSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!newAccount.name.trim()) {
-      toast.error("Cari hesap adı zorunludur.");
-      return;
-    }
-
-    const { error } = await addAccount(newAccount);
-    
-    if (error) {
-      console.error('Error adding account:', error);
-      toast.error("Cari hesap eklenirken bir hata oluştu.");
-    } else {
-      toast.success("Cari hesap başarıyla eklendi.");
       setIsAccountDialogOpen(false);
     }
   };
 
-  // Filter functions
-  const filteredIncomeInvoices = incomeInvoices.filter(invoice => {
-    // Search filter
-    const matchesSearch = 
-      invoice.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      invoice.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      invoice.account?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+  const handleEditIncome = (invoice: any) => {
+    setEditingInvoice(invoice);
+    setIncomeForm({
+      description: invoice.description,
+      amount: invoice.amount.toString(),
+      invoice_number: invoice.invoice_number || '',
+      invoice_date: invoice.invoice_date,
+      payment_date: invoice.payment_date || '',
+      payment_status: invoice.payment_status,
+      account_id: invoice.account_id || ''
+    });
+    setIsIncomeDialogOpen(true);
+  };
 
-    // Date range filter
-    const invoiceDate = new Date(invoice.invoice_date);
-    const matchesDateRange = 
-      (!dateRange?.from || invoiceDate >= dateRange.from) &&
-      (!dateRange?.to || invoiceDate <= dateRange.to);
+  const handleEditExpense = (invoice: any) => {
+    setEditingInvoice(invoice);
+    setExpenseForm({
+      description: invoice.description,
+      amount: invoice.amount.toString(),
+      invoice_number: invoice.invoice_number || '',
+      invoice_date: invoice.invoice_date,
+      payment_date: invoice.payment_date || '',
+      payment_status: invoice.payment_status,
+      account_id: invoice.account_id || ''
+    });
+    setIsExpenseDialogOpen(true);
+  };
 
-    // Account filter
-    const matchesAccount = 
-      !selectedAccount || selectedAccount === 'all' || invoice.account_id === selectedAccount;
+  const handleUpdateIncome = async () => {
+    if (!editingInvoice || !incomeForm.description || !incomeForm.amount) {
+      toast.error('Lütfen gerekli alanları doldurun');
+      return;
+    }
 
-    // Status filter
-    const matchesStatus = 
-      !selectedStatus || selectedStatus === 'all' || invoice.payment_status === selectedStatus;
+    const result = await updateIncomeInvoice(editingInvoice.id, {
+      ...incomeForm,
+      amount: parseFloat(incomeForm.amount),
+      payment_date: incomeForm.payment_date || null,
+      account_id: incomeForm.account_id || null
+    });
 
-    return matchesSearch && matchesDateRange && matchesAccount && matchesStatus;
-  });
+    if (result.error) {
+      toast.error('Gelir faturası güncellenirken hata oluştu');
+    } else {
+      toast.success('Gelir faturası başarıyla güncellendi');
+      setEditingInvoice(null);
+      setIncomeForm({
+        description: '',
+        amount: '',
+        invoice_number: '',
+        invoice_date: new Date().toISOString().split('T')[0],
+        payment_date: '',
+        payment_status: 'unpaid',
+        account_id: ''
+      });
+      setIsIncomeDialogOpen(false);
+    }
+  };
 
-  const filteredExpenseInvoices = expenseInvoices.filter(invoice => {
-    // Search filter
-    const matchesSearch = 
-      invoice.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      invoice.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      invoice.account?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+  const handleUpdateExpense = async () => {
+    if (!editingInvoice || !expenseForm.description || !expenseForm.amount) {
+      toast.error('Lütfen gerekli alanları doldurun');
+      return;
+    }
 
-    // Date range filter
-    const invoiceDate = new Date(invoice.invoice_date);
-    const matchesDateRange = 
-      (!dateRange?.from || invoiceDate >= dateRange.from) &&
-      (!dateRange?.to || invoiceDate <= dateRange.to);
+    const result = await updateExpenseInvoice(editingInvoice.id, {
+      ...expenseForm,
+      amount: parseFloat(expenseForm.amount),
+      payment_date: expenseForm.payment_date || null,
+      account_id: expenseForm.account_id || null
+    });
 
-    // Account filter
-    const matchesAccount = 
-      !selectedAccount || selectedAccount === 'all' || invoice.account_id === selectedAccount;
+    if (result.error) {
+      toast.error('Gider faturası güncellenirken hata oluştu');
+    } else {
+      toast.success('Gider faturası başarıyla güncellendi');
+      setEditingInvoice(null);
+      setExpenseForm({
+        description: '',
+        amount: '',
+        invoice_number: '',
+        invoice_date: new Date().toISOString().split('T')[0],
+        payment_date: '',
+        payment_status: 'unpaid',
+        account_id: ''
+      });
+      setIsExpenseDialogOpen(false);
+    }
+  };
 
-    // Status filter
-    const matchesStatus = 
-      !selectedStatus || selectedStatus === 'all' || invoice.payment_status === selectedStatus;
+  const handleDeleteIncome = async (invoiceId: string) => {
+    const result = await deleteIncomeInvoice(invoiceId);
 
-    return matchesSearch && matchesDateRange && matchesAccount && matchesStatus;
-  });
+    if (result.error) {
+      toast.error('Gelir faturası silinirken hata oluştu');
+    } else {
+      toast.success('Gelir faturası başarıyla silindi');
+    }
+  };
 
-  // Date range helpers
-  const isDateInRange = (date: Date) => {
-    return (!dateRange?.from || date >= dateRange.from) &&
-           (!dateRange?.to || date <= dateRange.to);
+  const handleDeleteExpense = async (invoiceId: string) => {
+    const result = await deleteExpenseInvoice(invoiceId);
+
+    if (result.error) {
+      toast.error('Gider faturası silinirken hata oluştu');
+    } else {
+      toast.success('Gider faturası başarıyla silindi');
+    }
   };
 
   if (loading) {
@@ -304,633 +327,660 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
 
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Toplam Gelir</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(totalIncome)}
-            </div>
-          </CardContent>
-        </Card>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="dashboard">Genel Bakış</TabsTrigger>
+          <TabsTrigger value="income">Gelir Faturaları</TabsTrigger>
+          <TabsTrigger value="expense">Gider Faturaları</TabsTrigger>
+          <TabsTrigger value="accounts">Cari Hesaplar</TabsTrigger>
+        </TabsList>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Toplam Gider</CardTitle>
-            <TrendingDown className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {formatCurrency(totalExpense)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Net Kar/Zarar</CardTitle>
-            <DollarSign className={`h-4 w-4 ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`} />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {formatCurrency(netProfit)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Cari Hesaplar</CardTitle>
-            <Building2 className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {accounts.length}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex flex-wrap gap-4">
-        <Dialog open={isIncomeDialogOpen} onOpenChange={setIsIncomeDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Gelir Ekle
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Yeni Gelir Faturası</DialogTitle>
-              <DialogDescription>
-                Yeni bir gelir faturası oluşturun.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleIncomeSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="invoice-number">Fatura Numarası</Label>
-                  <Input
-                    id="invoice-number"
-                    value={newIncomeInvoice.invoice_number}
-                    onChange={(e) => setNewIncomeInvoice({
-                      ...newIncomeInvoice,
-                      invoice_number: e.target.value
-                    })}
-                    placeholder="GF-2024-001"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="amount">Tutar</Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    step="0.01"
-                    value={newIncomeInvoice.amount}
-                    onChange={(e) => setNewIncomeInvoice({
-                      ...newIncomeInvoice,
-                      amount: parseFloat(e.target.value) || 0
-                    })}
-                    placeholder="0.00"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="description">Açıklama</Label>
-                <Textarea
-                  id="description"
-                  value={newIncomeInvoice.description}
-                  onChange={(e) => setNewIncomeInvoice({
-                    ...newIncomeInvoice,
-                    description: e.target.value
-                  })}
-                  placeholder="Fatura açıklaması..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="invoice-date">Fatura Tarihi</Label>
-                  <Input
-                    id="invoice-date"
-                    type="date"
-                    value={newIncomeInvoice.invoice_date}
-                    onChange={(e) => setNewIncomeInvoice({
-                      ...newIncomeInvoice,
-                      invoice_date: e.target.value
-                    })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="account">Cari Hesap</Label>
-                  <Select 
-                    value={newIncomeInvoice.account_id} 
-                    onValueChange={(value) => setNewIncomeInvoice({
-                      ...newIncomeInvoice,
-                      account_id: value
-                    })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Cari hesap seç" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Cari hesap seçmeyin</SelectItem>
-                      {accounts.map((account) => (
-                        <SelectItem key={account.id} value={account.id}>
-                          {account.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="payment-status">Ödeme Durumu</Label>
-                <Select 
-                  value={newIncomeInvoice.payment_status} 
-                  onValueChange={(value: 'paid' | 'unpaid') => setNewIncomeInvoice({
-                    ...newIncomeInvoice, 
-                    payment_status: value,
-                    payment_date: value === 'paid' ? new Date() : undefined
-                  })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Ödeme durumu seç" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unpaid">Ödenmedi</SelectItem>
-                    <SelectItem value="paid">Ödendi</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsIncomeDialogOpen(false)}>
-                  İptal
-                </Button>
-                <Button type="submit">
-                  Gelir Ekle
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline" className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Gider Ekle
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Yeni Gider Faturası</DialogTitle>
-              <DialogDescription>
-                Yeni bir gider faturası oluşturun.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleExpenseSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="expense-invoice-number">Fatura Numarası</Label>
-                  <Input
-                    id="expense-invoice-number"
-                    value={newExpenseInvoice.invoice_number}
-                    onChange={(e) => setNewExpenseInvoice({
-                      ...newExpenseInvoice,
-                      invoice_number: e.target.value
-                    })}
-                    placeholder="GF-2024-001"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="expense-amount">Tutar</Label>
-                  <Input
-                    id="expense-amount"
-                    type="number"
-                    step="0.01"
-                    value={newExpenseInvoice.amount}
-                    onChange={(e) => setNewExpenseInvoice({
-                      ...newExpenseInvoice,
-                      amount: parseFloat(e.target.value) || 0
-                    })}
-                    placeholder="0.00"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="expense-description">Açıklama</Label>
-                <Textarea
-                  id="expense-description"
-                  value={newExpenseInvoice.description}
-                  onChange={(e) => setNewExpenseInvoice({
-                    ...newExpenseInvoice,
-                    description: e.target.value
-                  })}
-                  placeholder="Fatura açıklaması..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="expense-invoice-date">Fatura Tarihi</Label>
-                  <Input
-                    id="expense-invoice-date"
-                    type="date"
-                    value={newExpenseInvoice.invoice_date}
-                    onChange={(e) => setNewExpenseInvoice({
-                      ...newExpenseInvoice,
-                      invoice_date: e.target.value
-                    })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="expense-account">Cari Hesap</Label>
-                  <Select 
-                    value={newExpenseInvoice.account_id} 
-                    onValueChange={(value) => setNewExpenseInvoice({
-                      ...newExpenseInvoice,
-                      account_id: value
-                    })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Cari hesap seç" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Cari hesap seçmeyin</SelectItem>
-                      {accounts.map((account) => (
-                        <SelectItem key={account.id} value={account.id}>
-                          {account.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="expense-payment-status">Ödeme Durumu</Label>
-                <Select 
-                  value={newExpenseInvoice.payment_status} 
-                  onValueChange={(value: 'paid' | 'unpaid') => setNewExpenseInvoice({
-                    ...newExpenseInvoice, 
-                    payment_status: value,
-                    payment_date: value === 'paid' ? new Date() : undefined
-                  })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Ödeme durumu seç" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unpaid">Ödenmedi</SelectItem>
-                    <SelectItem value="paid">Ödendi</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsExpenseDialogOpen(false)}>
-                  İptal
-                </Button>
-                <Button type="submit">
-                  Gider Ekle
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={isAccountDialogOpen} onOpenChange={setIsAccountDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline" className="flex items-center gap-2">
-              <UserPlus className="h-4 w-4" />
-              Cari Hesap Ekle
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Yeni Cari Hesap</DialogTitle>
-              <DialogDescription>
-                Yeni bir cari hesap oluşturun.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleAccountSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="account-name">Hesap Adı</Label>
-                <Input
-                  id="account-name"
-                  value={newAccount.name}
-                  onChange={(e) => setNewAccount({
-                    ...newAccount,
-                    name: e.target.value
-                  })}
-                  placeholder="Şirket/Kişi adı"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="account-phone">Telefon</Label>
-                <Input
-                  id="account-phone"
-                  value={newAccount.phone}
-                  onChange={(e) => setNewAccount({
-                    ...newAccount,
-                    phone: e.target.value
-                  })}
-                  placeholder="0555 123 45 67"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="account-address">Adres</Label>
-                <Textarea
-                  id="account-address"
-                  value={newAccount.address}
-                  onChange={(e) => setNewAccount({
-                    ...newAccount,
-                    address: e.target.value
-                  })}
-                  placeholder="Adres bilgisi..."
-                  rows={3}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="account-notes">Notlar</Label>
-                <Textarea
-                  id="account-notes"
-                  value={newAccount.notes}
-                  onChange={(e) => setNewAccount({
-                    ...newAccount,
-                    notes: e.target.value
-                  })}
-                  placeholder="Ek notlar..."
-                  rows={3}
-                />
-              </div>
-
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsAccountDialogOpen(false)}>
-                  İptal
-                </Button>
-                <Button type="submit">
-                  Hesap Ekle
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filtreler
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+        <TabsContent value="dashboard" className="space-y-6">
+          {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <Label>Arama</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Fatura ara..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label>Cari Hesap</Label>
-              <Select value={selectedAccount} onValueChange={setSelectedAccount}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Tüm hesaplar" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tüm hesaplar</SelectItem>
-                  {accounts.map((account) => (
-                    <SelectItem key={account.id} value={account.id}>
-                      {account.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Ödeme Durumu</Label>
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Tüm durumlar" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tüm durumlar</SelectItem>
-                  <SelectItem value="paid">Ödendi</SelectItem>
-                  <SelectItem value="unpaid">Ödenmedi</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Tarih Aralığı</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "justify-start text-left font-normal",
-                      !dateRange?.from && !dateRange?.to && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateRange?.from || dateRange?.to ? (
-                      <>
-                        {dateRange?.from ? format(dateRange.from, "PPP", { locale: tr }) : "..."}
-                        {" - "}
-                        {dateRange?.to ? format(dateRange.to, "PPP", { locale: tr }) : "..."}
-                      </>
-                    ) : (
-                      <span>Tarih aralığı seç</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    initialFocus
-                    mode="range"
-                    defaultMonth={dateRange?.from}
-                    selected={dateRange}
-                    onSelect={setDateRange}
-                    numberOfMonths={2}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-2">
+                  <TrendingUp className="h-5 w-5 text-green-500" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Toplam Gelir</p>
+                    <p className="text-2xl font-bold text-green-600">{formatCurrency(totalIncome)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-2">
+                  <TrendingDown className="h-5 w-5 text-red-500" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Toplam Gider</p>
+                    <p className="text-2xl font-bold text-red-600">{formatCurrency(totalExpense)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-2">
+                  <DollarSign className="h-5 w-5 text-blue-500" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Net Bakiye</p>
+                    <p className={`text-2xl font-bold ${netBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {formatCurrency(netBalance)}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-2">
+                  <Users className="h-5 w-5 text-purple-500" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Cari Hesaplar</p>
+                    <p className="text-2xl font-bold">{accounts.length}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Income Invoices Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-green-600" />
-            Gelir Faturaları
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {filteredIncomeInvoices.length > 0 ? (
-            <div className="overflow-x-auto">
+          {/* Payment Status Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Tahsil Edilen</p>
+                    <p className="text-lg font-bold text-green-600">{formatCurrency(paidIncome)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Tahsil Edilmemiş</p>
+                    <p className="text-lg font-bold text-orange-600">{formatCurrency(unpaidIncome)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Ödenen Gider</p>
+                    <p className="text-lg font-bold text-red-600">{formatCurrency(paidExpense)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Ödenmemiş Gider</p>
+                    <p className="text-lg font-bold text-yellow-600">{formatCurrency(unpaidExpense)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Recent Transactions */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <TrendingUp className="h-5 w-5 text-green-500" />
+                  <span>Son Gelir Faturaları</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {incomeInvoices.slice(0, 5).map((invoice) => (
+                    <div key={invoice.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div>
+                        <p className="font-medium">{invoice.description}</p>
+                        <p className="text-sm text-gray-500">
+                          {invoice.account_id && accounts.find(a => a.id === invoice.account_id)?.name}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-green-600">{formatCurrency(invoice.amount)}</p>
+                        <Badge variant={invoice.payment_status === 'paid' ? 'default' : 'secondary'}>
+                          {invoice.payment_status === 'paid' ? 'Tahsil Edildi' : 'Beklemede'}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <TrendingDown className="h-5 w-5 text-red-500" />
+                  <span>Son Gider Faturaları</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {expenseInvoices.slice(0, 5).map((invoice) => (
+                    <div key={invoice.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div>
+                        <p className="font-medium">{invoice.description}</p>
+                        <p className="text-sm text-gray-500">
+                          {invoice.account_id && accounts.find(a => a.id === invoice.account_id)?.name}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-red-600">{formatCurrency(invoice.amount)}</p>
+                        <Badge variant={invoice.payment_status === 'paid' ? 'default' : 'secondary'}>
+                          {invoice.payment_status === 'paid' ? 'Ödendi' : 'Beklemede'}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="income" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Gelir Faturaları</h3>
+            <Dialog open={isIncomeDialogOpen} onOpenChange={setIsIncomeDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => setEditingInvoice(null)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Yeni Gelir Faturası
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>{editingInvoice ? 'Gelir Faturası Düzenle' : 'Yeni Gelir Faturası'}</DialogTitle>
+                  <DialogDescription>
+                    {editingInvoice ? 'Mevcut gelir faturasını düzenleyin' : 'Yeni bir gelir faturası oluşturun'}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="space-y-2">
+                    <Label>Açıklama</Label>
+                    <Input
+                      placeholder="Fatura açıklaması"
+                      value={incomeForm.description}
+                      onChange={(e) => setIncomeForm({...incomeForm, description: e.target.value})}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Tutar</Label>
+                      <Input
+                        type="number"
+                        placeholder="0.00"
+                        value={incomeForm.amount}
+                        onChange={(e) => setIncomeForm({...incomeForm, amount: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Fatura No</Label>
+                      <Input
+                        placeholder="Fatura numarası"
+                        value={incomeForm.invoice_number}
+                        onChange={(e) => setIncomeForm({...incomeForm, invoice_number: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Fatura Tarihi</Label>
+                      <Input
+                        type="date"
+                        value={incomeForm.invoice_date}
+                        onChange={(e) => setIncomeForm({...incomeForm, invoice_date: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Ödeme Tarihi</Label>
+                      <Input
+                        type="date"
+                        value={incomeForm.payment_date}
+                        onChange={(e) => setIncomeForm({...incomeForm, payment_date: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Ödeme Durumu</Label>
+                      <Select 
+                        value={incomeForm.payment_status} 
+                        onValueChange={(value) => setIncomeForm({...incomeForm, payment_status: value as 'paid' | 'unpaid'})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unpaid">Ödenmedi</SelectItem>
+                          <SelectItem value="paid">Ödendi</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Cari Hesap</Label>
+                      <Select 
+                        value={incomeForm.account_id} 
+                        onValueChange={(value) => setIncomeForm({...incomeForm, account_id: value})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Cari hesap seçin" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Cari hesap yok</SelectItem>
+                          {accounts.map((account) => (
+                            <SelectItem key={account.id} value={account.id}>
+                              {account.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsIncomeDialogOpen(false)}>
+                    İptal
+                  </Button>
+                  <Button onClick={editingInvoice ? handleUpdateIncome : handleAddIncome}>
+                    {editingInvoice ? 'Güncelle' : 'Kaydet'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <Card>
+            <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Fatura No</TableHead>
+                    <TableHead>Tarih</TableHead>
                     <TableHead>Açıklama</TableHead>
                     <TableHead>Cari Hesap</TableHead>
                     <TableHead>Tutar</TableHead>
-                    <TableHead>Tarih</TableHead>
                     <TableHead>Durum</TableHead>
+                    <TableHead>İşlemler</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredIncomeInvoices.map((invoice) => (
+                  {incomeInvoices.map((invoice) => (
                     <TableRow key={invoice.id}>
-                      <TableCell>{invoice.invoice_number || '-'}</TableCell>
+                      <TableCell>{new Date(invoice.invoice_date).toLocaleDateString('tr-TR')}</TableCell>
                       <TableCell>{invoice.description}</TableCell>
-                      <TableCell>{invoice.account?.name || '-'}</TableCell>
-                      <TableCell className="font-medium text-green-600">
-                        {formatCurrency(invoice.amount)}
-                      </TableCell>
                       <TableCell>
-                        {format(new Date(invoice.invoice_date), 'dd/MM/yyyy')}
+                        {invoice.account_id ? accounts.find(a => a.id === invoice.account_id)?.name || 'Bilinmiyor' : '-'}
                       </TableCell>
+                      <TableCell className="font-medium text-green-600">{formatCurrency(invoice.amount)}</TableCell>
                       <TableCell>
                         <Badge variant={invoice.payment_status === 'paid' ? 'default' : 'secondary'}>
-                          {invoice.payment_status === 'paid' ? 'Ödendi' : 'Ödenmedi'}
+                          {invoice.payment_status === 'paid' ? 'Tahsil Edildi' : 'Beklemede'}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Button variant="outline" size="sm" onClick={() => handleEditIncome(invoice)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" size="sm">
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Faturayı Sil</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Bu gelir faturasını silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>İptal</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteIncome(invoice.id)}>
+                                  Sil
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </div>
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              Gelir faturası bulunamadı.
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      {/* Expense Invoices Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingDown className="h-5 w-5 text-red-600" />
-            Gider Faturaları
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {filteredExpenseInvoices.length > 0 ? (
-            <div className="overflow-x-auto">
+        <TabsContent value="expense" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Gider Faturaları</h3>
+            <Dialog open={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => setEditingInvoice(null)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Yeni Gider Faturası
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>{editingInvoice ? 'Gider Faturası Düzenle' : 'Yeni Gider Faturası'}</DialogTitle>
+                  <DialogDescription>
+                    {editingInvoice ? 'Mevcut gider faturasını düzenleyin' : 'Yeni bir gider faturası oluşturun'}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="space-y-2">
+                    <Label>Açıklama</Label>
+                    <Input
+                      placeholder="Fatura açıklaması"
+                      value={expenseForm.description}
+                      onChange={(e) => setExpenseForm({...expenseForm, description: e.target.value})}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Tutar</Label>
+                      <Input
+                        type="number"
+                        placeholder="0.00"
+                        value={expenseForm.amount}
+                        onChange={(e) => setExpenseForm({...expenseForm, amount: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Fatura No</Label>
+                      <Input
+                        placeholder="Fatura numarası"
+                        value={expenseForm.invoice_number}
+                        onChange={(e) => setExpenseForm({...expenseForm, invoice_number: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Fatura Tarihi</Label>
+                      <Input
+                        type="date"
+                        value={expenseForm.invoice_date}
+                        onChange={(e) => setExpenseForm({...expenseForm, invoice_date: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Ödeme Tarihi</Label>
+                      <Input
+                        type="date"
+                        value={expenseForm.payment_date}
+                        onChange={(e) => setExpenseForm({...expenseForm, payment_date: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Ödeme Durumu</Label>
+                      <Select 
+                        value={expenseForm.payment_status} 
+                        onValueChange={(value) => setExpenseForm({...expenseForm, payment_status: value as 'paid' | 'unpaid'})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unpaid">Ödenmedi</SelectItem>
+                          <SelectItem value="paid">Ödendi</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Cari Hesap</Label>
+                      <Select 
+                        value={expenseForm.account_id} 
+                        onValueChange={(value) => setExpenseForm({...expenseForm, account_id: value})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Cari hesap seçin" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Cari hesap yok</SelectItem>
+                          {accounts.map((account) => (
+                            <SelectItem key={account.id} value={account.id}>
+                              {account.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsExpenseDialogOpen(false)}>
+                    İptal
+                  </Button>
+                  <Button onClick={editingInvoice ? handleUpdateExpense : handleAddExpense}>
+                    {editingInvoice ? 'Güncelle' : 'Kaydet'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <Card>
+            <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Fatura No</TableHead>
+                    <TableHead>Tarih</TableHead>
                     <TableHead>Açıklama</TableHead>
                     <TableHead>Cari Hesap</TableHead>
                     <TableHead>Tutar</TableHead>
-                    <TableHead>Tarih</TableHead>
                     <TableHead>Durum</TableHead>
+                    <TableHead>İşlemler</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredExpenseInvoices.map((invoice) => (
+                  {expenseInvoices.map((invoice) => (
                     <TableRow key={invoice.id}>
-                      <TableCell>{invoice.invoice_number || '-'}</TableCell>
+                      <TableCell>{new Date(invoice.invoice_date).toLocaleDateString('tr-TR')}</TableCell>
                       <TableCell>{invoice.description}</TableCell>
-                      <TableCell>{invoice.account?.name || '-'}</TableCell>
-                      <TableCell className="font-medium text-red-600">
-                        {formatCurrency(invoice.amount)}
-                      </TableCell>
                       <TableCell>
-                        {format(new Date(invoice.invoice_date), 'dd/MM/yyyy')}
+                        {invoice.account_id ? accounts.find(a => a.id === invoice.account_id)?.name || 'Bilinmiyor' : '-'}
                       </TableCell>
+                      <TableCell className="font-medium text-red-600">{formatCurrency(invoice.amount)}</TableCell>
                       <TableCell>
                         <Badge variant={invoice.payment_status === 'paid' ? 'default' : 'secondary'}>
-                          {invoice.payment_status === 'paid' ? 'Ödendi' : 'Ödenmedi'}
+                          {invoice.payment_status === 'paid' ? 'Ödendi' : 'Beklemede'}
                         </Badge>
                       </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              Gider faturası bulunamadı.
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Accounts Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-blue-600" />
-            Cari Hesaplar
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {accounts.length > 0 ? (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Hesap Adı</TableHead>
-                    <TableHead>Telefon</TableHead>
-                    <TableHead>Adres</TableHead>
-                    <TableHead>Oluşturulma</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {accounts.map((account) => (
-                    <TableRow key={account.id}>
-                      <TableCell className="font-medium">{account.name}</TableCell>
-                      <TableCell>{account.phone || '-'}</TableCell>
-                      <TableCell>{account.address || '-'}</TableCell>
                       <TableCell>
-                        {format(new Date(account.created_at), 'dd/MM/yyyy')}
+                        <div className="flex items-center space-x-2">
+                          <Button variant="outline" size="sm" onClick={() => handleEditExpense(invoice)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" size="sm">
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Faturayı Sil</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Bu gider faturasını silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>İptal</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteExpense(invoice.id)}>
+                                  Sil
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </div>
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              Henüz cari hesap bulunmuyor.
-            </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="accounts" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Cari Hesaplar</h3>
+            <Dialog open={isAccountDialogOpen} onOpenChange={setIsAccountDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Yeni Cari Hesap
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Yeni Cari Hesap</DialogTitle>
+                  <DialogDescription>Yeni bir cari hesap oluşturun</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="space-y-2">
+                    <Label>Ad</Label>
+                    <Input
+                      placeholder="Cari hesap adı"
+                      value={accountForm.name}
+                      onChange={(e) => setAccountForm({...accountForm, name: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Telefon</Label>
+                    <Input
+                      placeholder="Telefon numarası"
+                      value={accountForm.phone}
+                      onChange={(e) => setAccountForm({...accountForm, phone: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Adres</Label>
+                    <Textarea
+                      placeholder="Adres"
+                      value={accountForm.address}
+                      onChange={(e) => setAccountForm({...accountForm, address: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Notlar</Label>
+                    <Textarea
+                      placeholder="Notlar"
+                      value={accountForm.notes}
+                      onChange={(e) => setAccountForm({...accountForm, notes: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsAccountDialogOpen(false)}>
+                    İptal
+                  </Button>
+                  <Button onClick={handleAddAccount}>
+                    Kaydet
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <div className="mb-4">
+            <Label htmlFor="select-account">Cari Hesap Seç</Label>
+            <Select
+              id="select-account"
+              value={selectedAccountId}
+              onValueChange={setSelectedAccountId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Cari hesap seçin" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Seçim yok</SelectItem>
+                {accounts.map((account) => (
+                  <SelectItem key={account.id} value={account.id}>
+                    {account.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedAccountId && (
+              <div className="mt-2 text-right text-lg font-semibold">
+                Seçilen Cari Hesap Bakiyesi: {formatCurrency(selectedAccountTotal)}
+              </div>
+            )}
+          </div>
+
+          <div className="grid gap-4">
+            {accounts.map((account) => (
+              <Card key={account.id}>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold">{account.name}</h3>
+                      <div className="text-sm text-gray-600 space-y-1">
+                        {account.phone && <p>📞 {account.phone}</p>}
+                        {account.address && <p>📍 {account.address}</p>}
+                        {account.notes && <p>📝 {account.notes}</p>}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm text-gray-500 mb-1">Bakiye</div>
+                      <div className={`text-2xl font-bold ${
+                        accountBalances[account.id] >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {formatCurrency(accountBalances[account.id] || 0)}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        Gelir: {formatCurrency(incomeInvoices.filter(i => i.account_id === account.id).reduce((sum, i) => sum + i.amount, 0))} | 
+                        Gider: {formatCurrency(expenseInvoices.filter(i => i.account_id === account.id).reduce((sum, i) => sum + i.amount, 0))}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {accounts.length === 0 && (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <Building className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                <p className="text-gray-500">Henüz cari hesap bulunmuyor</p>
+                <p className="text-sm text-gray-400 mt-2">Yeni cari hesap eklemek için yukarıdaki butonu kullanın</p>
+              </CardContent>
+            </Card>
           )}
-        </CardContent>
-      </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
