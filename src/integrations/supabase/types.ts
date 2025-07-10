@@ -525,7 +525,7 @@ export type Database = {
     }
     Functions: {
       authenticate_pump_attendant: {
-        Args: { email: string; password: string }
+        Args: { attendant_email_param: string; password_param: string }
         Returns: Json
       }
       hash_attendant_password: {

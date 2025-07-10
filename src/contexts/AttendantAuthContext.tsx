@@ -56,8 +56,8 @@ export const AttendantAuthProvider = ({ children }: { children: React.ReactNode 
     console.log('Attempting attendant sign in for:', email);
     try {
       const { data, error } = await supabase.rpc('authenticate_pump_attendant', {
-        email,
-        password
+        attendant_email_param: email,
+        password_param: password
       });
 
       if (error) {
