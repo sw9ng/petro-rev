@@ -38,7 +38,8 @@ export const useCustomerTransactions = () => {
         )
       `)
       .eq('station_id', user.id)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(10000); // Çok büyük bir limit koyarak tüm verileri garantileyelim
 
     if (error) {
       console.error('Error fetching customer transactions:', error);
