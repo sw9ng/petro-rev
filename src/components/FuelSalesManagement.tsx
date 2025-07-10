@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,8 +24,7 @@ const fuelTypes = [
   { value: 'BENZİN', label: 'Benzin' },
   { value: 'LPG', label: 'LPG' },
   { value: 'MOTORİN', label: 'Motorin' },
-  { value: 'MOTORİN(DİĞER)', label: 'Motorin (Diğer)' },
-  { value: 'TRANSFER(KÖY-TANKERİ)', label: 'Köy Tankeri (Transfer)' }
+  { value: 'MOTORİN(DİĞER)', label: 'Motorin (Diğer)' }
 ];
 
 const shiftOptions = [
@@ -49,12 +49,10 @@ export const FuelSalesManagement = () => {
     LPG: { liters: '', total_amount: '' },
     MOTORİN: { liters: '', total_amount: '' },
     'MOTORİN(DİĞER)': { liters: '', total_amount: '' },
-    'TRANSFER(KÖY-TANKERİ)': { liters: '', total_amount: '' },
     shift: '',
     sale_time: format(getIstanbulTime(), 'yyyy-MM-dd')
   });
 
-  // Köy tankeri ve Motorin (Diğer) ayrı tutulacak - hesaplamadan çıkarılmadı
   const adjustedFuelSales = useMemo(() => {
     return fuelSales;
   }, [fuelSales]);
@@ -95,7 +93,7 @@ export const FuelSalesManagement = () => {
         const istanbulTime = getIstanbulTime(new Date(newSales.sale_time));
 
         salesToAdd.push({
-          fuel_type: fuelType as 'MOTORİN' | 'LPG' | 'BENZİN' | 'MOTORİN(DİĞER)' | 'TRANSFER(KÖY-TANKERİ)',
+          fuel_type: fuelType as 'MOTORİN' | 'LPG' | 'BENZİN' | 'MOTORİN(DİĞER)',
           liters: liters,
           price_per_liter: pricePerLiter,
           total_amount: totalAmount,
@@ -138,7 +136,6 @@ export const FuelSalesManagement = () => {
         LPG: { liters: '', total_amount: '' },
         MOTORİN: { liters: '', total_amount: '' },
         'MOTORİN(DİĞER)': { liters: '', total_amount: '' },
-        'TRANSFER(KÖY-TANKERİ)': { liters: '', total_amount: '' },
         shift: '',
         sale_time: format(getIstanbulTime(), 'yyyy-MM-dd')
       });
@@ -510,7 +507,7 @@ export const FuelSalesManagement = () => {
       </div>
 
       {/* Yakıt Türü Detayları */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
         {Object.entries(stats.fuelTypes).map(([fuelType, data]) => (
           <Card key={fuelType}>
             <CardHeader className="pb-3">

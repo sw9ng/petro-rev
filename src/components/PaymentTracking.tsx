@@ -51,7 +51,9 @@ export const PaymentTracking = () => {
 
   const handleCustomerClick = (customerId: string) => {
     console.log('Navigating to customer:', customerId);
-    navigate(`/customer/${customerId}`);
+    if (customerId) {
+      navigate(`/customer/${customerId}`);
+    }
   };
 
   const groupedTransactions = getAllTransactionsGroupedByCustomer();

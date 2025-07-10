@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export interface FuelSale {
   id: string;
-  fuel_type: 'MOTORİN' | 'LPG' | 'BENZİN' | 'MOTORİN(DİĞER)' | 'TRANSFER(KÖY-TANKERİ)';
+  fuel_type: 'MOTORİN' | 'LPG' | 'BENZİN' | 'MOTORİN(DİĞER)';
   amount: number;
   price_per_liter: number;
   total_amount: number;
@@ -38,7 +38,7 @@ export const useFuelSales = () => {
       // Type cast the data to match our interface
       const typedData = (data || []).map(sale => ({
         ...sale,
-        fuel_type: sale.fuel_type as 'MOTORİN' | 'LPG' | 'BENZİN' | 'MOTORİN(DİĞER)' | 'TRANSFER(KÖY-TANKERİ)'
+        fuel_type: sale.fuel_type as 'MOTORİN' | 'LPG' | 'BENZİN' | 'MOTORİN(DİĞER)'
       })) as FuelSale[];
       
       setFuelSales(typedData);
@@ -71,7 +71,7 @@ export const useFuelSales = () => {
       // Type cast the new sale data
       const typedSale = {
         ...data,
-        fuel_type: data.fuel_type as 'MOTORİN' | 'LPG' | 'BENZİN' | 'MOTORİN(DİĞER)' | 'TRANSFER(KÖY-TANKERİ)'
+        fuel_type: data.fuel_type as 'MOTORİN' | 'LPG' | 'BENZİN' | 'MOTORİN(DİĞER)'
       } as FuelSale;
       
       setFuelSales(prev => [typedSale, ...prev]);
@@ -103,7 +103,7 @@ export const useFuelSales = () => {
       // Type cast the updated sale data
       const typedSale = {
         ...data,
-        fuel_type: data.fuel_type as 'MOTORİN' | 'LPG' | 'BENZİN' | 'MOTORİN(DİĞER)' | 'TRANSFER(KÖY-TANKERİ)'
+        fuel_type: data.fuel_type as 'MOTORİN' | 'LPG' | 'BENZİN' | 'MOTORİN(DİĞER)'
       } as FuelSale;
       
       setFuelSales(prev => prev.map(sale => sale.id === fuelSaleId ? typedSale : sale));
@@ -137,8 +137,7 @@ export const useFuelSales = () => {
       'MOTORİN': 0,
       'LPG': 0,
       'BENZİN': 0,
-      'MOTORİN(DİĞER)': 0,
-      'TRANSFER(KÖY-TANKERİ)': 0
+      'MOTORİN(DİĞER)': 0
     };
 
     fuelSales.forEach(sale => {
