@@ -352,7 +352,7 @@ export const PersonnelManagement = () => {
         personnel={selectedPersonnel}
         isOpen={editPersonnelOpen}
         onOpenChange={setEditPersonnelOpen}
-        onUpdate={updatePersonnel}
+        onUpdate={handleUpdatePersonnel}
       />
     </div>
   );
