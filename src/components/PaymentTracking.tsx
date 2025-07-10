@@ -14,7 +14,7 @@ import { useCustomers } from '@/hooks/useCustomers';
 import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { usePersonnel } from '@/hooks/usePersonnel';
 import { formatCurrency } from '@/lib/numberUtils';
-import { Plus, Search, CreditCard, ArrowUpDown, Calendar, Users, TrendingUp, TrendingDown, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, CreditCard, ArrowUpDown, Calendar, Users, TrendingUp, TrendingDown, Edit, Trash2, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { CustomerListDetailWrapper } from './CustomerListDetailWrapper';
 
@@ -51,12 +51,15 @@ export const PaymentTracking = () => {
   const navigate = useNavigate();
 
   const handleCustomerClick = (customerId: string) => {
-    console.log('Navigating to customer:', customerId);
-    if (customerId && customerId !== 'undefined') {
-      // URL hash ile müşteri detayına git
+    console.log('Customer clicked:', customerId);
+    if (customerId && customerId !== 'undefined' && customerId !== 'null') {
+      // Hash ile navigation yap
       window.location.hash = `customer-detail-${customerId}`;
+      // Sayfayı yeniden yükle
+      window.location.reload();
     } else {
       console.error('Invalid customer ID:', customerId);
+      toast.error('Geçersiz müşteri ID');
     }
   };
 
@@ -315,29 +318,42 @@ export const PaymentTracking = () => {
               {filteredAndSortedTransactions.map((group) => (
                 <Card 
                   key={group.customer.id} 
-                  className="hover:shadow-md transition-shadow cursor-pointer" 
-                  onClick={() => handleCustomerClick(group.customer.id)}
+                  className="hover:shadow-md transition-shadow"
                 >
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-semibold hover:text-blue-600 transition-colors">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900">
                           {group.customer.name}
                         </h3>
                         <p className="text-sm text-gray-600">
-                          {group.transactions.length} işlem • Detay için tıklayın
+                          {group.transactions.length} işlem
                         </p>
                       </div>
-                      <div className="text-right">
-                        <div className={`text-2xl font-bold ${
-                          group.balance > 0 ? 'text-red-600' : 'text-green-600'
-                        }`}>
-                          {group.balance > 0 ? '+' : ''}
-                          {formatCurrency(Math.abs(group.balance))}
+                      <div className="flex items-center space-x-4">
+                        <div className="text-right">
+                          <div className={`text-2xl font-bold ${
+                            group.balance > 0 ? 'text-red-600' : 'text-green-600'
+                          }`}>
+                            {group.balance > 0 ? '+' : ''}
+                            {formatCurrency(Math.abs(group.balance))}
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            {group.balance > 0 ? 'Borç' : group.balance < 0 ? 'Avans' : 'Denge'}
+                          </p>
                         </div>
-                        <p className="text-sm text-gray-600">
-                          {group.balance > 0 ? 'Borç' : group.balance < 0 ? 'Avans' : 'Denge'}
-                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCustomerClick(group.customer.id);
+                          }}
+                          className="flex items-center space-x-2"
+                        >
+                          <Eye className="h-4 w-4" />
+                          <span>Detay</span>
+                        </Button>
                       </div>
                     </div>
                     
