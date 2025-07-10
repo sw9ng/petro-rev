@@ -16,6 +16,12 @@ interface AttendantAuthContextType {
   signOut: () => void;
 }
 
+interface AuthResponse {
+  success: boolean;
+  attendant?: AttendantUser;
+  error?: string;
+}
+
 const AttendantAuthContext = createContext<AttendantAuthContextType | undefined>(undefined);
 
 export const useAttendantAuth = () => {
@@ -55,13 +61,16 @@ export const AttendantAuthProvider = ({ children }: { children: React.ReactNode 
         return { error };
       }
 
-      if (data?.success) {
-        const attendantData = data.attendant;
+      // Type cast the JSON response
+      const response = data as AuthResponse;
+
+      if (response?.success) {
+        const attendantData = response.attendant!;
         setAttendant(attendantData);
         localStorage.setItem('attendant_session', JSON.stringify(attendantData));
         return { error: null };
       } else {
-        return { error: { message: data?.error || 'Giriş başarısız' } };
+        return { error: { message: response?.error || 'Giriş başarısız' } };
       }
     } catch (error) {
       return { error };

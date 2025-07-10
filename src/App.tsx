@@ -9,7 +9,7 @@ import { AttendantAuthProvider } from "@/contexts/AttendantAuthContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AttendantDashboard from "./pages/AttendantDashboard";
-import Landing from "./pages/Landing";
+import { Landing } from "./pages/Landing";
 import CashRegister from "./pages/CashRegister";
 import CustomerDetail from "./pages/CustomerDetail";
 import NotFound from "./pages/NotFound";
