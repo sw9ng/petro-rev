@@ -158,7 +158,7 @@ export const FuelSalesManagement = () => {
     const saleDate = sale.sale_time.split('T')[0];
     const matchesDateFrom = !filterDateFrom || saleDate >= filterDateFrom;
     const matchesDateTo = !filterDateTo || saleDate <= filterDateTo;
-    const matchesFuelType = !filterFuelType || sale.fuel_type === filterFuelType;
+    const matchesFuelType = !filterFuelType || filterFuelType === 'all' || sale.fuel_type === filterFuelType;
     
     return matchesDateFrom && matchesDateTo && matchesFuelType;
   });
@@ -330,7 +330,7 @@ export const FuelSalesManagement = () => {
                   <SelectValue placeholder="Tüm yakıt türleri" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tüm yakıt türleri</SelectItem>
+                  <SelectItem value="all">Tüm yakıt türleri</SelectItem>
                   {fuelTypeOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}

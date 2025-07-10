@@ -301,19 +301,10 @@ const CustomerTransactionsSummary = memo(({
 CustomerTransactionsSummary.displayName = 'CustomerTransactionsSummary';
 
 export const ReportsView = () => {
-  console.log('ReportsView component rendering...');
-  
   const { allShifts, getEffectiveShiftDate } = useShifts();
-  console.log('useShifts hook loaded:', { allShifts: allShifts?.length });
-  
   const { personnel } = usePersonnel();
-  console.log('usePersonnel hook loaded:', { personnel: personnel?.length });
-  
   const { fuelSales } = useFuelSales();
-  console.log('useFuelSales hook loaded:', { fuelSales: fuelSales?.length });
-  
   const { transactions, getTotalOutstandingDebt } = useCustomerTransactions();
-  console.log('useCustomerTransactions hook loaded:', { transactions: transactions?.length });
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
   const [selectedShiftType, setSelectedShiftType] = useState<string>('all');
