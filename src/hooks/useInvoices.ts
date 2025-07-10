@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -226,78 +227,6 @@ export const useInvoices = (companyId: string) => {
     }
   };
 
-  // Update income invoice status
-  const updateIncomeInvoiceStatus = async (invoiceId: string, status: 'paid' | 'unpaid') => {
-    if (!user || !companyId) {
-      return { error: new Error('Kullanıcı doğrulanmadı veya şirket ID eksik') };
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('income_invoices')
-        .update({ payment_status: status })
-        .eq('id', invoiceId)
-        .eq('company_id', companyId)
-        .select(`
-          *,
-          account:account_id(id, name)
-        `);
-
-      if (error) {
-        return { error };
-      }
-
-      const typedData = data.map(item => ({
-        ...item,
-        payment_status: item.payment_status as 'paid' | 'unpaid'
-      }));
-
-      // Update local income invoices state
-      setIncomeInvoices(prev => 
-        prev.map(invoice => invoice.id === invoiceId ? typedData[0] as unknown as Invoice : invoice)
-      );
-      return { data: typedData[0] };
-    } catch (err: any) {
-      return { error: err };
-    }
-  };
-
-  // Update expense invoice status
-  const updateExpenseInvoiceStatus = async (invoiceId: string, status: 'paid' | 'unpaid') => {
-    if (!user || !companyId) {
-      return { error: new Error('Kullanıcı doğrulanmadı veya şirket ID eksik') };
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('expense_invoices')
-        .update({ payment_status: status })
-        .eq('id', invoiceId)
-        .eq('company_id', companyId)
-        .select(`
-          *,
-          account:account_id(id, name)
-        `);
-
-      if (error) {
-        return { error };
-      }
-
-      const typedData = data.map(item => ({
-        ...item,
-        payment_status: item.payment_status as 'paid' | 'unpaid'
-      }));
-
-      // Update local expense invoices state
-      setExpenseInvoices(prev => 
-        prev.map(invoice => invoice.id === invoiceId ? typedData[0] as unknown as Invoice : invoice)
-      );
-      return { data: typedData[0] };
-    } catch (err: any) {
-      return { error: err };
-    }
-  };
-
   // Update an income invoice
   const updateIncomeInvoice = async (
     invoiceId: string,
@@ -465,8 +394,6 @@ export const useInvoices = (companyId: string) => {
     addAccount,
     updateIncomeInvoice,
     updateExpenseInvoice,
-    updateIncomeInvoiceStatus,
-    updateExpenseInvoiceStatus,
     deleteIncomeInvoice,
     deleteExpenseInvoice,
     deleteAccount,

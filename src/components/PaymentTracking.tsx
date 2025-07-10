@@ -14,9 +14,8 @@ import { useCustomers } from '@/hooks/useCustomers';
 import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { usePersonnel } from '@/hooks/usePersonnel';
 import { formatCurrency } from '@/lib/numberUtils';
-import { Plus, Search, CreditCard, ArrowUpDown, Calendar, Users, TrendingUp, TrendingDown, Edit, Trash2, Eye } from 'lucide-react';
+import { Plus, Search, CreditCard, ArrowUpDown, Calendar, Users, TrendingUp, TrendingDown, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { CustomerListDetailWrapper } from './CustomerListDetailWrapper';
 
 export const PaymentTracking = () => {
   const { customers } = useCustomers();
@@ -51,12 +50,7 @@ export const PaymentTracking = () => {
   const navigate = useNavigate();
 
   const handleCustomerClick = (customerId: string) => {
-    console.log('Customer clicked:', customerId);
-    if (!customerId || customerId === 'undefined' || customerId === 'null') {
-      toast.error('Geçersiz müşteri ID');
-      return;
-    }
-    // Use React Router navigation instead of hash
+    console.log('Navigating to customer:', customerId);
     navigate(`/customer/${customerId}`);
   };
 
@@ -200,12 +194,6 @@ export const PaymentTracking = () => {
   const paymentTransactions = transactions.filter(t => t.transaction_type === 'payment');
   const debtTransactions = transactions.filter(t => t.transaction_type === 'debt');
 
-  // Check if we should show customer detail
-  const hash = window.location.hash;
-  if (hash.startsWith('#customer-detail-') && hash !== '#customer-detail-undefined') {
-    return <CustomerListDetailWrapper />;
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -315,42 +303,29 @@ export const PaymentTracking = () => {
               {filteredAndSortedTransactions.map((group) => (
                 <Card 
                   key={group.customer.id} 
-                  className="hover:shadow-md transition-shadow"
+                  className="hover:shadow-md transition-shadow cursor-pointer" 
+                  onClick={() => handleCustomerClick(group.customer.id)}
                 >
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900">
+                      <div>
+                        <h3 className="text-lg font-semibold hover:text-blue-600 transition-colors">
                           {group.customer.name}
                         </h3>
                         <p className="text-sm text-gray-600">
-                          {group.transactions.length} işlem
+                          {group.transactions.length} işlem • Detay için tıklayın
                         </p>
                       </div>
-                      <div className="flex items-center space-x-4">
-                        <div className="text-right">
-                          <div className={`text-2xl font-bold ${
-                            group.balance > 0 ? 'text-red-600' : 'text-green-600'
-                          }`}>
-                            {group.balance > 0 ? '+' : ''}
-                            {formatCurrency(Math.abs(group.balance))}
-                          </div>
-                          <p className="text-sm text-gray-600">
-                            {group.balance > 0 ? 'Borç' : group.balance < 0 ? 'Avans' : 'Denge'}
-                          </p>
+                      <div className="text-right">
+                        <div className={`text-2xl font-bold ${
+                          group.balance > 0 ? 'text-red-600' : 'text-green-600'
+                        }`}>
+                          {group.balance > 0 ? '+' : ''}
+                          {formatCurrency(Math.abs(group.balance))}
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCustomerClick(group.customer.id);
-                          }}
-                          className="flex items-center space-x-2"
-                        >
-                          <Eye className="h-4 w-4" />
-                          <span>Detay</span>
-                        </Button>
+                        <p className="text-sm text-gray-600">
+                          {group.balance > 0 ? 'Borç' : group.balance < 0 ? 'Avans' : 'Denge'}
+                        </p>
                       </div>
                     </div>
                     
