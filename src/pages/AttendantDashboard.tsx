@@ -29,10 +29,11 @@ interface AttendantShift {
   shift_number?: 'V1' | 'V2';
 }
 
-interface VeseriyeTransaction {
+interface ShiftTransaction {
   id: string;
   description: string;
   amount: number;
+  transaction_type: string;
   customer_name?: string;
 }
 
@@ -44,8 +45,8 @@ export default function AttendantDashboard() {
   const [selectedShift, setSelectedShift] = useState<AttendantShift | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [veseriyeTransactions, setVeseriyeTransactions] = useState<VeseriyeTransaction[]>([]);
-  const [loadingVeseriye, setLoadingVeseriye] = useState(false);
+  const [shiftTransactions, setShiftTransactions] = useState<ShiftTransaction[]>([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
   
   // Filters
   const [dateRange, setDateRange] = useState({
@@ -137,37 +138,39 @@ export default function AttendantDashboard() {
     setFilterOpen(false);
   };
 
-  const fetchVeseriyeTransactions = async (shiftId: string) => {
-    setLoadingVeseriye(true);
+  const fetchShiftTransactions = async (shiftId: string) => {
+    setLoadingTransactions(true);
     const { data, error } = await supabase
       .from('customer_transactions')
       .select(`
         id,
         description,
         amount,
+        transaction_type,
         customers(name)
       `)
       .eq('shift_id', shiftId)
-      .eq('transaction_type', 'veresiye');
+      .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching veresiye transactions:', error);
+      console.error('Error fetching shift transactions:', error);
     } else {
       const mappedData = (data || []).map(transaction => ({
         id: transaction.id,
         description: transaction.description || 'Açıklama yok',
         amount: transaction.amount,
+        transaction_type: transaction.transaction_type,
         customer_name: (transaction.customers as any)?.name
       }));
-      setVeseriyeTransactions(mappedData);
+      setShiftTransactions(mappedData);
     }
-    setLoadingVeseriye(false);
+    setLoadingTransactions(false);
   };
 
   const viewShiftDetails = (shift: AttendantShift) => {
     setSelectedShift(shift);
     setDetailsOpen(true);
-    fetchVeseriyeTransactions(shift.id);
+    fetchShiftTransactions(shift.id);
   };
 
   const formatCurrency = (amount: number) => {
@@ -425,25 +428,35 @@ export default function AttendantDashboard() {
                   </div>
                   
                   <div className="col-span-2">
-                    <p className="text-muted-foreground mb-2">Veresiye İşlemleri</p>
-                    <div className="bg-amber-50 p-3 rounded-lg">
-                      <p className="font-medium text-amber-800 mb-2">
-                        Toplam: {formatCurrency(selectedShift.veresiye)}
-                      </p>
-                      {loadingVeseriye ? (
-                        <p className="text-sm text-muted-foreground">Yükleniyor...</p>
-                      ) : veseriyeTransactions.length > 0 ? (
-                        <div className="space-y-2 max-h-24 overflow-y-auto">
-                          {veseriyeTransactions.map((transaction) => (
+                    <p className="text-muted-foreground mb-2">Tüm İşlemler</p>
+                    <div className="bg-blue-50 p-3 rounded-lg">
+                      {loadingTransactions ? (
+                        <p className="text-sm text-muted-foreground">İşlemler yükleniyor...</p>
+                      ) : shiftTransactions.length > 0 ? (
+                        <div className="space-y-2 max-h-32 overflow-y-auto">
+                          {shiftTransactions.map((transaction) => (
                             <div key={transaction.id} className="text-xs bg-white p-2 rounded border">
                               <div className="flex justify-between items-start">
                                 <div className="flex-1">
-                                  {transaction.customer_name && (
-                                    <p className="font-medium text-amber-700">{transaction.customer_name}</p>
-                                  )}
+                                  <div className="flex items-center space-x-2 mb-1">
+                                    {transaction.customer_name && (
+                                      <p className="font-medium text-blue-700">{transaction.customer_name}</p>
+                                    )}
+                                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                      transaction.transaction_type === 'veresiye' 
+                                        ? 'bg-amber-100 text-amber-800' 
+                                        : transaction.transaction_type === 'payment'
+                                        ? 'bg-green-100 text-green-800'
+                                        : 'bg-gray-100 text-gray-800'
+                                    }`}>
+                                      {transaction.transaction_type === 'veresiye' ? 'Veresiye' : 
+                                       transaction.transaction_type === 'payment' ? 'Ödeme' : 
+                                       transaction.transaction_type}
+                                    </span>
+                                  </div>
                                   <p className="text-gray-600">{transaction.description}</p>
                                 </div>
-                                <span className="font-medium text-amber-800 ml-2">
+                                <span className="font-medium text-blue-800 ml-2">
                                   {formatCurrency(transaction.amount)}
                                 </span>
                               </div>
@@ -451,7 +464,7 @@ export default function AttendantDashboard() {
                           ))}
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground">Veresiye işlemi yok</p>
+                        <p className="text-sm text-muted-foreground">Bu vardiyada işlem yok</p>
                       )}
                     </div>
                   </div>
