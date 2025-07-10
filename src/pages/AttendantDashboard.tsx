@@ -69,30 +69,23 @@ export default function AttendantDashboard() {
     console.log('Fetching shifts for attendant:', attendant.id, 'at station:', attendant.station_id);
     setLoading(true);
     
-    let query = supabase
-      .from('shifts')
-      .select('*')
-      .eq('personnel_id', attendant.id)
-      .eq('station_id', attendant.station_id)
-      .order('start_time', { ascending: false });
-
-    // Apply date filter
-    if (dateRange.start) {
-      query = query.gte('start_time', new Date(dateRange.start).toISOString());
-    }
+    // Prepare date filters
+    let dateStart = dateRange.start ? new Date(dateRange.start).toISOString() : null;
+    let dateEnd = null;
     if (dateRange.end) {
       const endDate = new Date(dateRange.end);
       endDate.setHours(23, 59, 59, 999);
-      query = query.lte('start_time', endDate.toISOString());
+      dateEnd = endDate.toISOString();
     }
 
-    // Apply shift filter
-    if (shiftFilter !== 'all') {
-      query = query.eq('shift_number', shiftFilter);
-    }
-
-    console.log('Executing query...');
-    const { data, error } = await query;
+    console.log('Calling get_attendant_shifts RPC...');
+    const { data, error } = await supabase.rpc('get_attendant_shifts', {
+      attendant_id_param: attendant.id,
+      station_id_param: attendant.station_id,
+      date_start_param: dateStart,
+      date_end_param: dateEnd,
+      shift_filter_param: shiftFilter
+    });
 
     if (error) {
       console.error('Error fetching shifts:', error);

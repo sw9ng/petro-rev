@@ -528,6 +528,29 @@ export type Database = {
         Args: { attendant_email_param: string; password_param: string }
         Returns: Json
       }
+      get_attendant_shifts: {
+        Args: {
+          attendant_id_param: string
+          station_id_param: string
+          date_start_param?: string
+          date_end_param?: string
+          shift_filter_param?: string
+        }
+        Returns: {
+          id: string
+          start_time: string
+          end_time: string
+          cash_sales: number
+          card_sales: number
+          actual_amount: number
+          over_short: number
+          status: string
+          veresiye: number
+          bank_transfers: number
+          loyalty_card: number
+          shift_number: string
+        }[]
+      }
       hash_attendant_password: {
         Args: { password: string }
         Returns: string
