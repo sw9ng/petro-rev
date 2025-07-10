@@ -35,7 +35,7 @@ export const CompanyCashManagement = ({ companyId }: { companyId: string }) => {
     invoice_date: new Date(),
     payment_status: 'unpaid' as 'paid' | 'unpaid',
     payment_date: undefined as Date | undefined,
-    account_id: ''
+    account_id: 'none'
   });
 
   // Expense form state
@@ -46,7 +46,7 @@ export const CompanyCashManagement = ({ companyId }: { companyId: string }) => {
     invoice_date: new Date(),
     payment_status: 'unpaid' as 'paid' | 'unpaid',
     payment_date: undefined as Date | undefined,
-    account_id: ''
+    account_id: 'none'
   });
 
   // Calculate metrics
@@ -71,7 +71,7 @@ export const CompanyCashManagement = ({ companyId }: { companyId: string }) => {
       invoice_date: format(incomeFormData.invoice_date, 'yyyy-MM-dd'),
       payment_status: incomeFormData.payment_status,
       payment_date: incomeFormData.payment_date ? format(incomeFormData.payment_date, 'yyyy-MM-dd') : undefined,
-      account_id: incomeFormData.account_id || undefined
+      account_id: incomeFormData.account_id === 'none' ? undefined : incomeFormData.account_id
     });
 
     if (error) {
@@ -87,7 +87,7 @@ export const CompanyCashManagement = ({ companyId }: { companyId: string }) => {
       invoice_date: new Date(),
       payment_status: 'unpaid',
       payment_date: undefined,
-      account_id: ''
+      account_id: 'none'
     });
     setIncomeDialogOpen(false);
   };
@@ -105,7 +105,7 @@ export const CompanyCashManagement = ({ companyId }: { companyId: string }) => {
       invoice_date: format(expenseFormData.invoice_date, 'yyyy-MM-dd'),
       payment_status: expenseFormData.payment_status,
       payment_date: expenseFormData.payment_date ? format(expenseFormData.payment_date, 'yyyy-MM-dd') : undefined,
-      account_id: expenseFormData.account_id || undefined
+      account_id: expenseFormData.account_id === 'none' ? undefined : expenseFormData.account_id
     });
 
     if (error) {
@@ -121,7 +121,7 @@ export const CompanyCashManagement = ({ companyId }: { companyId: string }) => {
       invoice_date: new Date(),
       payment_status: 'unpaid',
       payment_date: undefined,
-      account_id: ''
+      account_id: 'none'
     });
     setExpenseDialogOpen(false);
   };
@@ -334,7 +334,7 @@ export const CompanyCashManagement = ({ companyId }: { companyId: string }) => {
                         <SelectValue placeholder="Cari hesap seçin" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Cari hesap yok</SelectItem>
+                        <SelectItem value="none">Cari hesap yok</SelectItem>
                         {accounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
                             {account.name}
@@ -479,7 +479,7 @@ export const CompanyCashManagement = ({ companyId }: { companyId: string }) => {
                         <SelectValue placeholder="Cari hesap seçin" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Cari hesap yok</SelectItem>
+                        <SelectItem value="none">Cari hesap yok</SelectItem>
                         {accounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
                             {account.name}
