@@ -11,6 +11,8 @@ export interface Personnel {
   role: string;
   status: string;
   join_date: string;
+  attendant_email?: string | null;
+  attendant_password_hash?: string | null;
 }
 
 export const usePersonnel = () => {
@@ -37,7 +39,7 @@ export const usePersonnel = () => {
     setLoading(false);
   };
 
-  const addPersonnel = async (personnelData: Omit<Personnel, 'id' | 'join_date'>) => {
+  const addPersonnel = async (personnelData: Omit<Personnel, 'id' | 'join_date'> & { attendant_password_hash?: string | null }) => {
     if (!user) return { error: 'User not authenticated' };
 
     const { data, error } = await supabase

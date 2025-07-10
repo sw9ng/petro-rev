@@ -342,6 +342,8 @@ export type Database = {
       }
       personnel: {
         Row: {
+          attendant_email: string | null
+          attendant_password_hash: string | null
           created_at: string | null
           email: string | null
           id: string
@@ -353,6 +355,8 @@ export type Database = {
           status: string
         }
         Insert: {
+          attendant_email?: string | null
+          attendant_password_hash?: string | null
           created_at?: string | null
           email?: string | null
           id?: string
@@ -364,6 +368,8 @@ export type Database = {
           status?: string
         }
         Update: {
+          attendant_email?: string | null
+          attendant_password_hash?: string | null
           created_at?: string | null
           email?: string | null
           id?: string
@@ -518,6 +524,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      authenticate_pump_attendant: {
+        Args: { email: string; password: string }
+        Returns: Json
+      }
+      hash_attendant_password: {
+        Args: { password: string }
+        Returns: string
+      }
       is_user_premium: {
         Args: { user_id: string }
         Returns: boolean

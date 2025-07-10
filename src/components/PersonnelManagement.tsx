@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,10 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, Trash2, Edit2, Users } from 'lucide-react';
+import { Plus, Trash2, Edit2, Users, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { usePersonnel, Personnel } from '@/hooks/usePersonnel';
 import { PersonnelEditDialog } from './PersonnelEditDialog';
+import { supabase } from '@/integrations/supabase/client';
 
 export const PersonnelManagement = () => {
   const { toast } = useToast();
@@ -18,11 +20,14 @@ export const PersonnelManagement = () => {
   const [newPersonnelOpen, setNewPersonnelOpen] = useState(false);
   const [editPersonnelOpen, setEditPersonnelOpen] = useState(false);
   const [selectedPersonnel, setSelectedPersonnel] = useState<Personnel | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const [newPersonnelData, setNewPersonnelData] = useState({
     name: '',
     email: '',
     phone: '',
-    role: ''
+    role: '',
+    attendant_email: '',
+    attendant_password: ''
   });
 
   const handleCreatePersonnel = async (e: React.FormEvent) => {
@@ -37,9 +42,32 @@ export const PersonnelManagement = () => {
       return;
     }
 
+    // Hash password if provided for pump attendants
+    let attendant_password_hash = null;
+    if (newPersonnelData.role === 'pompacı' && newPersonnelData.attendant_password) {
+      const { data, error } = await supabase.rpc('hash_attendant_password', {
+        password: newPersonnelData.attendant_password
+      });
+      
+      if (error) {
+        toast({
+          title: "Hata",
+          description: "Şifre hashleme hatası.",
+          variant: "destructive"
+        });
+        return;
+      }
+      attendant_password_hash = data;
+    }
+
     const { error } = await addPersonnel({
-      ...newPersonnelData,
-      status: 'active'
+      name: newPersonnelData.name,
+      email: newPersonnelData.email,
+      phone: newPersonnelData.phone,
+      role: newPersonnelData.role,
+      status: 'active',
+      attendant_email: newPersonnelData.role === 'pompacı' ? newPersonnelData.attendant_email : null,
+      attendant_password_hash
     });
 
     if (error) {
@@ -59,7 +87,9 @@ export const PersonnelManagement = () => {
         name: '',
         email: '',
         phone: '',
-        role: ''
+        role: '',
+        attendant_email: '',
+        attendant_password: ''
       });
     }
   };
@@ -164,6 +194,50 @@ export const PersonnelManagement = () => {
                 </Select>
               </div>
 
+              {/* Pump Attendant Login Fields */}
+              {newPersonnelData.role === 'pompacı' && (
+                <>
+                  <div className="border-t pt-4">
+                    <h4 className="font-medium text-sm mb-3">Pompacı Girişi (İsteğe Bağlı)</h4>
+                    
+                    <div className="space-y-2">
+                      <Label>Giriş E-postası</Label>
+                      <Input 
+                        type="email"
+                        placeholder="Pompacı giriş e-postası"
+                        value={newPersonnelData.attendant_email}
+                        onChange={(e) => setNewPersonnelData({...newPersonnelData, attendant_email: e.target.value})}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Giriş Şifresi</Label>
+                      <div className="relative">
+                        <Input 
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Pompacı giriş şifresi"
+                          value={newPersonnelData.attendant_password}
+                          onChange={(e) => setNewPersonnelData({...newPersonnelData, attendant_password: e.target.value})}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
               <Button type="submit" className="w-full">
                 Personel Ekle
               </Button>
@@ -192,6 +266,11 @@ export const PersonnelManagement = () => {
                       <Badge variant="secondary" className="mt-1">
                         {person.role}
                       </Badge>
+                      {person.role === 'pompacı' && person.attendant_email && (
+                        <Badge variant="outline" className="mt-1 ml-2">
+                          Giriş Aktif
+                        </Badge>
+                      )}
                     </CardDescription>
                   </div>
                   <div className="flex space-x-1">
@@ -244,6 +323,12 @@ export const PersonnelManagement = () => {
                     <span className="text-muted-foreground">Başlangıç:</span>
                     <p>{new Date(person.join_date).toLocaleDateString('tr-TR')}</p>
                   </div>
+                  {person.role === 'pompacı' && person.attendant_email && (
+                    <div>
+                      <span className="text-muted-foreground">Giriş E-postası:</span>
+                      <p>{person.attendant_email}</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
