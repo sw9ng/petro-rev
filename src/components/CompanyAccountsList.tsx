@@ -1,40 +1,39 @@
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useInvoices } from '@/hooks/useInvoices';
 import { formatCurrency } from '@/lib/numberUtils';
-import { Plus, CalendarIcon, Users, Edit, Trash2, Phone, MapPin, FileText, Filter } from 'lucide-react';
+import { Plus, Users, Edit, Eye, ArrowLeft, Phone, MapPin, Calendar, FileText } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
-import { tr } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
 
 export const CompanyAccountsList = ({ companyId }: { companyId: string }) => {
-  const { accounts, incomeInvoices, expenseInvoices, loading, addAccount, deleteAccount } = useInvoices(companyId);
-  
+  const { accounts, incomeInvoices, expenseInvoices, loading, addAccount, updateAccount } = useInvoices(companyId);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
   const [newAccountData, setNewAccountData] = useState({
     name: '',
     phone: '',
     address: '',
     notes: ''
   });
-  const [startDate, setStartDate] = useState<Date>();
-  const [endDate, setEndDate] = useState<Date>();
+  const [editAccountData, setEditAccountData] = useState({
+    name: '',
+    phone: '',
+    address: '',
+    notes: ''
+  });
 
   const handleCreateAccount = async () => {
     if (!newAccountData.name.trim()) {
-      toast.error("Cari adı zorunludur.");
+      toast.error("Cari hesap adı zorunludur.");
       return;
     }
 
@@ -46,77 +45,87 @@ export const CompanyAccountsList = ({ companyId }: { companyId: string }) => {
     });
 
     if (error) {
-      toast.error("Cari oluşturulurken bir hata oluştu.");
+      toast.error("Cari hesap oluşturulurken bir hata oluştu.");
       return;
     }
 
-    toast.success("Cari başarıyla oluşturuldu.");
+    toast.success("Cari hesap başarıyla oluşturuldu.");
     setNewAccountData({ name: '', phone: '', address: '', notes: '' });
     setIsDialogOpen(false);
   };
 
-  const handleDeleteAccount = async (accountId: string) => {
-    const { error } = await deleteAccount(accountId);
+  const handleEditAccount = (account: any) => {
+    setEditingAccountId(account.id);
+    setEditAccountData({
+      name: account.name,
+      phone: account.phone || '',
+      address: account.address || '',
+      notes: account.notes || ''
+    });
+  };
+
+  const handleUpdateAccount = async () => {
+    if (!editingAccountId) return;
+
+    const { error } = await updateAccount(editingAccountId, {
+      name: editAccountData.name,
+      phone: editAccountData.phone || undefined,
+      address: editAccountData.address || undefined,
+      notes: editAccountData.notes || undefined
+    });
 
     if (error) {
-      toast.error("Cari silinirken bir hata oluştu.");
+      toast.error("Cari hesap güncellenirken bir hata oluştu.");
       return;
     }
 
-    toast.success("Cari başarıyla silindi.");
+    toast.success("Cari hesap başarıyla güncellendi.");
+    setEditingAccountId(null);
+    setEditAccountData({ name: '', phone: '', address: '', notes: '' });
   };
 
-  // Calculate account balances and debts with date filtering
-  const accountsWithBalance = useMemo(() => {
-    return accounts.map(account => {
-      // Filter invoices by date range if selected
-      const filteredIncomeInvoices = incomeInvoices.filter(invoice => {
-        const invoiceDate = new Date(invoice.invoice_date);
-        const matchesAccount = invoice.account_id === account.id;
-        
-        if (!startDate || !endDate) return matchesAccount;
-        
-        const startOfDay = new Date(startDate);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(endDate);
-        endOfDay.setHours(23, 59, 59, 999);
-        
-        return matchesAccount && invoiceDate >= startOfDay && invoiceDate <= endOfDay;
-      });
+  const getAccountBalance = (accountId: string) => {
+    const accountIncomes = incomeInvoices.filter(invoice => invoice.account_id === accountId);
+    const accountExpenses = expenseInvoices.filter(invoice => invoice.account_id === accountId);
+    
+    const totalIncome = accountIncomes.reduce((sum, invoice) => sum + invoice.amount, 0);
+    const totalExpense = accountExpenses.reduce((sum, invoice) => sum + invoice.amount, 0);
+    
+    return totalIncome - totalExpense;
+  };
 
-      const filteredExpenseInvoices = expenseInvoices.filter(invoice => {
-        const invoiceDate = new Date(invoice.invoice_date);
-        const matchesAccount = invoice.account_id === account.id;
-        
-        if (!startDate || !endDate) return matchesAccount;
-        
-        const startOfDay = new Date(startDate);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(endDate);
-        endOfDay.setHours(23, 59, 59, 999);
-        
-        return matchesAccount && invoiceDate >= startOfDay && invoiceDate <= endOfDay;
-      });
+  const getAccountTransactions = (accountId: string) => {
+    const accountIncomes = incomeInvoices
+      .filter(invoice => invoice.account_id === accountId)
+      .map(invoice => ({ 
+        ...invoice, 
+        type: 'income' as const,
+        date: invoice.invoice_date 
+      }));
+    
+    const accountExpenses = expenseInvoices
+      .filter(invoice => invoice.account_id === accountId)
+      .map(invoice => ({ 
+        ...invoice, 
+        type: 'expense' as const,
+        date: invoice.invoice_date 
+      }));
+    
+    return [...accountIncomes, ...accountExpenses]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  };
 
-      const totalIncome = filteredIncomeInvoices.reduce((sum, inv) => sum + inv.amount, 0);
-      const totalExpense = filteredExpenseInvoices.reduce((sum, inv) => sum + inv.amount, 0);
-      const balance = totalIncome - totalExpense;
-      
-      // Calculate unpaid debts (unpaid expense invoices)
-      const unpaidDebts = filteredExpenseInvoices.filter(inv => inv.payment_status === 'unpaid');
-      const totalUnpaidDebt = unpaidDebts.reduce((sum, inv) => sum + inv.amount, 0);
+  const getBalanceColor = (balance: number) => {
+    if (balance > 0) return 'text-green-600';
+    if (balance < 0) return 'text-red-600';
+    return 'text-gray-600';
+  };
 
-      return {
-        ...account,
-        totalIncome,
-        totalExpense,
-        balance,
-        unpaidDebts,
-        totalUnpaidDebt,
-        invoiceCount: filteredIncomeInvoices.length + filteredExpenseInvoices.length
-      };
-    });
-  }, [accounts, incomeInvoices, expenseInvoices, startDate, endDate]);
+  const getBalanceText = (balance: number) => {
+    if (balance > 0) return `Alacak: ${formatCurrency(balance)}`;
+    if (balance < 0) return `Borç: ${formatCurrency(Math.abs(balance))}`;
+    return 'Bakiye: ₺0,00';
+  };
 
   if (loading) {
     return (
@@ -126,280 +135,348 @@ export const CompanyAccountsList = ({ companyId }: { companyId: string }) => {
     );
   }
 
-  return (
-    <div className="space-y-6">
-      {/* Header with Actions */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h3 className="text-2xl font-bold">Cari Listesi</h3>
-          <p className="text-gray-600">Şirket cari hesaplarınızı yönetin</p>
-        </div>
-        
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          {/* Date Filter */}
-          <div className="flex items-center space-x-2">
-            <Filter className="h-4 w-4 text-gray-500" />
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "justify-start text-left font-normal",
-                    !startDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {startDate ? format(startDate, "dd MMM yyyy", { locale: tr }) : "Başlangıç"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-white border shadow-lg z-50" align="start">
-                <Calendar
-                  mode="single"
-                  selected={startDate}
-                  onSelect={setStartDate}
-                  initialFocus
-                  locale={tr}
-                  className="p-3 pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
-            
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "justify-start text-left font-normal",
-                    !endDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {endDate ? format(endDate, "dd MMM yyyy", { locale: tr }) : "Bitiş"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-white border shadow-lg z-50" align="start">
-                <Calendar
-                  mode="single"
-                  selected={endDate}
-                  onSelect={setEndDate}
-                  initialFocus
-                  locale={tr}
-                  className="p-3 pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
-            
-            {(startDate || endDate) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setStartDate(undefined);
-                  setEndDate(undefined);
-                }}
-              >
-                Temizle
-              </Button>
-            )}
-          </div>
+  // Account Detail View
+  if (selectedAccountId) {
+    const selectedAccount = accounts.find(acc => acc.id === selectedAccountId);
+    const accountTransactions = getAccountTransactions(selectedAccountId);
+    const balance = getAccountBalance(selectedAccountId);
 
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                Yeni Cari
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Yeni Cari Hesap</DialogTitle>
-                <DialogDescription>
-                  Yeni bir cari hesap oluşturun
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Cari Adı *</Label>
-                  <Input 
-                    id="name" 
-                    value={newAccountData.name}
-                    onChange={(e) => setNewAccountData({...newAccountData, name: e.target.value})}
-                    placeholder="ABC Şirketi"
-                  />
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center space-x-4">
+          <Button variant="outline" onClick={() => setSelectedAccountId(null)} className="flex items-center space-x-2">
+            <ArrowLeft className="h-4 w-4" />
+            <span>Geri</span>
+          </Button>
+          <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Cari Hesap Detayı</h2>
+        </div>
+
+        {/* Account Info */}
+        <Card className="shadow-sm border">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Users className="h-5 w-5 text-blue-500" />
+              <span>{selectedAccount?.name}</span>
+            </CardTitle>
+            <CardDescription>Cari hesap bilgileri ve bakiye durumu</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3">
+                  <Phone className="h-4 w-4 text-gray-400" />
+                  <span className="text-gray-900">{selectedAccount?.phone || 'Telefon bilgisi yok'}</span>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Telefon</Label>
-                  <Input 
-                    id="phone" 
-                    value={newAccountData.phone}
-                    onChange={(e) => setNewAccountData({...newAccountData, phone: e.target.value})}
-                    placeholder="0555 123 45 67"
-                  />
+                <div className="flex items-start space-x-3">
+                  <MapPin className="h-4 w-4 text-gray-400 mt-1" />
+                  <span className="text-gray-900">{selectedAccount?.address || 'Adres bilgisi yok'}</span>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="address">Adres</Label>
-                  <Input 
-                    id="address" 
-                    value={newAccountData.address}
-                    onChange={(e) => setNewAccountData({...newAccountData, address: e.target.value})}
-                    placeholder="İstanbul, Türkiye"
-                  />
+                <div className="flex items-center space-x-3">
+                  <Calendar className="h-4 w-4 text-gray-400" />
+                  <span className="text-gray-900">
+                    Kayıt: {new Date(selectedAccount?.created_at || '').toLocaleDateString('tr-TR')}
+                  </span>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Notlar</Label>
-                  <Textarea 
-                    id="notes" 
-                    value={newAccountData.notes}
-                    onChange={(e) => setNewAccountData({...newAccountData, notes: e.target.value})}
-                    placeholder="Ek bilgiler..."
-                  />
-                </div>
+                {selectedAccount?.notes && (
+                  <div className="flex items-start space-x-3">
+                    <FileText className="h-4 w-4 text-gray-400 mt-1" />
+                    <span className="text-gray-900">{selectedAccount.notes}</span>
+                  </div>
+                )}
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>İptal</Button>
-                <Button onClick={handleCreateAccount}>Oluştur</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
-
-      {/* Date Filter Info */}
-      {(startDate || endDate) && (
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <CalendarIcon className="h-4 w-4 text-blue-600" />
-              <span className="text-sm text-blue-800">
-                Tarih Filtresi: {' '}
-                {startDate ? format(startDate, 'dd/MM/yyyy', { locale: tr }) : 'Başlangıç yok'} - {' '}
-                {endDate ? format(endDate, 'dd/MM/yyyy', { locale: tr }) : 'Bitiş yok'}
-              </span>
+              <div className="flex flex-col items-center justify-center p-6 bg-gray-50 rounded-lg">
+                <h3 className="text-lg font-medium text-gray-600 mb-2">Güncel Bakiye</h3>
+                <p className={`text-3xl font-bold ${getBalanceColor(balance)}`}>
+                  {getBalanceText(balance)}
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
-      )}
 
-      {/* Accounts Grid */}
-      <div className="grid gap-6">
-        {accountsWithBalance.map(account => (
-          <Card key={account.id} className="hover:shadow-md transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Users className="h-5 w-5 text-blue-500" />
-                    <span>{account.name}</span>
-                  </CardTitle>
-                  {account.phone && (
-                    <div className="flex items-center space-x-1 text-sm text-gray-600 mt-1">
-                      <Phone className="h-3 w-3" />
-                      <span>{account.phone}</span>
-                    </div>
-                  )}
-                  {account.address && (
-                    <div className="flex items-center space-x-1 text-sm text-gray-600 mt-1">
-                      <MapPin className="h-3 w-3" />
-                      <span>{account.address}</span>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Cariyi Sil</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Bu cari hesabı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>İptal</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDeleteAccount(account.id)}>
-                          Sil
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </div>
-            </CardHeader>
-            
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="text-center">
-                  <p className="text-sm text-gray-600">Toplam Gelir</p>
-                  <p className="text-lg font-semibold text-green-600">{formatCurrency(account.totalIncome)}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-sm text-gray-600">Toplam Gider</p>
-                  <p className="text-lg font-semibold text-red-600">{formatCurrency(account.totalExpense)}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-sm text-gray-600">Bakiye</p>
-                  <p className={`text-lg font-semibold ${account.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatCurrency(Math.abs(account.balance))}
-                  </p>
-                </div>
-                <div className="text-center">
-                  <p className="text-sm text-gray-600">Ödenmemiş Borç</p>
-                  <p className="text-lg font-semibold text-amber-600">{formatCurrency(account.totalUnpaidDebt)}</p>
-                </div>
-              </div>
-              
-              {account.totalUnpaidDebt > 0 && (
-                <div className="mt-4 pt-4 border-t">
-                  <h5 className="text-sm font-medium text-gray-900 mb-2">Ödenmemiş Borçlar:</h5>
-                  <div className="space-y-2">
-                    {account.unpaidDebts.map(debt => (
-                      <div key={debt.id} className="flex justify-between items-center bg-amber-50 p-2 rounded">
-                        <div>
-                          <span className="text-sm font-medium">{debt.description}</span>
-                          <span className="text-xs text-gray-500 ml-2">
-                            ({format(new Date(debt.invoice_date), 'dd/MM/yyyy', { locale: tr })})
+        {/* Account Transactions */}
+        <Card className="shadow-sm border">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-xl">
+              <FileText className="h-6 w-6 text-green-500" />
+              <span>Cari Hesap Hareketleri</span>
+              <Badge variant="outline" className="ml-auto">
+                {accountTransactions.length} Hareket
+              </Badge>
+            </CardTitle>
+            <CardDescription>Cari hesaba ait tüm gelir ve gider faturalarının listesi</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {accountTransactions.length > 0 ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tarih</TableHead>
+                      <TableHead>Fatura No</TableHead>
+                      <TableHead>Açıklama</TableHead>
+                      <TableHead>Tür</TableHead>
+                      <TableHead>Tutar</TableHead>
+                      <TableHead>Ödeme Durumu</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {accountTransactions.map((transaction) => (
+                      <TableRow key={transaction.id}>
+                        <TableCell className="text-sm">
+                          {new Date(transaction.date).toLocaleDateString('tr-TR')}
+                        </TableCell>
+                        <TableCell>{transaction.invoice_number || 'Yok'}</TableCell>
+                        <TableCell className="max-w-xs">
+                          <span className="text-sm text-gray-600 truncate block" title={transaction.description}>
+                            {transaction.description}
                           </span>
-                        </div>
-                        <Badge variant="outline" className="text-amber-700 border-amber-300">
-                          {formatCurrency(debt.amount)}
-                        </Badge>
-                      </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={`${
+                            transaction.type === 'income' 
+                              ? 'bg-green-100 text-green-800 border-green-200' 
+                              : 'bg-red-100 text-red-800 border-red-200'
+                          }`}>
+                            {transaction.type === 'income' ? 'Gelir' : 'Gider'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className={`font-bold ${
+                            transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={`${
+                            transaction.payment_status === 'paid' 
+                              ? 'bg-green-100 text-green-800 border-green-200' 
+                              : 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                          }`}>
+                            {transaction.payment_status === 'paid' ? 'Ödendi' : 'Ödenmedi'}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </div>
-                </div>
-              )}
-              
-              {account.notes && (
-                <div className="mt-4 pt-4 border-t">
-                  <p className="text-sm text-gray-600">{account.notes}</p>
-                </div>
-              )}
-              
-              <div className="mt-4 pt-4 border-t flex justify-between text-sm text-gray-500">
-                <span>Toplam İşlem: {account.invoiceCount}</span>
-                <span>Oluşturulma: {format(new Date(account.created_at), 'dd/MM/yyyy', { locale: tr })}</span>
+                  </TableBody>
+                </Table>
               </div>
-            </CardContent>
-          </Card>
-        ))}
-        
-        {accountsWithBalance.length === 0 && (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center p-12">
-              <Users className="h-12 w-12 text-gray-400 mb-4" />
-              <p className="text-lg font-medium text-gray-500 mb-2">Henüz cari hesap yok</p>
-              <p className="text-gray-400 text-center mb-4">
-                İlk cari hesabınızı oluşturmak için yukarıdaki "Yeni Cari" butonunu kullanın.
-              </p>
-            </CardContent>
-          </Card>
-        )}
+            ) : (
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Henüz hareket yok</h3>
+                <p className="text-gray-600">Bu cari hesabın henüz hiçbir hareketi bulunmuyor.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col space-y-2">
+        <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Cari Hesaplar</h2>
+        <p className="text-sm lg:text-base text-gray-600">Şirketinize ait cari hesapları görüntüleyin ve yönetin</p>
+      </div>
+
+      <div className="flex justify-end">
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="h-4 w-4 mr-2" />
+              Yeni Cari Hesap
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Yeni Cari Hesap Ekle</DialogTitle>
+              <DialogDescription>
+                Cari hesap bilgilerini girin.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Cari Hesap Adı *</Label>
+                <Input
+                  value={newAccountData.name}
+                  onChange={(e) => setNewAccountData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Cari hesap adını girin"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Telefon</Label>
+                <Input
+                  value={newAccountData.phone}
+                  onChange={(e) => setNewAccountData(prev => ({ ...prev, phone: e.target.value }))}
+                  placeholder="Telefon numarası"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Adres</Label>
+                <Input
+                  value={newAccountData.address}
+                  onChange={(e) => setNewAccountData(prev => ({ ...prev, address: e.target.value }))}
+                  placeholder="Adres bilgisi"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Notlar</Label>
+                <Textarea
+                  value={newAccountData.notes}
+                  onChange={(e) => setNewAccountData(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Ek notlar..."
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                İptal
+              </Button>
+              <Button onClick={handleCreateAccount} className="bg-blue-600 hover:bg-blue-700">
+                Ekle
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Accounts List */}
+      <Card className="shadow-sm border">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Users className="h-5 w-5 text-blue-500" />
+            <span>Cari Hesap Listesi</span>
+          </CardTitle>
+          <CardDescription>Cari hesapları ve bakiyelerini görüntüleyin</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {accounts.length > 0 ? (
+            <div className="space-y-2">
+              {accounts.map((account) => {
+                const balance = getAccountBalance(account.id);
+                return (
+                  <div
+                    key={account.id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex-1">
+                          <h3 className="font-medium text-gray-900">{account.name}</h3>
+                          <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
+                            {account.phone && (
+                              <div className="flex items-center space-x-1">
+                                <Phone className="h-3 w-3" />
+                                <span>{account.phone}</span>
+                              </div>
+                            )}
+                            {account.address && (
+                              <div className="flex items-center space-x-1">
+                                <MapPin className="h-3 w-3" />
+                                <span className="truncate max-w-48">{account.address}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <Badge 
+                            variant="outline" 
+                            className={`${getBalanceColor(balance)} font-medium`}
+                          >
+                            {getBalanceText(balance)}
+                          </Badge>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditAccount(account)}
+                                className="flex items-center space-x-1"
+                              >
+                                <Edit className="h-4 w-4" />
+                                <span>Düzenle</span>
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[425px]">
+                              <DialogHeader>
+                                <DialogTitle>Cari Hesap Düzenle</DialogTitle>
+                                <DialogDescription>
+                                  Cari hesap bilgilerini güncelleyin
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="grid gap-4 py-4">
+                                <div className="space-y-2">
+                                  <Label htmlFor="edit-name">Cari Hesap Adı *</Label>
+                                  <Input 
+                                    id="edit-name" 
+                                    value={editAccountData.name}
+                                    onChange={(e) => setEditAccountData({...editAccountData, name: e.target.value})}
+                                    placeholder="Cari hesap adı"
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="edit-phone">Telefon</Label>
+                                  <Input 
+                                    id="edit-phone" 
+                                    value={editAccountData.phone}
+                                    onChange={(e) => setEditAccountData({...editAccountData, phone: e.target.value})}
+                                    placeholder="0555 123 45 67"
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="edit-address">Adres</Label>
+                                  <Input 
+                                    id="edit-address" 
+                                    value={editAccountData.address}
+                                    onChange={(e) => setEditAccountData({...editAccountData, address: e.target.value})}
+                                    placeholder="Adres bilgisi"
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="edit-notes">Notlar</Label>
+                                  <Textarea 
+                                    id="edit-notes" 
+                                    value={editAccountData.notes}
+                                    onChange={(e) => setEditAccountData({...editAccountData, notes: e.target.value})}
+                                    placeholder="Ek notlar..."
+                                  />
+                                </div>
+                              </div>
+                              <DialogFooter>
+                                <Button variant="outline" onClick={() => setEditingAccountId(null)}>İptal</Button>
+                                <Button onClick={handleUpdateAccount}>Güncelle</Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedAccountId(account.id)}
+                            className="flex items-center space-x-1"
+                          >
+                            <Eye className="h-4 w-4" />
+                            <span>Detay</span>
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Henüz cari hesap yok</h3>
+              <p className="text-gray-600">İlk cari hesabı ekleyin</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
