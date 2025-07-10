@@ -51,12 +51,30 @@ export const FuelSalesManagement = () => {
     'MOTORİN(DİĞER)': { liters: '', total_amount: '' },
     'TRANSFER(KÖY-TANKERİ)': { liters: '', total_amount: '' },
     shift: '',
-    sale_time: format(getIstanbulTime(), 'yyyy-MM-dd')
+        sale_time: new Date().toISOString().split('T')[0]
   });
 
-  // Köy tankeri ve Motorin (Diğer) ayrı tutulacak - hesaplamadan çıkarılmadı
+  // Köy tankeri transferi motorin stokunu düşürür
   const adjustedFuelSales = useMemo(() => {
-    return fuelSales;
+    const adjusted = [...fuelSales];
+    
+    // Köy tankeri transferlerini bul ve motorin stokunu düşür
+    const transferSales = fuelSales.filter(sale => sale.fuel_type === 'TRANSFER(KÖY-TANKERİ)');
+    
+    // Her transfer için motorin stokunu düşüren bir satış ekle (görsel olarak)
+    transferSales.forEach(transfer => {
+      // Motorin satışını düşüren entry ekle
+      adjusted.push({
+        ...transfer,
+        id: `adjusted-${transfer.id}`,
+        fuel_type: 'MOTORİN',
+        liters: -transfer.liters, // Negatif litre (stok azalması)
+        total_amount: 0, // Transfer olduğu için fiyat yok
+        price_per_liter: 0
+      });
+    });
+    
+    return adjusted;
   }, [fuelSales]);
 
   const calculatePricePerLiter = (fuelType: string) => {
@@ -92,7 +110,7 @@ export const FuelSalesManagement = () => {
         }
 
         const pricePerLiter = totalAmount / liters;
-        const istanbulTime = getIstanbulTime(new Date(newSales.sale_time));
+        const saleDateTime = new Date(newSales.sale_time + 'T00:00:00');
 
         salesToAdd.push({
           fuel_type: fuelType as 'MOTORİN' | 'LPG' | 'BENZİN' | 'MOTORİN(DİĞER)' | 'TRANSFER(KÖY-TANKERİ)',
@@ -100,7 +118,7 @@ export const FuelSalesManagement = () => {
           price_per_liter: pricePerLiter,
           total_amount: totalAmount,
           amount: totalAmount,
-          sale_time: istanbulTime.toISOString(),
+          sale_time: saleDateTime.toISOString(),
           shift: newSales.shift || null
         });
       }
@@ -123,6 +141,25 @@ export const FuelSalesManagement = () => {
           const errorMessage = typeof error === 'string' ? error : (error as any)?.message || 'Bilinmeyen hata';
           toast.error(`${fuelTypes.find(f => f.value === saleData.fuel_type)?.label} satışı eklenirken hata oluştu: ${errorMessage}`);
           hasErrors = true;
+        } else {
+          // Eğer köy tankeri transferi ise, motorin stokunu düşür
+          if (saleData.fuel_type === 'TRANSFER(KÖY-TANKERİ)') {
+            // Motorin stok düşürme işlemi için ayrı bir kayıt ekle
+            const motorinStockReduction = {
+              fuel_type: 'MOTORİN' as const,
+              liters: saleData.liters,
+              price_per_liter: 0,
+              total_amount: 0,
+              amount: 0,
+              sale_time: saleData.sale_time,
+              shift: `TRANSFER-${saleData.shift || 'AUTO'}`
+            };
+            
+            const { error: motorinError } = await addFuelSale(motorinStockReduction);
+            if (motorinError) {
+              console.error('Motorin stock reduction error:', motorinError);
+            }
+          }
         }
       } catch (err) {
         console.error('Unexpected error:', err);
@@ -140,7 +177,7 @@ export const FuelSalesManagement = () => {
         'MOTORİN(DİĞER)': { liters: '', total_amount: '' },
         'TRANSFER(KÖY-TANKERİ)': { liters: '', total_amount: '' },
         shift: '',
-        sale_time: format(getIstanbulTime(), 'yyyy-MM-dd')
+        sale_time: new Date().toISOString().split('T')[0]
       });
       setIsDialogOpen(false);
     }

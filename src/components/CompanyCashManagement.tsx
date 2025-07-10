@@ -44,6 +44,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
   const [accountBalances, setAccountBalances] = useState<Record<string, number>>({});
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
   const [selectedAccountTotal, setSelectedAccountTotal] = useState<number>(0);
+  const [viewingAccount, setViewingAccount] = useState<any>(null);
 
   // Form states
   const [incomeForm, setIncomeForm] = useState({

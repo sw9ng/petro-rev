@@ -51,7 +51,8 @@ export const PaymentTracking = () => {
 
   const handleCustomerClick = (customerId: string) => {
     console.log('Navigating to customer:', customerId);
-    navigate(`/customer/${customerId}`);
+    // Sayfanın CustomerDetailView'i kullanmasını sağla
+    window.location.href = `#customer-detail-${customerId}`;
   };
 
   const groupedTransactions = getAllTransactionsGroupedByCustomer();
