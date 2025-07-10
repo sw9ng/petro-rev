@@ -52,15 +52,12 @@ export const PaymentTracking = () => {
 
   const handleCustomerClick = (customerId: string) => {
     console.log('Customer clicked:', customerId);
-    if (customerId && customerId !== 'undefined' && customerId !== 'null') {
-      // Hash ile navigation yap
-      window.location.hash = `customer-detail-${customerId}`;
-      // Sayfayı yeniden yükle
-      window.location.reload();
-    } else {
-      console.error('Invalid customer ID:', customerId);
+    if (!customerId || customerId === 'undefined' || customerId === 'null') {
       toast.error('Geçersiz müşteri ID');
+      return;
     }
+    // Use React Router navigation instead of hash
+    navigate(`/customer/${customerId}`);
   };
 
   const groupedTransactions = getAllTransactionsGroupedByCustomer();

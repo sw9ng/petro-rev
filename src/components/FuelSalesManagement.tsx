@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFuelSales } from '@/hooks/useFuelSales';
 import { usePersonnel } from '@/hooks/usePersonnel';
 import { formatCurrency } from '@/lib/numberUtils';
-import { Plus, Fuel, Edit, Trash2, Calendar, Filter, BarChart3, TrendingUp, Gauge, Droplets } from 'lucide-react';
+import { Plus, Fuel, Edit, Trash2, Calendar, Filter, BarChart3, TrendingUp, Gauge } from 'lucide-react';
 import { toast } from 'sonner';
 import { FuelSalesEditDialog } from './FuelSalesEditDialog';
 
@@ -46,6 +46,10 @@ export const FuelSalesManagement = () => {
   const [filterFuelType, setFilterFuelType] = useState<string>('');
   const [activeTab, setActiveTab] = useState<string>('overview');
 
+  // Overview date filter states
+  const [overviewDateFrom, setOverviewDateFrom] = useState<string>('');
+  const [overviewDateTo, setOverviewDateTo] = useState<string>('');
+
   // Initialize form with current date/time
   useEffect(() => {
     const now = new Date();
@@ -53,35 +57,47 @@ export const FuelSalesManagement = () => {
     setSaleTime(formattedDateTime);
   }, []);
 
-  // Motorin stok takibi için yardımcı fonksiyonlar
-  const getMotorijnStock = () => {
-    const motorinSales = fuelSales.filter(sale => sale.fuel_type === 'MOTORİN');
-    const transferSales = fuelSales.filter(sale => sale.fuel_type === 'TRANSFER(KÖY-TANKERİ)');
-    
-    const totalMotorin = motorinSales.reduce((sum, sale) => sum + sale.liters, 0);
-    const totalTransfer = transferSales.reduce((sum, sale) => sum + sale.liters, 0);
-    
-    return totalMotorin - totalTransfer;
-  };
-
-  const currentMotorinStock = getMotorijnStock();
-
   const calculateAmount = () => {
     const literValue = parseFloat(liters) || 0;
     const priceValue = parseFloat(pricePerLiter) || 0;
     return literValue * priceValue;
   };
 
-  // Detaylı istatistikler
+  // Filter sales for overview based on date range
+  const getFilteredSalesForOverview = () => {
+    if (!overviewDateFrom && !overviewDateTo) return fuelSales;
+    
+    return fuelSales.filter(sale => {
+      const saleDate = sale.sale_time.split('T')[0];
+      const matchesDateFrom = !overviewDateFrom || saleDate >= overviewDateFrom;
+      const matchesDateTo = !overviewDateTo || saleDate <= overviewDateTo;
+      return matchesDateFrom && matchesDateTo;
+    });
+  };
+
+  // Detaylı istatistikler (filtered for overview)
   const getFuelStats = () => {
-    const salesByType = getFuelSalesByType();
-    const totalSales = getTotalFuelSales();
+    const filteredSales = getFilteredSalesForOverview();
+    const totalSales = filteredSales.reduce((sum, sale) => sum + sale.total_amount, 0);
     
-    const motorinSales = fuelSales.filter(sale => sale.fuel_type === 'MOTORİN');
-    const lpgSales = fuelSales.filter(sale => sale.fuel_type === 'LPG');
-    const benzinSales = fuelSales.filter(sale => sale.fuel_type === 'BENZİN');
+    const salesByType = {
+      'MOTORİN': 0,
+      'LPG': 0,
+      'BENZİN': 0,
+      'MOTORİN(DİĞER)': 0
+    };
+
+    filteredSales.forEach(sale => {
+      if (salesByType.hasOwnProperty(sale.fuel_type)) {
+        salesByType[sale.fuel_type] += sale.total_amount;
+      }
+    });
     
-    const totalLiters = fuelSales.reduce((sum, sale) => sum + sale.liters, 0);
+    const motorinSales = filteredSales.filter(sale => sale.fuel_type === 'MOTORİN');
+    const lpgSales = filteredSales.filter(sale => sale.fuel_type === 'LPG');
+    const benzinSales = filteredSales.filter(sale => sale.fuel_type === 'BENZİN');
+    
+    const totalLiters = filteredSales.reduce((sum, sale) => sum + sale.liters, 0);
     const avgPricePerLiter = totalLiters > 0 ? totalSales / totalLiters : 0;
     
     return {
@@ -98,7 +114,8 @@ export const FuelSalesManagement = () => {
         motorin: motorinSales.reduce((sum, sale) => sum + sale.liters, 0),
         lpg: lpgSales.reduce((sum, sale) => sum + sale.liters, 0),
         benzin: benzinSales.reduce((sum, sale) => sum + sale.liters, 0)
-      }
+      },
+      filteredSalesCount: filteredSales.length
     };
   };
 
@@ -112,14 +129,6 @@ export const FuelSalesManagement = () => {
 
     const literValue = parseFloat(liters);
     const priceValue = parseFloat(pricePerLiter);
-    
-    // Köy tankeri transferi için stok kontrolü
-    if (fuelType === 'TRANSFER(KÖY-TANKERİ)') {
-      if (literValue > currentMotorinStock) {
-        toast.error(`Yetersiz motorin stoku. Mevcut: ${currentMotorinStock.toFixed(2)} litre`);
-        return;
-      }
-    }
 
     const saleData = {
       fuel_type: fuelType,
@@ -139,12 +148,6 @@ export const FuelSalesManagement = () => {
       console.error('Error adding fuel sale:', error);
     } else {
       toast.success('Yakıt satışı başarıyla kaydedildi');
-      
-      // Köy tankeri transferi başarılı mesajı
-      if (fuelType === 'TRANSFER(KÖY-TANKERİ)') {
-        const remainingStock = currentMotorinStock - literValue;
-        toast.success(`Transfer tamamlandı. Kalan motorin stoku: ${remainingStock.toFixed(2)} litre`);
-      }
       
       // Form sıfırla
       setFuelType('');
@@ -178,8 +181,7 @@ export const FuelSalesManagement = () => {
     { value: 'MOTORİN', label: 'Motorin', color: 'bg-blue-100 text-blue-800' },
     { value: 'LPG', label: 'LPG', color: 'bg-green-100 text-green-800' },
     { value: 'BENZİN', label: 'Benzin', color: 'bg-red-100 text-red-800' },
-    { value: 'MOTORİN(DİĞER)', label: 'Motorin (Diğer)', color: 'bg-purple-100 text-purple-800' },
-    { value: 'TRANSFER(KÖY-TANKERİ)', label: 'Transfer (Köy Tankeri)', color: 'bg-amber-100 text-amber-800' }
+    { value: 'MOTORİN(DİĞER)', label: 'Motorin (Diğer)', color: 'bg-purple-100 text-purple-800' }
   ];
 
   const getFuelTypeLabel = (type: string) => {
@@ -220,10 +222,6 @@ export const FuelSalesManagement = () => {
             <TrendingUp className="h-4 w-4 mr-2 text-green-600" />
             Toplam Satış: {formatCurrency(stats.totalSales)}
           </Badge>
-          <Badge variant="outline" className="text-lg px-4 py-2 bg-blue-50 border-blue-200">
-            <Droplets className="h-4 w-4 mr-2 text-blue-600" />
-            Motorin Stok: {currentMotorinStock.toFixed(2)} L
-          </Badge>
         </div>
       </div>
 
@@ -236,6 +234,58 @@ export const FuelSalesManagement = () => {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
+          {/* Date Filter for Overview */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Calendar className="h-5 w-5 text-blue-500" />
+                <span>Tarih Filtresi</span>
+              </CardTitle>
+              <CardDescription>İncelemek istediğiniz tarih aralığını seçin</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Başlangıç Tarihi</Label>
+                  <Input
+                    type="date"
+                    value={overviewDateFrom}
+                    onChange={(e) => setOverviewDateFrom(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Bitiş Tarihi</Label>
+                  <Input
+                    type="date"
+                    value={overviewDateTo}
+                    onChange={(e) => setOverviewDateTo(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setOverviewDateFrom('');
+                      setOverviewDateTo('');
+                    }}
+                    className="w-full"
+                  >
+                    Filtreyi Temizle
+                  </Button>
+                </div>
+              </div>
+              {(overviewDateFrom || overviewDateTo) && (
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    {stats.filteredSalesCount} satış kaydı görüntüleniyor
+                    {overviewDateFrom && ` (${new Date(overviewDateFrom).toLocaleDateString('tr-TR')} sonrası)`}
+                    {overviewDateTo && ` (${new Date(overviewDateTo).toLocaleDateString('tr-TR')} öncesi)`}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* İstatistik Kartları */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card className="border-l-4 border-l-green-500">
@@ -279,7 +329,7 @@ export const FuelSalesManagement = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Toplam İşlem</p>
-                    <p className="text-2xl font-bold text-orange-600">{fuelSales.length}</p>
+                    <p className="text-2xl font-bold text-orange-600">{stats.filteredSalesCount}</p>
                   </div>
                   <Calendar className="h-8 w-8 text-orange-500" />
                 </div>
@@ -288,70 +338,35 @@ export const FuelSalesManagement = () => {
           </div>
 
           {/* Yakıt Türlerine Göre Dağılım */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Yakıt Türlerine Göre Satış</CardTitle>
-                <CardDescription>Toplam satış tutarları</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {fuelTypeOptions.map((option) => {
-                    const amount = stats.salesByType[option.value] || 0;
-                    const percentage = stats.totalSales > 0 ? (amount / stats.totalSales) * 100 : 0;
-                    return (
-                      <div key={option.value} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
-                        <div className="flex items-center space-x-3">
-                          <Badge variant="outline" className={option.color}>
-                            {option.label}
-                          </Badge>
-                          <span className="text-sm text-gray-600">{percentage.toFixed(1)}%</span>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold">{formatCurrency(amount)}</p>
-                          <p className="text-sm text-gray-500">{stats.litersByType[option.value.toLowerCase()] || 0} L</p>
-                        </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Yakıt Türlerine Göre Satış</CardTitle>
+              <CardDescription>Toplam satış tutarları ve litre dağılımı</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {fuelTypeOptions.map((option) => {
+                  const amount = stats.salesByType[option.value] || 0;
+                  const percentage = stats.totalSales > 0 ? (amount / stats.totalSales) * 100 : 0;
+                  const literKey = option.value.toLowerCase() as keyof typeof stats.litersByType;
+                  return (
+                    <div key={option.value} className="flex items-center justify-between p-4 rounded-lg bg-gray-50">
+                      <div className="flex items-center space-x-3">
+                        <Badge variant="outline" className={option.color}>
+                          {option.label}
+                        </Badge>
+                        <span className="text-sm text-gray-600">{percentage.toFixed(1)}%</span>
                       </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Stok Durumu</CardTitle>
-                <CardDescription>Motorin stok takibi</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-blue-50 border border-blue-200">
-                    <div className="flex items-center space-x-3">
-                      <Droplets className="h-6 w-6 text-blue-600" />
-                      <div>
-                        <p className="font-medium text-blue-900">Mevcut Motorin Stoku</p>
-                        <p className="text-sm text-blue-600">Gerçek zamanlı stok durumu</p>
+                      <div className="text-right">
+                        <p className="font-semibold">{formatCurrency(amount)}</p>
+                        <p className="text-sm text-gray-500">{stats.litersByType[literKey] || 0} L</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-blue-600">{currentMotorinStock.toFixed(2)} L</p>
-                      <p className="text-sm text-blue-500">
-                        {currentMotorinStock < 1000 ? 'Stok Azalıyor' : 'Stok Yeterli'}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {currentMotorinStock < 1000 && (
-                    <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
-                      <p className="text-amber-800 text-sm font-medium">
-                        ⚠️ Uyarı: Motorin stoku 1000 litrenin altında!
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="add-sale" className="space-y-6">
@@ -380,11 +395,6 @@ export const FuelSalesManagement = () => {
                       ))}
                     </SelectContent>
                   </Select>
-                  {fuelType === 'TRANSFER(KÖY-TANKERİ)' && (
-                    <p className="text-sm text-amber-600">
-                      ⚠️ Bu işlem motorin stokunu azaltacaktır
-                    </p>
-                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -669,7 +679,7 @@ export const FuelSalesManagement = () => {
             </Card>
           </div>
 
-          {/* Günlük/Haftalık/Aylık Trend Analizi için placeholder */}
+          {/* Performans Metrikleri */}
           <Card>
             <CardHeader>
               <CardTitle>Performans Metrikleri</CardTitle>
@@ -682,15 +692,15 @@ export const FuelSalesManagement = () => {
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">Günlük Ortalama Satış:</span>
-                      <span className="font-medium">{formatCurrency(stats.totalSales / Math.max(1, new Set(fuelSales.map(s => s.sale_time.split('T')[0])).size))}</span>
+                      <span className="font-medium">{formatCurrency(stats.totalSales / Math.max(1, new Set(getFilteredSalesForOverview().map(s => s.sale_time.split('T')[0])).size))}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">İşlem Başına Ortalama:</span>
-                      <span className="font-medium">{formatCurrency(stats.totalSales / Math.max(1, fuelSales.length))}</span>
+                      <span className="font-medium">{formatCurrency(stats.totalSales / Math.max(1, stats.filteredSalesCount))}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">Ortalama Litre/İşlem:</span>
-                      <span className="font-medium">{(stats.totalLiters / Math.max(1, fuelSales.length)).toFixed(2)} L</span>
+                      <span className="font-medium">{(stats.totalLiters / Math.max(1, stats.filteredSalesCount)).toFixed(2)} L</span>
                     </div>
                   </div>
                 </div>
@@ -699,11 +709,11 @@ export const FuelSalesManagement = () => {
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">Toplam İşlem Sayısı:</span>
-                      <span className="font-medium">{fuelSales.length}</span>
+                      <span className="font-medium">{stats.filteredSalesCount}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">Aktif Günler:</span>
-                      <span className="font-medium">{new Set(fuelSales.map(s => s.sale_time.split('T')[0])).size}</span>
+                      <span className="font-medium">{new Set(getFilteredSalesForOverview().map(s => s.sale_time.split('T')[0])).size}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">En Çok Satan Yakıt:</span>
