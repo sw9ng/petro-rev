@@ -30,7 +30,7 @@ interface AttendantShift {
 }
 
 export default function AttendantDashboard() {
-  const { attendant, signOut } = useAttendantAuth();
+  const { attendant, signOut, loading: authLoading } = useAttendantAuth();
   const navigate = useNavigate();
   const [shifts, setShifts] = useState<AttendantShift[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,16 +46,27 @@ export default function AttendantDashboard() {
   const [shiftFilter, setShiftFilter] = useState('all');
 
   useEffect(() => {
+    console.log('AttendantDashboard useEffect - attendant:', attendant, 'authLoading:', authLoading);
+    
+    if (authLoading) {
+      console.log('Still loading auth state...');
+      return;
+    }
+    
     if (!attendant) {
+      console.log('No attendant found, redirecting to auth');
       navigate('/auth');
       return;
     }
+    
+    console.log('Attendant found, fetching shifts for:', attendant);
     fetchShifts();
-  }, [attendant, navigate]);
+  }, [attendant, navigate, authLoading]);
 
   const fetchShifts = async () => {
     if (!attendant) return;
     
+    console.log('Fetching shifts for attendant:', attendant.id, 'at station:', attendant.station_id);
     setLoading(true);
     
     let query = supabase
@@ -80,11 +91,13 @@ export default function AttendantDashboard() {
       query = query.eq('shift_number', shiftFilter);
     }
 
+    console.log('Executing query...');
     const { data, error } = await query;
 
     if (error) {
       console.error('Error fetching shifts:', error);
     } else {
+      console.log('Fetched shifts data:', data);
       const mappedData = (data || []).map(shift => ({
         id: shift.id,
         start_time: shift.start_time,
@@ -100,12 +113,14 @@ export default function AttendantDashboard() {
         shift_number: (shift.shift_number as 'V1' | 'V2') || undefined,
       }));
       
+      console.log('Mapped shifts:', mappedData);
       setShifts(mappedData);
     }
     setLoading(false);
   };
 
   const handleSignOut = () => {
+    console.log('Signing out attendant');
     signOut();
     navigate('/auth');
   };
@@ -142,6 +157,19 @@ export default function AttendantDashboard() {
   const totalSales = shifts.reduce((sum, shift) => sum + shift.cash_sales + shift.card_sales + shift.loyalty_card, 0);
   const totalOverShort = shifts.reduce((sum, shift) => sum + shift.over_short, 0);
 
+  // Show loading state while auth is loading
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If no attendant after loading, don't render anything (redirect will happen)
   if (!attendant) {
     return null;
   }
@@ -280,6 +308,7 @@ export default function AttendantDashboard() {
         {/* Shifts List */}
         {loading ? (
           <div className="flex items-center justify-center p-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mr-3"></div>
             <p className="text-muted-foreground">Vardiyalar yükleniyor...</p>
           </div>
         ) : shifts.length === 0 ? (

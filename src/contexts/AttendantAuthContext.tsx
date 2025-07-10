@@ -42,8 +42,10 @@ export const AttendantAuthProvider = ({ children }: { children: React.ReactNode 
     if (storedAttendant) {
       try {
         const parsedAttendant = JSON.parse(storedAttendant);
+        console.log('Found stored attendant session:', parsedAttendant);
         setAttendant(parsedAttendant);
       } catch (error) {
+        console.error('Error parsing stored attendant session:', error);
         localStorage.removeItem('attendant_session');
       }
     }
@@ -51,6 +53,7 @@ export const AttendantAuthProvider = ({ children }: { children: React.ReactNode 
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    console.log('Attempting attendant sign in for:', email);
     try {
       const { data, error } = await supabase.rpc('authenticate_pump_attendant', {
         email,
@@ -58,26 +61,33 @@ export const AttendantAuthProvider = ({ children }: { children: React.ReactNode 
       });
 
       if (error) {
+        console.error('Supabase RPC error:', error);
         return { error };
       }
+
+      console.log('Authentication response:', data);
 
       // Type cast the JSON response
       const response = data as unknown as AuthResponse;
 
       if (response?.success) {
         const attendantData = response.attendant!;
+        console.log('Setting attendant data:', attendantData);
         setAttendant(attendantData);
         localStorage.setItem('attendant_session', JSON.stringify(attendantData));
         return { error: null };
       } else {
+        console.error('Authentication failed:', response?.error);
         return { error: { message: response?.error || 'Giriş başarısız' } };
       }
     } catch (error) {
+      console.error('Sign in error:', error);
       return { error };
     }
   };
 
   const signOut = () => {
+    console.log('Attendant signing out');
     setAttendant(null);
     localStorage.removeItem('attendant_session');
   };
