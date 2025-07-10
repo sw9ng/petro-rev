@@ -1,81 +1,79 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useInvoices } from '@/hooks/useInvoices';
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useInvoices, Invoice, CompanyAccount } from '@/hooks/useInvoices';
 import { formatCurrency } from '@/lib/numberUtils';
-import { Plus, CalendarIcon, FileText, DollarSign, TrendingUp, TrendingDown, Eye, Edit, Trash2 } from 'lucide-react';
+import { Plus, FileText, ArrowDown, ArrowUp } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
-import { tr } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
 
 export const CompanyCashManagement = ({ companyId }: { companyId: string }) => {
-  const { incomeInvoices, expenseInvoices, accounts, loading, addIncomeInvoice, addExpenseInvoice, updateIncomeInvoice, updateExpenseInvoice, deleteIncomeInvoice, deleteExpenseInvoice } = useInvoices(companyId);
-
-  const [unpaidExpensesDialogOpen, setUnpaidExpensesDialogOpen] = useState(false);
+  const { incomeInvoices, expenseInvoices, accounts, loading, addIncomeInvoice, addExpenseInvoice } = useInvoices(companyId);
   const [incomeDialogOpen, setIncomeDialogOpen] = useState(false);
   const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
-
-  // Income form state
+  const [unpaidExpensesDialogOpen, setUnpaidExpensesDialogOpen] = useState(false);
   const [incomeFormData, setIncomeFormData] = useState({
     invoice_number: '',
     description: '',
-    amount: '',
+    amount: 0,
     invoice_date: new Date(),
     payment_status: 'unpaid' as 'paid' | 'unpaid',
-    payment_date: undefined as Date | undefined,
+    payment_date: undefined,
     account_id: 'none'
   });
-
-  // Expense form state
   const [expenseFormData, setExpenseFormData] = useState({
     invoice_number: '',
     description: '',
-    amount: '',
+    amount: 0,
     invoice_date: new Date(),
     payment_status: 'unpaid' as 'paid' | 'unpaid',
-    payment_date: undefined as Date | undefined,
+    payment_date: undefined,
     account_id: 'none'
   });
 
-  // Calculate metrics
-  const totalIncomeInvoices = incomeInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
-  const totalExpenseInvoices = expenseInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
-  const unpaidIncomeInvoices = incomeInvoices.filter(inv => inv.payment_status === 'unpaid');
-  const unpaidExpenseInvoices = expenseInvoices.filter(inv => inv.payment_status === 'unpaid');
-  const totalUnpaidIncome = unpaidIncomeInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
-  const totalUnpaidExpenses = unpaidExpenseInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
-  const netProfit = totalIncomeInvoices - totalExpenseInvoices;
+  const totalIncome = useMemo(() => {
+    return incomeInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
+  }, [incomeInvoices]);
 
-  const handleIncomeSubmit = async () => {
-    if (!incomeFormData.description || !incomeFormData.amount) {
-      toast.error("Açıklama ve tutar zorunludur.");
+  const totalExpense = useMemo(() => {
+    return expenseInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
+  }, [expenseInvoices]);
+
+  const totalUnpaidExpenses = useMemo(() => {
+    return expenseInvoices.filter(invoice => invoice.payment_status === 'unpaid').reduce((sum, invoice) => sum + invoice.amount, 0);
+  }, [expenseInvoices]);
+
+  const formatDateForInput = (date: Date) => {
+    return date.toISOString().split('T')[0];
+  };
+
+  const parseDateFromInput = (dateString: string) => {
+    return new Date(dateString + 'T00:00:00');
+  };
+
+  const handleCreateIncomeInvoice = async () => {
+    if (!incomeFormData.description.trim() || incomeFormData.amount <= 0) {
+      toast.error("Lütfen fatura açıklamasını ve tutarını girin.");
       return;
     }
 
     const { error } = await addIncomeInvoice({
       invoice_number: incomeFormData.invoice_number || undefined,
       description: incomeFormData.description,
-      amount: parseFloat(incomeFormData.amount),
-      invoice_date: format(incomeFormData.invoice_date, 'yyyy-MM-dd'),
+      amount: incomeFormData.amount,
+      invoice_date: incomeFormData.invoice_date.toISOString(),
       payment_status: incomeFormData.payment_status,
-      payment_date: incomeFormData.payment_date ? format(incomeFormData.payment_date, 'yyyy-MM-dd') : undefined,
+      payment_date: incomeFormData.payment_status === 'paid' && incomeFormData.payment_date ? incomeFormData.payment_date.toISOString() : undefined,
       account_id: incomeFormData.account_id === 'none' ? undefined : incomeFormData.account_id
     });
 
     if (error) {
-      toast.error("Gelir faturası oluşturulurken hata oluştu.");
+      toast.error("Gelir faturası oluşturulurken bir hata oluştu.");
       return;
     }
 
@@ -83,7 +81,7 @@ export const CompanyCashManagement = ({ companyId }: { companyId: string }) => {
     setIncomeFormData({
       invoice_number: '',
       description: '',
-      amount: '',
+      amount: 0,
       invoice_date: new Date(),
       payment_status: 'unpaid',
       payment_date: undefined,
@@ -92,24 +90,24 @@ export const CompanyCashManagement = ({ companyId }: { companyId: string }) => {
     setIncomeDialogOpen(false);
   };
 
-  const handleExpenseSubmit = async () => {
-    if (!expenseFormData.description || !expenseFormData.amount) {
-      toast.error("Açıklama ve tutar zorunludur.");
+  const handleCreateExpenseInvoice = async () => {
+    if (!expenseFormData.description.trim() || expenseFormData.amount <= 0) {
+      toast.error("Lütfen fatura açıklamasını ve tutarını girin.");
       return;
     }
 
     const { error } = await addExpenseInvoice({
       invoice_number: expenseFormData.invoice_number || undefined,
       description: expenseFormData.description,
-      amount: parseFloat(expenseFormData.amount),
-      invoice_date: format(expenseFormData.invoice_date, 'yyyy-MM-dd'),
+      amount: expenseFormData.amount,
+      invoice_date: expenseFormData.invoice_date.toISOString(),
       payment_status: expenseFormData.payment_status,
-      payment_date: expenseFormData.payment_date ? format(expenseFormData.payment_date, 'yyyy-MM-dd') : undefined,
+      payment_date: expenseFormData.payment_status === 'paid' && expenseFormData.payment_date ? expenseFormData.payment_date.toISOString() : undefined,
       account_id: expenseFormData.account_id === 'none' ? undefined : expenseFormData.account_id
     });
 
     if (error) {
-      toast.error("Gider faturası oluşturulurken hata oluştu.");
+      toast.error("Gider faturası oluşturulurken bir hata oluştu.");
       return;
     }
 
@@ -117,7 +115,7 @@ export const CompanyCashManagement = ({ companyId }: { companyId: string }) => {
     setExpenseFormData({
       invoice_number: '',
       description: '',
-      amount: '',
+      amount: 0,
       invoice_date: new Date(),
       payment_status: 'unpaid',
       payment_date: undefined,
@@ -136,409 +134,379 @@ export const CompanyCashManagement = ({ companyId }: { companyId: string }) => {
 
   return (
     <div className="space-y-6">
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-green-900">Toplam Gelir</p>
-                <p className="text-2xl font-bold text-green-700">{formatCurrency(totalIncomeInvoices)}</p>
-              </div>
-            </div>
+      {/* Metrics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="bg-green-50 border-green-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg font-semibold">Toplam Gelir</CardTitle>
+            <CardDescription>Şirketinize ait toplam gelir</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{formatCurrency(totalIncome)}</div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <TrendingDown className="h-6 w-6 text-red-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-red-900">Toplam Gider</p>
-                <p className="text-2xl font-bold text-red-700">{formatCurrency(totalExpenseInvoices)}</p>
-              </div>
-            </div>
+        <Card className="bg-red-50 border-red-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg font-semibold">Toplam Gider</CardTitle>
+            <CardDescription>Şirketinize ait toplam gider</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{formatCurrency(totalExpense)}</div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <DollarSign className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-blue-900">Net Kar/Zarar</p>
-                <p className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                  {formatCurrency(Math.abs(netProfit))}
-                </p>
-              </div>
-            </div>
+        <Card className="bg-amber-50 border-amber-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg font-semibold">Ödenmemiş Giderler</CardTitle>
+            <CardDescription>Ödenmemiş faturaların toplamı</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-amber-600">{formatCurrency(totalUnpaidExpenses)}</div>
+            {totalUnpaidExpenses > 0 && (
+              <Button variant="link" size="sm" className="mt-2" onClick={() => setUnpaidExpensesDialogOpen(true)}>
+                Detayları Gör
+              </Button>
+            )}
           </CardContent>
         </Card>
+      </div>
 
-        <Dialog open={unpaidExpensesDialogOpen} onOpenChange={setUnpaidExpensesDialogOpen}>
-          <DialogTrigger asChild>
-            <Card className="cursor-pointer hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-amber-100 rounded-lg">
-                    <FileText className="h-6 w-6 text-amber-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-amber-900">Ödenmemiş Gider</p>
-                    <p className="text-2xl font-bold text-amber-700">{formatCurrency(totalUnpaidExpenses)}</p>
-                    <p className="text-xs text-amber-600 mt-1">Detayları görmek için tıklayın</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Ödenmemiş Gider Faturalar</DialogTitle>
-              <DialogDescription>
-                Henüz ödenmemiş olan gider faturaları
-              </DialogDescription>
-            </DialogHeader>
-            <div className="mt-4">
+      {/* Create Income Invoice Dialog */}
+      <Dialog open={incomeDialogOpen} onOpenChange={setIncomeDialogOpen}>
+        <DialogTrigger asChild>
+          <Button className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Gelir Faturası Oluştur
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Gelir Faturası Oluştur</DialogTitle>
+            <DialogDescription>
+              Yeni bir gelir faturası oluşturun
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="income-invoice-number">Fatura Numarası</Label>
+              <Input 
+                id="income-invoice-number" 
+                value={incomeFormData.invoice_number}
+                onChange={(e) => setIncomeFormData({...incomeFormData, invoice_number: e.target.value})}
+                placeholder="Fatura numarası (opsiyonel)"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="income-description">Açıklama *</Label>
+              <Input 
+                id="income-description" 
+                value={incomeFormData.description}
+                onChange={(e) => setIncomeFormData({...incomeFormData, description: e.target.value})}
+                placeholder="Fatura açıklaması"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="income-amount">Tutar *</Label>
+              <Input 
+                id="income-amount" 
+                type="number"
+                step="0.01"
+                value={incomeFormData.amount}
+                onChange={(e) => setIncomeFormData({...incomeFormData, amount: parseFloat(e.target.value) || 0})}
+                placeholder="0.00"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="income-date">Fatura Tarihi *</Label>
+              <Input 
+                id="income-date" 
+                type="date"
+                value={formatDateForInput(incomeFormData.invoice_date)}
+                onChange={(e) => setIncomeFormData({...incomeFormData, invoice_date: parseDateFromInput(e.target.value)})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="income-account">Cari Hesap</Label>
+              <Select value={incomeFormData.account_id} onValueChange={(value) => setIncomeFormData({...incomeFormData, account_id: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Cari hesap seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Cari hesap yok</SelectItem>
+                  {accounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="income-payment-status">Ödeme Durumu</Label>
+              <Select value={incomeFormData.payment_status} onValueChange={(value: 'paid' | 'unpaid') => setIncomeFormData({...incomeFormData, payment_status: value})}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unpaid">Ödenmemiş</SelectItem>
+                  <SelectItem value="paid">Ödenmiş</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {incomeFormData.payment_status === 'paid' && (
+              <div className="space-y-2">
+                <Label htmlFor="income-payment-date">Ödeme Tarihi</Label>
+                <Input 
+                  id="income-payment-date" 
+                  type="date"
+                  value={incomeFormData.payment_date ? formatDateForInput(incomeFormData.payment_date) : ''}
+                  onChange={(e) => setIncomeFormData({...incomeFormData, payment_date: e.target.value ? parseDateFromInput(e.target.value) : undefined})}
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIncomeDialogOpen(false)}>İptal</Button>
+            <Button onClick={handleCreateIncomeInvoice}>Oluştur</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Expense Invoice Dialog */}
+      <Dialog open={expenseDialogOpen} onOpenChange={setExpenseDialogOpen}>
+        <DialogTrigger asChild>
+          <Button variant="outline" className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Gider Faturası Oluştur
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Gider Faturası Oluştur</DialogTitle>
+            <DialogDescription>
+              Yeni bir gider faturası oluşturun
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="expense-invoice-number">Fatura Numarası</Label>
+              <Input 
+                id="expense-invoice-number" 
+                value={expenseFormData.invoice_number}
+                onChange={(e) => setExpenseFormData({...expenseFormData, invoice_number: e.target.value})}
+                placeholder="Fatura numarası (opsiyonel)"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="expense-description">Açıklama *</Label>
+              <Input 
+                id="expense-description" 
+                value={expenseFormData.description}
+                onChange={(e) => setExpenseFormData({...expenseFormData, description: e.target.value})}
+                placeholder="Fatura açıklaması"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="expense-amount">Tutar *</Label>
+              <Input 
+                id="expense-amount" 
+                type="number"
+                step="0.01"
+                value={expenseFormData.amount}
+                onChange={(e) => setExpenseFormData({...expenseFormData, amount: parseFloat(e.target.value) || 0})}
+                placeholder="0.00"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="expense-date">Fatura Tarihi *</Label>
+              <Input 
+                id="expense-date" 
+                type="date"
+                value={formatDateForInput(expenseFormData.invoice_date)}
+                onChange={(e) => setExpenseFormData({...expenseFormData, invoice_date: parseDateFromInput(e.target.value)})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="expense-account">Cari Hesap</Label>
+              <Select value={expenseFormData.account_id} onValueChange={(value) => setExpenseFormData({...expenseFormData, account_id: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Cari hesap seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Cari hesap yok</SelectItem>
+                  {accounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="expense-payment-status">Ödeme Durumu</Label>
+              <Select value={expenseFormData.payment_status} onValueChange={(value: 'paid' | 'unpaid') => setExpenseFormData({...expenseFormData, payment_status: value})}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unpaid">Ödenmemiş</SelectItem>
+                  <SelectItem value="paid">Ödenmiş</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {expenseFormData.payment_status === 'paid' && (
+              <div className="space-y-2">
+                <Label htmlFor="expense-payment-date">Ödeme Tarihi</Label>
+                <Input 
+                  id="expense-payment-date" 
+                  type="date"
+                  value={expenseFormData.payment_date ? formatDateForInput(expenseFormData.payment_date) : ''}
+                  onChange={(e) => setExpenseFormData({...expenseFormData, payment_date: e.target.value ? parseDateFromInput(e.target.value) : undefined})}
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExpenseDialogOpen(false)}>İptal</Button>
+            <Button onClick={handleCreateExpenseInvoice}>Oluştur</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Unpaid Expenses Dialog */}
+      <Dialog open={unpaidExpensesDialogOpen} onOpenChange={setUnpaidExpensesDialogOpen}>
+        <DialogContent className="sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle>Ödenmemiş Gider Faturaları</DialogTitle>
+            <DialogDescription>
+              Henüz ödenmemiş olan gider faturalarınızın listesi
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {expenseInvoices.filter(invoice => invoice.payment_status === 'unpaid').length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Fatura No</TableHead>
                     <TableHead>Açıklama</TableHead>
-                    <TableHead>Cari</TableHead>
+                    <TableHead className="text-right">Tutar</TableHead>
                     <TableHead>Fatura Tarihi</TableHead>
-                    <TableHead>Tutar</TableHead>
-                    <TableHead>Durum</TableHead>
+                    <TableHead>Cari Hesap</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {unpaidExpenseInvoices.map((invoice) => (
+                  {expenseInvoices.filter(invoice => invoice.payment_status === 'unpaid').map(invoice => (
                     <TableRow key={invoice.id}>
-                      <TableCell>{invoice.invoice_number || '-'}</TableCell>
+                      <TableCell>{invoice.invoice_number || 'Yok'}</TableCell>
                       <TableCell>{invoice.description}</TableCell>
-                      <TableCell>{invoice.account?.name || '-'}</TableCell>
-                      <TableCell>
-                        {format(new Date(invoice.invoice_date), 'dd/MM/yyyy', { locale: tr })}
-                      </TableCell>
-                      <TableCell className="font-medium text-red-600">
-                        {formatCurrency(invoice.amount)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="destructive">Ödenmedi</Badge>
-                      </TableCell>
+                      <TableCell className="text-right">{formatCurrency(invoice.amount)}</TableCell>
+                      <TableCell>{new Date(invoice.invoice_date).toLocaleDateString('tr-TR')}</TableCell>
+                      <TableCell>{invoice.account?.name || 'Yok'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-              {unpaidExpenseInvoices.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  Ödenmemiş gider faturası bulunamadı
-                </div>
-              )}
+            ) : (
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-lg font-medium text-gray-500">Ödenmemiş gider faturası bulunmamaktadır.</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUnpaidExpensesDialogOpen(false)}>Kapat</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Income Invoices List */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <ArrowDown className="h-5 w-5 text-green-500" />
+            <span>Gelir Faturaları</span>
+          </CardTitle>
+          <CardDescription>Oluşturulan gelir faturalarının listesi</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {incomeInvoices.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Fatura No</TableHead>
+                  <TableHead>Açıklama</TableHead>
+                  <TableHead className="text-right">Tutar</TableHead>
+                  <TableHead>Fatura Tarihi</TableHead>
+                  <TableHead>Ödeme Durumu</TableHead>
+                  <TableHead>Cari Hesap</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {incomeInvoices.map(invoice => (
+                  <TableRow key={invoice.id}>
+                    <TableCell>{invoice.invoice_number || 'Yok'}</TableCell>
+                    <TableCell>{invoice.description}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(invoice.amount)}</TableCell>
+                    <TableCell>{new Date(invoice.invoice_date).toLocaleDateString('tr-TR')}</TableCell>
+                    <TableCell>{invoice.payment_status === 'paid' ? 'Ödendi' : 'Ödenmedi'}</TableCell>
+                    <TableCell>{invoice.account?.name || 'Yok'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-8">
+              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-lg font-medium text-gray-500">Henüz gelir faturası oluşturulmadı.</p>
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* Invoice Creation Forms */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Income Invoice Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-green-600" />
-              Gelir Faturası
-            </CardTitle>
-            <CardDescription>Yeni gelir faturası oluşturun</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Dialog open={incomeDialogOpen} onOpenChange={setIncomeDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="w-full">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Gelir Faturası Oluştur
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Yeni Gelir Faturası</DialogTitle>
-                  <DialogDescription>
-                    Yeni bir gelir faturası oluşturun
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="income-invoice-number">Fatura No (Opsiyonel)</Label>
-                    <Input
-                      id="income-invoice-number"
-                      value={incomeFormData.invoice_number}
-                      onChange={(e) => setIncomeFormData({...incomeFormData, invoice_number: e.target.value})}
-                      placeholder="FT-001"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="income-description">Açıklama *</Label>
-                    <Textarea
-                      id="income-description"
-                      value={incomeFormData.description}
-                      onChange={(e) => setIncomeFormData({...incomeFormData, description: e.target.value})}
-                      placeholder="Fatura açıklaması"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="income-amount">Tutar *</Label>
-                    <Input
-                      id="income-amount"
-                      type="number"
-                      step="0.01"
-                      value={incomeFormData.amount}
-                      onChange={(e) => setIncomeFormData({...incomeFormData, amount: e.target.value})}
-                      placeholder="0.00"
-                    />
-                  </div>
-
-                  <div>
-                    <Label>Fatura Tarihi</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !incomeFormData.invoice_date && "text-muted-foreground")}>
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {incomeFormData.invoice_date ? format(incomeFormData.invoice_date, "dd/MM/yyyy", { locale: tr }) : <span>Tarih seçin</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={incomeFormData.invoice_date}
-                          onSelect={(date) => date && setIncomeFormData({...incomeFormData, invoice_date: date})}
-                          initialFocus
-                          className="pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  <div>
-                    <Label>Cari Hesap</Label>
-                    <Select value={incomeFormData.account_id} onValueChange={(value) => setIncomeFormData({...incomeFormData, account_id: value})}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Cari hesap seçin" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Cari hesap yok</SelectItem>
-                        {accounts.map((account) => (
-                          <SelectItem key={account.id} value={account.id}>
-                            {account.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label>Ödeme Durumu</Label>
-                    <Select value={incomeFormData.payment_status} onValueChange={(value: 'paid' | 'unpaid') => setIncomeFormData({...incomeFormData, payment_status: value})}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="unpaid">Ödenmedi</SelectItem>
-                        <SelectItem value="paid">Ödendi</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {incomeFormData.payment_status === 'paid' && (
-                    <div>
-                      <Label>Ödeme Tarihi</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !incomeFormData.payment_date && "text-muted-foreground")}>
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {incomeFormData.payment_date ? format(incomeFormData.payment_date, "dd/MM/yyyy", { locale: tr }) : <span>Ödeme tarihi seçin</span>}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <Calendar
-                            mode="single"
-                            selected={incomeFormData.payment_date}
-                            onSelect={(date) => setIncomeFormData({...incomeFormData, payment_date: date})}
-                            initialFocus
-                            className="pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  )}
-
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setIncomeDialogOpen(false)} className="flex-1">
-                      İptal
-                    </Button>
-                    <Button onClick={handleIncomeSubmit} className="flex-1">
-                      Oluştur
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </CardContent>
-        </Card>
-
-        {/* Expense Invoice Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingDown className="h-5 w-5 text-red-600" />
-              Gider Faturası
-            </CardTitle>
-            <CardDescription>Yeni gider faturası oluşturun</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Dialog open={expenseDialogOpen} onOpenChange={setExpenseDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="w-full" variant="destructive">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Gider Faturası Oluştur
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Yeni Gider Faturası</DialogTitle>
-                  <DialogDescription>
-                    Yeni bir gider faturası oluşturun
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="expense-invoice-number">Fatura No (Opsiyonel)</Label>
-                    <Input
-                      id="expense-invoice-number"
-                      value={expenseFormData.invoice_number}
-                      onChange={(e) => setExpenseFormData({...expenseFormData, invoice_number: e.target.value})}
-                      placeholder="FT-001"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="expense-description">Açıklama *</Label>
-                    <Textarea
-                      id="expense-description"
-                      value={expenseFormData.description}
-                      onChange={(e) => setExpenseFormData({...expenseFormData, description: e.target.value})}
-                      placeholder="Fatura açıklaması"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="expense-amount">Tutar *</Label>
-                    <Input
-                      id="expense-amount"
-                      type="number"
-                      step="0.01"
-                      value={expenseFormData.amount}
-                      onChange={(e) => setExpenseFormData({...expenseFormData, amount: e.target.value})}
-                      placeholder="0.00"
-                    />
-                  </div>
-
-                  <div>
-                    <Label>Fatura Tarihi</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !expenseFormData.invoice_date && "text-muted-foreground")}>
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {expenseFormData.invoice_date ? format(expenseFormData.invoice_date, "dd/MM/yyyy", { locale: tr }) : <span>Tarih seçin</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={expenseFormData.invoice_date}
-                          onSelect={(date) => date && setExpenseFormData({...expenseFormData, invoice_date: date})}
-                          initialFocus
-                          className="pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  <div>
-                    <Label>Cari Hesap</Label>
-                    <Select value={expenseFormData.account_id} onValueChange={(value) => setExpenseFormData({...expenseFormData, account_id: value})}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Cari hesap seçin" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Cari hesap yok</SelectItem>
-                        {accounts.map((account) => (
-                          <SelectItem key={account.id} value={account.id}>
-                            {account.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label>Ödeme Durumu</Label>
-                    <Select value={expenseFormData.payment_status} onValueChange={(value: 'paid' | 'unpaid') => setExpenseFormData({...expenseFormData, payment_status: value})}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="unpaid">Ödenmedi</SelectItem>
-                        <SelectItem value="paid">Ödendi</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {expenseFormData.payment_status === 'paid' && (
-                    <div>
-                      <Label>Ödeme Tarihi</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !expenseFormData.payment_date && "text-muted-foreground")}>
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {expenseFormData.payment_date ? format(expenseFormData.payment_date, "dd/MM/yyyy", { locale: tr }) : <span>Ödeme tarihi seçin</span>}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <Calendar
-                            mode="single"
-                            selected={expenseFormData.payment_date}
-                            onSelect={(date) => setExpenseFormData({...expenseFormData, payment_date: date})}
-                            initialFocus
-                            className="pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  )}
-
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setExpenseDialogOpen(false)} className="flex-1">
-                      İptal
-                    </Button>
-                    <Button onClick={handleExpenseSubmit} className="flex-1">
-                      Oluştur
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Expense Invoices List */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <ArrowUp className="h-5 w-5 text-red-500" />
+            <span>Gider Faturaları</span>
+          </CardTitle>
+          <CardDescription>Oluşturulan gider faturalarının listesi</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {expenseInvoices.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Fatura No</TableHead>
+                  <TableHead>Açıklama</TableHead>
+                  <TableHead className="text-right">Tutar</TableHead>
+                  <TableHead>Fatura Tarihi</TableHead>
+                  <TableHead>Ödeme Durumu</TableHead>
+                  <TableHead>Cari Hesap</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {expenseInvoices.map(invoice => (
+                  <TableRow key={invoice.id}>
+                    <TableCell>{invoice.invoice_number || 'Yok'}</TableCell>
+                    <TableCell>{invoice.description}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(invoice.amount)}</TableCell>
+                    <TableCell>{new Date(invoice.invoice_date).toLocaleDateString('tr-TR')}</TableCell>
+                    <TableCell>{invoice.payment_status === 'paid' ? 'Ödendi' : 'Ödenmedi'}</TableCell>
+                    <TableCell>{invoice.account?.name || 'Yok'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-8">
+              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-lg font-medium text-gray-500">Henüz gider faturası oluşturulmadı.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

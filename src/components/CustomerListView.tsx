@@ -1,21 +1,33 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Users, Search, Eye, Phone, MapPin } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Users, Search, Eye, Phone, MapPin, Edit } from 'lucide-react';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { formatCurrency } from '@/lib/numberUtils';
+import { toast } from 'sonner';
 
 interface CustomerListViewProps {
   onCustomerSelect: (customerId: string) => void;
 }
 
 export const CustomerListView = ({ onCustomerSelect }: CustomerListViewProps) => {
-  const { customers, loading: customersLoading } = useCustomers();
+  const { customers, loading: customersLoading, updateCustomer } = useCustomers();
   const { getCustomerBalance, loading: transactionsLoading } = useCustomerTransactions();
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingCustomer, setEditingCustomer] = useState<string | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    phone: '',
+    address: '',
+    notes: ''
+  });
 
   const filteredCustomers = customers.filter(customer =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -34,6 +46,36 @@ export const CustomerListView = ({ onCustomerSelect }: CustomerListViewProps) =>
     return 'Bakiye: ₺0,00';
   };
 
+  const handleEditCustomer = (customer: any) => {
+    setEditingCustomer(customer.id);
+    setEditFormData({
+      name: customer.name,
+      phone: customer.phone || '',
+      address: customer.address || '',
+      notes: customer.notes || ''
+    });
+  };
+
+  const handleUpdateCustomer = async () => {
+    if (!editingCustomer) return;
+
+    const { error } = await updateCustomer(editingCustomer, {
+      name: editFormData.name,
+      phone: editFormData.phone || undefined,
+      address: editFormData.address || undefined,
+      notes: editFormData.notes || undefined
+    });
+
+    if (error) {
+      toast.error("Müşteri güncellenirken bir hata oluştu.");
+      return;
+    }
+
+    toast.success("Müşteri başarıyla güncellendi.");
+    setEditingCustomer(null);
+    setEditFormData({ name: '', phone: '', address: '', notes: '' });
+  };
+
   if (customersLoading || transactionsLoading) {
     return <div className="flex justify-center items-center h-64">Yükleniyor...</div>;
   }
@@ -48,7 +90,7 @@ export const CustomerListView = ({ onCustomerSelect }: CustomerListViewProps) =>
         <CardDescription>Müşterileri ve bakiyelerini görüntüleyin</CardDescription>
         
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             placeholder="Müşteri adı veya telefon ile ara..."
             value={searchTerm}
@@ -93,6 +135,69 @@ export const CustomerListView = ({ onCustomerSelect }: CustomerListViewProps) =>
                         >
                           {getBalanceText(balance)}
                         </Badge>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditCustomer(customer)}
+                              className="flex items-center space-x-1"
+                            >
+                              <Edit className="h-4 w-4" />
+                              <span>Düzenle</span>
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-[425px]">
+                            <DialogHeader>
+                              <DialogTitle>Müşteri Düzenle</DialogTitle>
+                              <DialogDescription>
+                                Müşteri bilgilerini güncelleyin
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="edit-name">Müşteri Adı *</Label>
+                                <Input 
+                                  id="edit-name" 
+                                  value={editFormData.name}
+                                  onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
+                                  placeholder="Müşteri adı"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="edit-phone">Telefon</Label>
+                                <Input 
+                                  id="edit-phone" 
+                                  value={editFormData.phone}
+                                  onChange={(e) => setEditFormData({...editFormData, phone: e.target.value})}
+                                  placeholder="0555 123 45 67"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="edit-address">Adres</Label>
+                                <Input 
+                                  id="edit-address" 
+                                  value={editFormData.address}
+                                  onChange={(e) => setEditFormData({...editFormData, address: e.target.value})}
+                                  placeholder="Adres bilgisi"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="edit-notes">Notlar</Label>
+                                <Textarea 
+                                  id="edit-notes" 
+                                  value={editFormData.notes}
+                                  onChange={(e) => setEditFormData({...editFormData, notes: e.target.value})}
+                                  placeholder="Ek notlar..."
+                                />
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button variant="outline" onClick={() => setEditingCustomer(null)}>İptal</Button>
+                              <Button onClick={handleUpdateCustomer}>Güncelle</Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
                         <Button
                           variant="outline"
                           size="sm"
