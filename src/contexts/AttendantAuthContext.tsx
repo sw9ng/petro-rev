@@ -62,7 +62,7 @@ export const AttendantAuthProvider = ({ children }: { children: React.ReactNode 
       }
 
       // Type cast the JSON response
-      const response = data as AuthResponse;
+      const response = data as unknown as AuthResponse;
 
       if (response?.success) {
         const attendantData = response.attendant!;
