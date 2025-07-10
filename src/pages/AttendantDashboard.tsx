@@ -29,6 +29,13 @@ interface AttendantShift {
   shift_number?: 'V1' | 'V2';
 }
 
+interface VeseriyeTransaction {
+  id: string;
+  description: string;
+  amount: number;
+  customer_name?: string;
+}
+
 export default function AttendantDashboard() {
   const { attendant, signOut, loading: authLoading } = useAttendantAuth();
   const navigate = useNavigate();
@@ -37,6 +44,8 @@ export default function AttendantDashboard() {
   const [selectedShift, setSelectedShift] = useState<AttendantShift | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [veseriyeTransactions, setVeseriyeTransactions] = useState<VeseriyeTransaction[]>([]);
+  const [loadingVeseriye, setLoadingVeseriye] = useState(false);
   
   // Filters
   const [dateRange, setDateRange] = useState({
@@ -128,9 +137,37 @@ export default function AttendantDashboard() {
     setFilterOpen(false);
   };
 
+  const fetchVeseriyeTransactions = async (shiftId: string) => {
+    setLoadingVeseriye(true);
+    const { data, error } = await supabase
+      .from('customer_transactions')
+      .select(`
+        id,
+        description,
+        amount,
+        customers(name)
+      `)
+      .eq('shift_id', shiftId)
+      .eq('transaction_type', 'veresiye');
+
+    if (error) {
+      console.error('Error fetching veresiye transactions:', error);
+    } else {
+      const mappedData = (data || []).map(transaction => ({
+        id: transaction.id,
+        description: transaction.description || 'Açıklama yok',
+        amount: transaction.amount,
+        customer_name: (transaction.customers as any)?.name
+      }));
+      setVeseriyeTransactions(mappedData);
+    }
+    setLoadingVeseriye(false);
+  };
+
   const viewShiftDetails = (shift: AttendantShift) => {
     setSelectedShift(shift);
     setDetailsOpen(true);
+    fetchVeseriyeTransactions(shift.id);
   };
 
   const formatCurrency = (amount: number) => {
@@ -387,9 +424,36 @@ export default function AttendantDashboard() {
                     <p className="font-medium">{formatCurrency(selectedShift.cash_sales)}</p>
                   </div>
                   
-                  <div>
-                    <p className="text-muted-foreground">Veresiye</p>
-                    <p className="font-medium">{formatCurrency(selectedShift.veresiye)}</p>
+                  <div className="col-span-2">
+                    <p className="text-muted-foreground mb-2">Veresiye İşlemleri</p>
+                    <div className="bg-amber-50 p-3 rounded-lg">
+                      <p className="font-medium text-amber-800 mb-2">
+                        Toplam: {formatCurrency(selectedShift.veresiye)}
+                      </p>
+                      {loadingVeseriye ? (
+                        <p className="text-sm text-muted-foreground">Yükleniyor...</p>
+                      ) : veseriyeTransactions.length > 0 ? (
+                        <div className="space-y-2 max-h-24 overflow-y-auto">
+                          {veseriyeTransactions.map((transaction) => (
+                            <div key={transaction.id} className="text-xs bg-white p-2 rounded border">
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  {transaction.customer_name && (
+                                    <p className="font-medium text-amber-700">{transaction.customer_name}</p>
+                                  )}
+                                  <p className="text-gray-600">{transaction.description}</p>
+                                </div>
+                                <span className="font-medium text-amber-800 ml-2">
+                                  {formatCurrency(transaction.amount)}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Veresiye işlemi yok</p>
+                      )}
+                    </div>
                   </div>
                   
                   <div>
