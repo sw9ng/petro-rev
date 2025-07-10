@@ -27,6 +27,7 @@ interface AttendantShift {
   bank_transfers: number;
   loyalty_card: number;
   shift_number?: 'V1' | 'V2';
+  bank_transfer_description?: string;
 }
 
 interface ShiftTransaction {
@@ -114,6 +115,7 @@ export default function AttendantDashboard() {
         bank_transfers: shift.bank_transfers || 0,
         loyalty_card: shift.loyalty_card || 0,
         shift_number: (shift.shift_number as 'V1' | 'V2') || undefined,
+        bank_transfer_description: shift.bank_transfer_description || '',
       }));
       
       console.log('Mapped shifts:', mappedData);
@@ -466,8 +468,20 @@ export default function AttendantDashboard() {
                       ) : (
                         <p className="text-sm text-muted-foreground">Bu vardiyada işlem yok</p>
                       )}
-                    </div>
+              </div>
+              
+              {/* Shift Description */}
+              {selectedShift.bank_transfer_description && (
+                <div className="border-t pt-4">
+                  <p className="text-muted-foreground mb-2">Vardiya Açıklaması</p>
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                      {selectedShift.bank_transfer_description}
+                    </p>
                   </div>
+                </div>
+              )}
+            </div>
                   
                   <div>
                     <p className="text-muted-foreground">Otomasyon</p>
