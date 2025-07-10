@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { CustomerListView } from './CustomerListView';
 import { CustomerDetailView } from './CustomerDetailView';
@@ -9,9 +10,20 @@ export const CustomerListDetailWrapper = () => {
     // Hash değişikliklerini dinle
     const handleHashChange = () => {
       const hash = window.location.hash;
+      console.log('Hash changed:', hash);
+      
       if (hash.startsWith('#customer-detail-')) {
         const customerId = hash.replace('#customer-detail-', '');
-        setSelectedCustomerId(customerId);
+        console.log('Setting customer ID:', customerId);
+        
+        // Geçersiz ID kontrolü
+        if (customerId && customerId !== 'undefined' && customerId !== 'null') {
+          setSelectedCustomerId(customerId);
+        } else {
+          console.warn('Invalid customer ID detected:', customerId);
+          setSelectedCustomerId(null);
+          window.location.hash = '';
+        }
       } else {
         setSelectedCustomerId(null);
       }
@@ -29,8 +41,14 @@ export const CustomerListDetailWrapper = () => {
   }, []);
 
   const handleCustomerSelect = (customerId: string) => {
-    setSelectedCustomerId(customerId);
-    window.location.hash = `customer-detail-${customerId}`;
+    console.log('Customer selected:', customerId);
+    
+    if (customerId && customerId !== 'undefined' && customerId !== 'null') {
+      setSelectedCustomerId(customerId);
+      window.location.hash = `customer-detail-${customerId}`;
+    } else {
+      console.error('Invalid customer ID provided:', customerId);
+    }
   };
 
   const handleBack = () => {
