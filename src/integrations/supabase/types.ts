@@ -549,6 +549,7 @@ export type Database = {
           bank_transfers: number
           loyalty_card: number
           shift_number: string
+          bank_transfer_description: string
         }[]
       }
       hash_attendant_password: {
