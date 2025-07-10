@@ -377,7 +377,10 @@ export const useCustomerTransactions = () => {
     transactions.forEach(transaction => {
       if (!grouped[transaction.customer_id]) {
         grouped[transaction.customer_id] = {
-          customer: transaction.customer,
+          customer: { 
+            id: transaction.customer_id,
+            name: transaction.customer.name 
+          },
           transactions: [],
           balance: 0
         };
