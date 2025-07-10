@@ -162,68 +162,75 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
         </Badge>
       </div>
 
-      {/* Accounts Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Cari Hesap Listesi</CardTitle>
-          <CardDescription>
-            Tüm cari hesaplarınızı buradan görüntüleyebilir ve yönetebilirsiniz.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {filteredAccounts.length > 0 ? (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Hesap Adı</TableHead>
-                    <TableHead>Telefon</TableHead>
-                    <TableHead>Adres</TableHead>
-                    <TableHead>Oluşturulma</TableHead>
-                    <TableHead>İşlemler</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredAccounts.map((account) => (
-                    <TableRow key={account.id}>
-                      <TableCell className="font-medium">{account.name}</TableCell>
-                      <TableCell>{account.phone || '-'}</TableCell>
-                      <TableCell className="max-w-xs truncate">{account.address || '-'}</TableCell>
-                      <TableCell>
-                        {format(new Date(account.created_at), 'dd/MM/yyyy')}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => showAccountDetail(account)}
-                            className="h-8 w-8 p-0"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteAccount(account.id)}
-                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+      {/* Accounts Grid */}
+      <div className="grid gap-4">
+        {filteredAccounts.length > 0 ? (
+          filteredAccounts.map((account) => (
+            <Card key={account.id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold">
+                      {account.name}
+                    </h3>
+                    <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
+                      {account.phone && (
+                        <div className="flex items-center space-x-1">
+                          <Phone className="h-3 w-3" />
+                          <span>{account.phone}</span>
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              {searchTerm ? 'Arama kriterinize uygun cari hesap bulunamadı.' : 'Henüz cari hesap bulunmuyor.'}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                      )}
+                      {account.address && (
+                        <div className="flex items-center space-x-1">
+                          <MapPin className="h-3 w-3" />
+                          <span className="truncate max-w-48">{account.address}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="text-right mr-3">
+                      <p className="text-sm text-gray-600">
+                        Oluşturulma: {format(new Date(account.created_at), 'dd/MM/yyyy')}
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => showAccountDetail(account)}
+                      className="flex items-center space-x-1"
+                    >
+                      <Eye className="h-4 w-4" />
+                      <span>Detay</span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteAccount(account.id)}
+                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                
+                {account.notes && (
+                  <div className="mt-4 pt-4 border-t">
+                    <div className="flex items-start space-x-2 text-sm text-gray-600">
+                      <FileText className="h-3 w-3 mt-0.5" />
+                      <span className="truncate">{account.notes}</span>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            {searchTerm ? 'Arama kriterinize uygun cari hesap bulunamadı.' : 'Henüz cari hesap bulunmuyor.'}
+          </div>
+        )}
+      </div>
 
       {/* Account Detail Dialog */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
