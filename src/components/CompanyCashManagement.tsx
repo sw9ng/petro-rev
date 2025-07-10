@@ -20,6 +20,8 @@ interface CompanyCashManagementProps {
   companyId: string;
 }
 
+type PaymentStatus = 'paid' | 'unpaid' | 'partial';
+
 export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps) => {
   const { 
     accounts,
@@ -54,7 +56,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
     description: '',
     invoice_number: '',
     invoice_date: new Date().toISOString().split('T')[0],
-    payment_status: 'unpaid' as const,
+    payment_status: 'unpaid' as PaymentStatus,
     payment_date: ''
   });
 
@@ -65,7 +67,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
     description: '',
     invoice_number: '',
     invoice_date: new Date().toISOString().split('T')[0],
-    payment_status: 'unpaid' as const,
+    payment_status: 'unpaid' as PaymentStatus,
     payment_date: ''
   });
 
@@ -336,7 +338,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
                     </div>
                     <div className="space-y-2">
                       <Label>Ödeme Durumu</Label>
-                      <Select value={incomeForm.payment_status} onValueChange={(value: 'paid' | 'unpaid' | 'partial') => setIncomeForm({...incomeForm, payment_status: value})}>
+                      <Select value={incomeForm.payment_status} onValueChange={(value: PaymentStatus) => setIncomeForm({...incomeForm, payment_status: value})}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -434,7 +436,7 @@ export const CompanyCashManagement = ({ companyId }: CompanyCashManagementProps)
                     </div>
                     <div className="space-y-2">
                       <Label>Ödeme Durumu</Label>
-                      <Select value={expenseForm.payment_status} onValueChange={(value: 'paid' | 'unpaid' | 'partial') => setExpenseForm({...expenseForm, payment_status: value})}>
+                      <Select value={expenseForm.payment_status} onValueChange={(value: PaymentStatus) => setExpenseForm({...expenseForm, payment_status: value})}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>

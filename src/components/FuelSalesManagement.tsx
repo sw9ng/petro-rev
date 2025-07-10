@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -48,20 +49,17 @@ export const FuelSalesManagement = () => {
   }, []);
 
   // Motorin stok takibi için yardımcı fonksiyonlar
-  const getMotorินStock = () => {
-    const motorinSales = fuelSales.filter(sale => sale.fuel_type === 'MOTORİN' || sale.fuel_type === 'TRANSFER(KÖY-TANKERİ)');
-    let stock = 0;
+  const getMotorInStock = () => {
+    const motorinSales = fuelSales.filter(sale => sale.fuel_type === 'MOTORİN');
+    const transferSales = fuelSales.filter(sale => sale.fuel_type === 'TRANSFER(KÖY-TANKERİ)');
     
-    motorinSales.forEach(sale => {
-      if (sale.fuel_type === 'MOTORİN') {
-        stock += sale.liters; // Motorin eklenir
-      } else if (sale.fuel_type === 'TRANSFER(KÖY-TANKERİ)') {
-        stock -= sale.liters; // Transfer çıkarılır
-      }
-    });
+    const totalMotorin = motorinSales.reduce((sum, sale) => sum + sale.liters, 0);
+    const totalTransfer = transferSales.reduce((sum, sale) => sum + sale.liters, 0);
     
-    return stock;
+    return totalMotorin - totalTransfer;
   };
+
+  const currentMotorinStock = getMotorInStock();
 
   const calculateAmount = () => {
     const literValue = parseFloat(liters) || 0;
@@ -80,9 +78,8 @@ export const FuelSalesManagement = () => {
     
     // Köy tankeri transferi için stok kontrolü
     if (fuelType === 'TRANSFER(KÖY-TANKERİ)') {
-      const currentMotorინStock = getMotorინStock();
-      if (literValue > currentMotorींStock) {
-        toast.error(`Yetersiz motorin stoku. Mevcut: ${currentMotorในStock.toFixed(2)} litre`);
+      if (literValue > currentMotorinStock) {
+        toast.error(`Yetersiz motorin stoku. Mevcut: ${currentMotorinStock.toFixed(2)} litre`);
         return;
       }
     }
@@ -108,7 +105,7 @@ export const FuelSalesManagement = () => {
       
       // Köy tankeri transferi başarılı mesajı
       if (fuelType === 'TRANSFER(KÖY-TANKERİ)') {
-        const remainingStock = getMotorインStock() - literValue;
+        const remainingStock = currentMotorinStock - literValue;
         toast.success(`Transfer tamamlandı. Kalan motorin stoku: ${remainingStock.toFixed(2)} litre`);
       }
       
@@ -167,7 +164,6 @@ export const FuelSalesManagement = () => {
 
   const salesByType = getFuelSalesByType();
   const totalSales = getTotalFuelSales();
-  const currentMotorインStock = getMotorインStock();
 
   if (loading) {
     return <div className="flex justify-center items-center h-64">Yükleniyor...</div>;
@@ -187,7 +183,7 @@ export const FuelSalesManagement = () => {
             Toplam Satış: {formatCurrency(totalSales)}
           </Badge>
           <Badge variant="outline" className="text-lg px-4 py-2 bg-blue-50 text-blue-800">
-            Motorin Stok: {currentMotorینStock.toFixed(2)} L
+            Motorin Stok: {currentMotorinStock.toFixed(2)} L
           </Badge>
         </div>
       </div>
@@ -487,11 +483,9 @@ export const FuelSalesManagement = () => {
 
       {/* Edit Dialog */}
       <FuelSalesEditDialog
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
         sale={editingSale}
-        personnel={personnel}
-        onSave={handleUpdateSale}
+        isOpen={editDialogOpen}
+        onClose={() => setEditDialogOpen(false)}
       />
     </div>
   );
