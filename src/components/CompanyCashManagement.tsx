@@ -49,11 +49,16 @@ export const CompanyCashManagement = ({ companyId }: { companyId: string }) => {
   }, [expenseInvoices]);
 
   const formatDateForInput = (date: Date) => {
+    if (!date || isNaN(date.getTime())) {
+      return new Date().toISOString().split('T')[0];
+    }
     return date.toISOString().split('T')[0];
   };
 
   const parseDateFromInput = (dateString: string) => {
-    return new Date(dateString + 'T00:00:00');
+    if (!dateString) return new Date();
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? new Date() : date;
   };
 
   const handleCreateIncomeInvoice = async () => {
@@ -224,6 +229,7 @@ export const CompanyCashManagement = ({ companyId }: { companyId: string }) => {
                 type="date"
                 value={formatDateForInput(incomeFormData.invoice_date)}
                 onChange={(e) => setIncomeFormData({...incomeFormData, invoice_date: parseDateFromInput(e.target.value)})}
+                placeholder="YYYY-MM-DD"
               />
             </div>
             <div className="space-y-2">
@@ -325,6 +331,7 @@ export const CompanyCashManagement = ({ companyId }: { companyId: string }) => {
                 type="date"
                 value={formatDateForInput(expenseFormData.invoice_date)}
                 onChange={(e) => setExpenseFormData({...expenseFormData, invoice_date: parseDateFromInput(e.target.value)})}
+                placeholder="YYYY-MM-DD"
               />
             </div>
             <div className="space-y-2">
