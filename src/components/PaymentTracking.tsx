@@ -16,6 +16,7 @@ import { usePersonnel } from '@/hooks/usePersonnel';
 import { formatCurrency } from '@/lib/numberUtils';
 import { Plus, Search, CreditCard, ArrowUpDown, Calendar, Users, TrendingUp, TrendingDown, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { CustomerListDetailWrapper } from './CustomerListDetailWrapper';
 
 export const PaymentTracking = () => {
   const { customers } = useCustomers();
@@ -51,8 +52,12 @@ export const PaymentTracking = () => {
 
   const handleCustomerClick = (customerId: string) => {
     console.log('Navigating to customer:', customerId);
-    // Sayfanın CustomerDetailView'i kullanmasını sağla
-    window.location.href = `#customer-detail-${customerId}`;
+    if (customerId && customerId !== 'undefined') {
+      // URL hash ile müşteri detayına git
+      window.location.hash = `customer-detail-${customerId}`;
+    } else {
+      console.error('Invalid customer ID:', customerId);
+    }
   };
 
   const groupedTransactions = getAllTransactionsGroupedByCustomer();
@@ -194,6 +199,12 @@ export const PaymentTracking = () => {
   // Separate transactions by type for history
   const paymentTransactions = transactions.filter(t => t.transaction_type === 'payment');
   const debtTransactions = transactions.filter(t => t.transaction_type === 'debt');
+
+  // Check if we should show customer detail
+  const hash = window.location.hash;
+  if (hash.startsWith('#customer-detail-') && hash !== '#customer-detail-undefined') {
+    return <CustomerListDetailWrapper />;
+  }
 
   return (
     <div className="space-y-6">
