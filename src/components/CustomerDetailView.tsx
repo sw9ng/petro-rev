@@ -156,11 +156,14 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
       {/* Transaction History */}
       <Card className="shadow-sm border">
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <CreditCard className="h-5 w-5 text-green-500" />
-            <span>İşlem Geçmişi</span>
+          <CardTitle className="flex items-center space-x-2 text-xl">
+            <CreditCard className="h-6 w-6 text-green-500" />
+            <span>Tüm İşlem Geçmişi</span>
+            <Badge variant="outline" className="ml-auto">
+              {customerTransactions.length} İşlem
+            </Badge>
           </CardTitle>
-          <CardDescription>Müşterinin tüm işlem geçmişi</CardDescription>
+          <CardDescription>Müşterinin tüm işlem geçmişi - hiçbir sınır yok</CardDescription>
         </CardHeader>
         <CardContent>
           {customerTransactions.length > 0 ? (
