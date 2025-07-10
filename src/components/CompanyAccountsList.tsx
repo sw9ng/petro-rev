@@ -8,7 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, Edit, Trash2, Eye, Phone, MapPin, FileText } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, Eye, Phone, MapPin, FileText, CreditCard, TrendingUp, TrendingDown } from 'lucide-react';
+import { formatCurrency } from '@/lib/numberUtils';
 import { useInvoices } from '@/hooks/useInvoices';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -18,7 +19,7 @@ interface CompanyAccountsListProps {
 }
 
 export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => {
-  const { accounts, loading, addAccount, deleteAccount } = useInvoices(companyId);
+  const { accounts, loading, addAccount, deleteAccount, incomeInvoices, expenseInvoices } = useInvoices(companyId);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<any>(null);
@@ -34,6 +35,41 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
     account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     account.phone?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Hesap bazında borç/alacak hesaplama fonksiyonları
+  const getAccountBalance = (accountId: string) => {
+    const accountIncomeInvoices = incomeInvoices.filter(invoice => invoice.account_id === accountId);
+    const accountExpenseInvoices = expenseInvoices.filter(invoice => invoice.account_id === accountId);
+    
+    const totalIncome = accountIncomeInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
+    const totalExpense = accountExpenseInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
+    
+    return totalIncome - totalExpense; // Pozitif = Alacak, Negatif = Borç
+  };
+
+  const getAccountInvoices = (accountId: string) => {
+    const accountIncomeInvoices = incomeInvoices.filter(invoice => invoice.account_id === accountId);
+    const accountExpenseInvoices = expenseInvoices.filter(invoice => invoice.account_id === accountId);
+    
+    return {
+      income: accountIncomeInvoices,
+      expense: accountExpenseInvoices,
+      totalIncome: accountIncomeInvoices.reduce((sum, invoice) => sum + invoice.amount, 0),
+      totalExpense: accountExpenseInvoices.reduce((sum, invoice) => sum + invoice.amount, 0)
+    };
+  };
+
+  const getBalanceColor = (balance: number) => {
+    if (balance > 0) return 'text-green-600';
+    if (balance < 0) return 'text-red-600';
+    return 'text-gray-600';
+  };
+
+  const getBalanceText = (balance: number) => {
+    if (balance > 0) return `Alacak: ${formatCurrency(balance)}`;
+    if (balance < 0) return `Borç: ${formatCurrency(Math.abs(balance))}`;
+    return 'Bakiye: ₺0,00';
+  };
 
   const handleAddAccount = async () => {
     if (!newAccount.name.trim()) {
@@ -188,29 +224,34 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="text-right mr-3">
+                  <div className="flex items-center space-x-4">
+                    <div className="text-right">
+                      <div className={`text-xl font-bold ${getBalanceColor(getAccountBalance(account.id))}`}>
+                        {getBalanceText(getAccountBalance(account.id))}
+                      </div>
                       <p className="text-sm text-gray-600">
                         Oluşturulma: {format(new Date(account.created_at), 'dd/MM/yyyy')}
                       </p>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => showAccountDetail(account)}
-                      className="flex items-center space-x-1"
-                    >
-                      <Eye className="h-4 w-4" />
-                      <span>Detay</span>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteAccount(account.id)}
-                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => showAccountDetail(account)}
+                        className="flex items-center space-x-1"
+                      >
+                        <Eye className="h-4 w-4" />
+                        <span>Detay</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteAccount(account.id)}
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
                 
@@ -234,15 +275,16 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
 
       {/* Account Detail Dialog */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Cari Hesap Detayı</DialogTitle>
             <DialogDescription>
-              {selectedAccount?.name} hesabının detaylı bilgileri
+              {selectedAccount?.name} hesabının detaylı bilgileri ve bakiye durumu
             </DialogDescription>
           </DialogHeader>
           {selectedAccount && (
-            <div className="space-y-4">
+            <div className="space-y-6">
+              {/* Hesap Bilgileri */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-sm font-medium text-gray-600">Hesap Adı</Label>
@@ -274,6 +316,85 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
                   <span className="text-sm">{selectedAccount.notes}</span>
                 </div>
               )}
+
+              {/* Bakiye Bilgileri */}
+              <div className="border-t pt-4">
+                <h4 className="text-lg font-semibold mb-4">Finansal Durum</h4>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="flex items-center justify-center mb-2">
+                      <TrendingUp className="h-5 w-5 text-green-600" />
+                    </div>
+                    <p className="text-sm text-gray-600">Toplam Gelir</p>
+                    <p className="text-lg font-bold text-green-600">
+                      {formatCurrency(getAccountInvoices(selectedAccount.id).totalIncome)}
+                    </p>
+                  </div>
+                  <div className="text-center p-4 bg-red-50 rounded-lg">
+                    <div className="flex items-center justify-center mb-2">
+                      <TrendingDown className="h-5 w-5 text-red-600" />
+                    </div>
+                    <p className="text-sm text-gray-600">Toplam Gider</p>
+                    <p className="text-lg font-bold text-red-600">
+                      {formatCurrency(getAccountInvoices(selectedAccount.id).totalExpense)}
+                    </p>
+                  </div>
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-center mb-2">
+                      <CreditCard className="h-5 w-5 text-gray-600" />
+                    </div>
+                    <p className="text-sm text-gray-600">Net Durum</p>
+                    <p className={`text-lg font-bold ${getBalanceColor(getAccountBalance(selectedAccount.id))}`}>
+                      {getBalanceText(getAccountBalance(selectedAccount.id))}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Fatura Geçmişi */}
+              <div className="border-t pt-4">
+                <h4 className="text-lg font-semibold mb-4">Son Faturalar</h4>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {(() => {
+                    const invoices = getAccountInvoices(selectedAccount.id);
+                    const allInvoices = [
+                      ...invoices.income.map(inv => ({ ...inv, type: 'income' })),
+                      ...invoices.expense.map(inv => ({ ...inv, type: 'expense' }))
+                    ].sort((a, b) => new Date(b.invoice_date).getTime() - new Date(a.invoice_date).getTime());
+
+                    if (allInvoices.length === 0) {
+                      return (
+                        <p className="text-center text-gray-500 py-4">Bu hesap için henüz fatura bulunmuyor.</p>
+                      );
+                    }
+
+                    return allInvoices.slice(0, 10).map((invoice) => (
+                      <div key={`${invoice.type}-${invoice.id}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <p className="font-medium text-sm">{invoice.description}</p>
+                          <p className="text-xs text-gray-600">
+                            {format(new Date(invoice.invoice_date), 'dd/MM/yyyy')} • {invoice.payment_status === 'paid' ? 'Ödendi' : 'Ödenmedi'}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className={`font-bold ${
+                            invoice.type === 'income' ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {invoice.type === 'income' ? '+' : '-'}{formatCurrency(invoice.amount)}
+                          </p>
+                          <Badge variant="outline" className={`text-xs ${
+                            invoice.type === 'income' 
+                              ? 'bg-green-100 text-green-800 border-green-200' 
+                              : 'bg-red-100 text-red-800 border-red-200'
+                          }`}>
+                            {invoice.type === 'income' ? 'Gelir' : 'Gider'}
+                          </Badge>
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
             </div>
           )}
           <DialogFooter>
