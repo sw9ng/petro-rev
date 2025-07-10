@@ -198,40 +198,48 @@ export const PersonnelManagement = () => {
               {newPersonnelData.role === 'pompacı' && (
                 <>
                   <div className="border-t pt-4">
-                    <h4 className="font-medium text-sm mb-3">Pompacı Girişi (İsteğe Bağlı)</h4>
+                    <h4 className="font-medium text-sm mb-3 text-blue-600">Pompacı Giriş Bilgileri</h4>
+                    <p className="text-xs text-gray-500 mb-3">Bu bilgiler pompacının kendi paneline giriş yapması için kullanılacaktır.</p>
                     
-                    <div className="space-y-2">
-                      <Label>Giriş E-postası</Label>
-                      <Input 
-                        type="email"
-                        placeholder="Pompacı giriş e-postası"
-                        value={newPersonnelData.attendant_email}
-                        onChange={(e) => setNewPersonnelData({...newPersonnelData, attendant_email: e.target.value})}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label>Giriş Şifresi</Label>
-                      <div className="relative">
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label>Giriş E-postası *</Label>
                         <Input 
-                          type={showPassword ? "text" : "password"}
-                          placeholder="Pompacı giriş şifresi"
-                          value={newPersonnelData.attendant_password}
-                          onChange={(e) => setNewPersonnelData({...newPersonnelData, attendant_password: e.target.value})}
+                          type="email"
+                          placeholder="ornek@email.com"
+                          value={newPersonnelData.attendant_email}
+                          onChange={(e) => setNewPersonnelData({...newPersonnelData, attendant_email: e.target.value})}
+                          required
                         />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                          onClick={() => setShowPassword(!showPassword)}
-                        >
-                          {showPassword ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </Button>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>Giriş Şifresi *</Label>
+                        <div className="relative">
+                          <Input 
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Güvenli bir şifre girin"
+                            value={newPersonnelData.attendant_password}
+                            onChange={(e) => setNewPersonnelData({...newPersonnelData, attendant_password: e.target.value})}
+                            required
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                            onClick={() => setShowPassword(!showPassword)}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          Bu şifre ile pompacı kendi paneline giriş yapabilecektir.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -267,8 +275,8 @@ export const PersonnelManagement = () => {
                         {person.role}
                       </Badge>
                       {person.role === 'pompacı' && person.attendant_email && (
-                        <Badge variant="outline" className="mt-1 ml-2">
-                          Giriş Aktif
+                        <Badge variant="outline" className="mt-1 ml-2 bg-green-50 text-green-700 border-green-200">
+                          Panel Erişimi Var
                         </Badge>
                       )}
                     </CardDescription>
@@ -277,7 +285,10 @@ export const PersonnelManagement = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleEditPersonnel(person)}
+                      onClick={() => {
+                        setSelectedPersonnel(person);
+                        setEditPersonnelOpen(true);
+                      }}
                     >
                       <Edit2 className="h-3 w-3" />
                     </Button>
@@ -296,7 +307,7 @@ export const PersonnelManagement = () => {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>İptal</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDeletePersonnel(person.id)}>
+                          <AlertDialogAction onClick={() => deletePersonnel(person.id)}>
                             Sil
                           </AlertDialogAction>
                         </AlertDialogFooter>
@@ -324,9 +335,10 @@ export const PersonnelManagement = () => {
                     <p>{new Date(person.join_date).toLocaleDateString('tr-TR')}</p>
                   </div>
                   {person.role === 'pompacı' && person.attendant_email && (
-                    <div>
-                      <span className="text-muted-foreground">Giriş E-postası:</span>
-                      <p>{person.attendant_email}</p>
+                    <div className="bg-blue-50 p-2 rounded-md border border-blue-200">
+                      <span className="text-blue-700 font-medium text-xs">Panel Giriş Bilgileri:</span>
+                      <p className="text-blue-600 text-sm">{person.attendant_email}</p>
+                      <p className="text-blue-500 text-xs">Şifre: ••••••••</p>
                     </div>
                   )}
                 </div>
@@ -340,7 +352,7 @@ export const PersonnelManagement = () => {
         personnel={selectedPersonnel}
         isOpen={editPersonnelOpen}
         onOpenChange={setEditPersonnelOpen}
-        onUpdate={handleUpdatePersonnel}
+        onUpdate={updatePersonnel}
       />
     </div>
   );
