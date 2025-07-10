@@ -305,29 +305,38 @@ export const PaymentTracking = () => {
               {filteredAndSortedTransactions.map((group) => (
                 <Card 
                   key={group.customer.id} 
-                  className="hover:shadow-md transition-shadow cursor-pointer" 
-                  onClick={() => handleCustomerClick(group.customer.id)}
+                  className="hover:shadow-md transition-shadow" 
                 >
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-semibold hover:text-blue-600 transition-colors">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold">
                           {group.customer.name}
                         </h3>
                         <p className="text-sm text-gray-600">
-                          {group.transactions.length} işlem • Detay için tıklayın
+                          {group.transactions.length} işlem
                         </p>
                       </div>
-                      <div className="text-right">
-                        <div className={`text-2xl font-bold ${
-                          group.balance > 0 ? 'text-red-600' : 'text-green-600'
-                        }`}>
-                          {group.balance > 0 ? '+' : ''}
-                          {formatCurrency(Math.abs(group.balance))}
+                      <div className="flex items-center space-x-4">
+                        <div className="text-right">
+                          <div className={`text-2xl font-bold ${
+                            group.balance > 0 ? 'text-red-600' : 'text-green-600'
+                          }`}>
+                            {group.balance > 0 ? '+' : ''}
+                            {formatCurrency(Math.abs(group.balance))}
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            {group.balance > 0 ? 'Borç' : group.balance < 0 ? 'Avans' : 'Denge'}
+                          </p>
                         </div>
-                        <p className="text-sm text-gray-600">
-                          {group.balance > 0 ? 'Borç' : group.balance < 0 ? 'Avans' : 'Denge'}
-                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCustomerClick(group.customer.id)}
+                          className="flex items-center space-x-1"
+                        >
+                          <span>Detay</span>
+                        </Button>
                       </div>
                     </div>
                     
