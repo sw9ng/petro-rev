@@ -139,6 +139,37 @@ export const useInvoices = (companyId: string) => {
     }
   };
 
+  // Update an existing account
+  const updateAccount = async (
+    accountId: string,
+    accountData: Partial<CompanyAccount>
+  ) => {
+    if (!user || !companyId) {
+      return { error: new Error('Kullanıcı doğrulanmadı veya şirket ID eksik') };
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('company_accounts')
+        .update(accountData)
+        .eq('id', accountId)
+        .eq('company_id', companyId)
+        .select();
+
+      if (error) {
+        return { error };
+      }
+
+      // Update local accounts state
+      setAccounts(prev => 
+        prev.map(account => account.id === accountId ? data[0] as CompanyAccount : account)
+      );
+      return { data: data[0] };
+    } catch (err: any) {
+      return { error: err };
+    }
+  };
+
   // Add a new income invoice
   const addIncomeInvoice = async (invoiceData: {
     invoice_number?: string;
@@ -392,6 +423,7 @@ export const useInvoices = (companyId: string) => {
     addIncomeInvoice,
     addExpenseInvoice,
     addAccount,
+    updateAccount,
     updateIncomeInvoice,
     updateExpenseInvoice,
     deleteIncomeInvoice,

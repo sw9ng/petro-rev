@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,14 +9,16 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useInvoices } from '@/hooks/useInvoices';
 import { formatCurrency } from '@/lib/numberUtils';
-import { Plus, Users, Edit, Eye, ArrowLeft, Phone, MapPin, Calendar, FileText } from 'lucide-react';
+import { Plus, Users, Edit, Eye, ArrowLeft, Phone, MapPin, Calendar, FileText, Trash } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const CompanyAccountsList = ({ companyId }: { companyId: string }) => {
-  const { accounts, incomeInvoices, expenseInvoices, loading, addAccount, updateAccount } = useInvoices(companyId);
+  const { accounts, incomeInvoices, expenseInvoices, loading, addAccount, updateAccount, updateIncomeInvoice, updateExpenseInvoice, deleteIncomeInvoice, deleteExpenseInvoice } = useInvoices(companyId);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
+  const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
+  const [editingInvoiceType, setEditingInvoiceType] = useState<'income' | 'expense' | null>(null);
   const [newAccountData, setNewAccountData] = useState({
     name: '',
     phone: '',
@@ -29,6 +30,14 @@ export const CompanyAccountsList = ({ companyId }: { companyId: string }) => {
     phone: '',
     address: '',
     notes: ''
+  });
+  const [editInvoiceData, setEditInvoiceData] = useState({
+    invoice_number: '',
+    description: '',
+    amount: 0,
+    invoice_date: '',
+    payment_status: 'unpaid' as 'paid' | 'unpaid',
+    payment_date: ''
   });
 
   const handleCreateAccount = async () => {
@@ -82,6 +91,62 @@ export const CompanyAccountsList = ({ companyId }: { companyId: string }) => {
     toast.success("Cari hesap başarıyla güncellendi.");
     setEditingAccountId(null);
     setEditAccountData({ name: '', phone: '', address: '', notes: '' });
+  };
+
+  const handleEditInvoice = (invoice: any, type: 'income' | 'expense') => {
+    setEditingInvoiceId(invoice.id);
+    setEditingInvoiceType(type);
+    setEditInvoiceData({
+      invoice_number: invoice.invoice_number || '',
+      description: invoice.description,
+      amount: invoice.amount,
+      invoice_date: invoice.invoice_date,
+      payment_status: invoice.payment_status,
+      payment_date: invoice.payment_date || ''
+    });
+  };
+
+  const handleUpdateInvoice = async () => {
+    if (!editingInvoiceId || !editingInvoiceType) return;
+
+    const updateFunction = editingInvoiceType === 'income' ? updateIncomeInvoice : updateExpenseInvoice;
+    const { error } = await updateFunction(editingInvoiceId, {
+      invoice_number: editInvoiceData.invoice_number || undefined,
+      description: editInvoiceData.description,
+      amount: editInvoiceData.amount,
+      invoice_date: editInvoiceData.invoice_date,
+      payment_status: editInvoiceData.payment_status,
+      payment_date: editInvoiceData.payment_date || undefined
+    });
+
+    if (error) {
+      toast.error("Fatura güncellenirken bir hata oluştu.");
+      return;
+    }
+
+    toast.success("Fatura başarıyla güncellendi.");
+    setEditingInvoiceId(null);
+    setEditingInvoiceType(null);
+    setEditInvoiceData({
+      invoice_number: '',
+      description: '',
+      amount: 0,
+      invoice_date: '',
+      payment_status: 'unpaid',
+      payment_date: ''
+    });
+  };
+
+  const handleDeleteInvoice = async (invoiceId: string, type: 'income' | 'expense') => {
+    const deleteFunction = type === 'income' ? deleteIncomeInvoice : deleteExpenseInvoice;
+    const { error } = await deleteFunction(invoiceId);
+
+    if (error) {
+      toast.error("Fatura silinirken bir hata oluştu.");
+      return;
+    }
+
+    toast.success("Fatura başarıyla silindi.");
   };
 
   const getAccountBalance = (accountId: string) => {
@@ -218,6 +283,7 @@ export const CompanyAccountsList = ({ companyId }: { companyId: string }) => {
                       <TableHead>Tür</TableHead>
                       <TableHead>Tutar</TableHead>
                       <TableHead>Ödeme Durumu</TableHead>
+                      <TableHead>İşlemler</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -256,6 +322,104 @@ export const CompanyAccountsList = ({ companyId }: { companyId: string }) => {
                           }`}>
                             {transaction.payment_status === 'paid' ? 'Ödendi' : 'Ödenmedi'}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEditInvoice(transaction, transaction.type)}
+                                  className="flex items-center space-x-1"
+                                >
+                                  <Edit className="h-3 w-3" />
+                                  <span>Düzenle</span>
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Fatura Düzenle</DialogTitle>
+                                  <DialogDescription>
+                                    Fatura bilgilerini güncelleyin
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <div className="space-y-2">
+                                    <Label>Fatura No</Label>
+                                    <Input
+                                      value={editInvoiceData.invoice_number}
+                                      onChange={(e) => setEditInvoiceData(prev => ({ ...prev, invoice_number: e.target.value }))}
+                                      placeholder="Fatura numarası"
+                                    />
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label>Açıklama</Label>
+                                    <Input
+                                      value={editInvoiceData.description}
+                                      onChange={(e) => setEditInvoiceData(prev => ({ ...prev, description: e.target.value }))}
+                                      placeholder="Açıklama"
+                                    />
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label>Tutar</Label>
+                                    <Input
+                                      type="number"
+                                      value={editInvoiceData.amount}
+                                      onChange={(e) => setEditInvoiceData(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+                                      placeholder="0.00"
+                                    />
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label>Fatura Tarihi</Label>
+                                    <Input
+                                      type="date"
+                                      value={editInvoiceData.invoice_date}
+                                      onChange={(e) => setEditInvoiceData(prev => ({ ...prev, invoice_date: e.target.value }))}
+                                    />
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label>Ödeme Durumu</Label>
+                                    <select
+                                      value={editInvoiceData.payment_status}
+                                      onChange={(e) => setEditInvoiceData(prev => ({ ...prev, payment_status: e.target.value as 'paid' | 'unpaid' }))}
+                                      className="w-full p-2 border rounded"
+                                    >
+                                      <option value="unpaid">Ödenmedi</option>
+                                      <option value="paid">Ödendi</option>
+                                    </select>
+                                  </div>
+                                  {editInvoiceData.payment_status === 'paid' && (
+                                    <div className="space-y-2">
+                                      <Label>Ödeme Tarihi</Label>
+                                      <Input
+                                        type="date"
+                                        value={editInvoiceData.payment_date}
+                                        onChange={(e) => setEditInvoiceData(prev => ({ ...prev, payment_date: e.target.value }))}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                                <DialogFooter>
+                                  <Button variant="outline" onClick={() => setEditingInvoiceId(null)}>
+                                    İptal
+                                  </Button>
+                                  <Button onClick={handleUpdateInvoice}>
+                                    Güncelle
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteInvoice(transaction.id, transaction.type)}
+                              className="flex items-center space-x-1 text-red-600 hover:text-red-700"
+                            >
+                              <Trash className="h-3 w-3" />
+                              <span>Sil</span>
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
