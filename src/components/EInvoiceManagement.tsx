@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -226,9 +225,14 @@ export const EInvoiceManagement = ({ companyId }: EInvoiceManagementProps) => {
       </div>
 
       <EInvoiceCreateDialog
-        isOpen={isCreateDialogOpen}
-        onClose={() => setIsCreateDialogOpen(false)}
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
         companyId={companyId}
+        onSuccess={() => {
+          setIsCreateDialogOpen(false);
+          queryClient.invalidateQueries({ queryKey: ['income-invoices'] });
+          queryClient.invalidateQueries({ queryKey: ['expense-invoices'] });
+        }}
       />
     </div>
   );
