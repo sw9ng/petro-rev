@@ -27,34 +27,56 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Request method:', req.method);
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     )
 
-    const { invoiceId, invoiceType, action } = await req.json()
+    let requestBody;
+    try {
+      requestBody = await req.json();
+      console.log('Request body:', requestBody);
+    } catch (parseError) {
+      console.error('Failed to parse request body:', parseError);
+      throw new Error('Invalid JSON in request body');
+    }
+
+    const { invoiceId, invoiceType, action } = requestBody;
+
+    console.log('Parsed parameters:', { invoiceId, invoiceType, action });
 
     if (!invoiceId || !invoiceType || !action) {
-      throw new Error('Missing required parameters')
+      console.error('Missing parameters:', { invoiceId, invoiceType, action });
+      throw new Error('Missing required parameters: invoiceId, invoiceType, and action are required');
     }
 
     console.log(`Processing ${action} for ${invoiceType} invoice:`, invoiceId)
 
     // Get invoice data from database
     const tableName = invoiceType === 'income' ? 'income_invoices' : 'expense_invoices'
+    console.log('Querying table:', tableName);
+    
     const { data: invoice, error: fetchError } = await supabaseClient
       .from(tableName)
       .select('*')
       .eq('id', invoiceId)
       .single()
 
+    console.log('Database query result:', { invoice, fetchError });
+
     if (fetchError || !invoice) {
-      throw new Error('Invoice not found')
+      console.error('Invoice not found:', { fetchError, invoiceId, tableName });
+      throw new Error(`Invoice not found: ${fetchError?.message || 'No invoice data'}`);
     }
 
     if (action === 'send') {
       // Send invoice to Uyumsoft
+      console.log('Sending invoice to Uyumsoft...');
       const uyumsoftResponse = await sendToUyumsoft(invoice, invoiceType)
+      console.log('Uyumsoft response:', uyumsoftResponse);
       
       // Update invoice with Uyumsoft response
       const { error: updateError } = await supabaseClient
@@ -68,6 +90,7 @@ serve(async (req) => {
         .eq('id', invoiceId)
 
       if (updateError) {
+        console.error('Failed to update invoice:', updateError);
         throw updateError
       }
 
@@ -110,13 +133,14 @@ serve(async (req) => {
       )
     }
 
-    throw new Error('Invalid action')
+    throw new Error('Invalid action: ' + action)
 
   } catch (error) {
     console.error('E-invoice processing error:', error)
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'An error occurred' 
+        error: error.message || 'An error occurred',
+        details: error.toString()
       }),
       { 
         status: 400,

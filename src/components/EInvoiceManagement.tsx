@@ -76,11 +76,23 @@ export const EInvoiceManagement = ({ companyId }: EInvoiceManagementProps) => {
   // Send to Uyumsoft mutation
   const sendToUyumsoft = useMutation({
     mutationFn: async ({ invoiceId, type }: { invoiceId: string; type: 'income' | 'expense' }) => {
+      console.log('Sending to Uyumsoft:', { invoiceId, type });
+      
       const { data, error } = await supabase.functions.invoke('create-e-invoice', {
-        body: { invoiceId, type }
+        body: { 
+          invoiceId, 
+          invoiceType: type,
+          action: 'send'
+        }
       });
       
-      if (error) throw error;
+      console.log('Uyumsoft response:', { data, error });
+      
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(error.message || 'E-Fatura gönderilirken hata oluştu');
+      }
+      
       return data;
     },
     onSuccess: () => {
@@ -92,6 +104,7 @@ export const EInvoiceManagement = ({ companyId }: EInvoiceManagementProps) => {
       queryClient.invalidateQueries({ queryKey: ['expense-invoices'] });
     },
     onError: (error) => {
+      console.error('Mutation error:', error);
       toast({
         title: "Hata",
         description: error.message || "E-Fatura gönderilirken hata oluştu",
