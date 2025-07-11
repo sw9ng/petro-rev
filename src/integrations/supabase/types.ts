@@ -180,67 +180,43 @@ export type Database = {
           account_id: string | null
           amount: number
           company_id: string
-          company_title: string | null
           created_at: string
           created_by: string
           description: string
-          e_invoice_number: string | null
-          e_invoice_status: string | null
-          e_invoice_uuid: string | null
-          gib_status: string | null
           id: string
           invoice_date: string
           invoice_number: string | null
           payment_date: string | null
           payment_status: string
-          send_date: string | null
-          tax_number: string | null
           updated_at: string
-          uyumsoft_id: string | null
         }
         Insert: {
           account_id?: string | null
           amount?: number
           company_id: string
-          company_title?: string | null
           created_at?: string
           created_by: string
           description: string
-          e_invoice_number?: string | null
-          e_invoice_status?: string | null
-          e_invoice_uuid?: string | null
-          gib_status?: string | null
           id?: string
           invoice_date?: string
           invoice_number?: string | null
           payment_date?: string | null
           payment_status?: string
-          send_date?: string | null
-          tax_number?: string | null
           updated_at?: string
-          uyumsoft_id?: string | null
         }
         Update: {
           account_id?: string | null
           amount?: number
           company_id?: string
-          company_title?: string | null
           created_at?: string
           created_by?: string
           description?: string
-          e_invoice_number?: string | null
-          e_invoice_status?: string | null
-          e_invoice_uuid?: string | null
-          gib_status?: string | null
           id?: string
           invoice_date?: string
           invoice_number?: string | null
           payment_date?: string | null
           payment_status?: string
-          send_date?: string | null
-          tax_number?: string | null
           updated_at?: string
-          uyumsoft_id?: string | null
         }
         Relationships: [
           {
@@ -309,67 +285,43 @@ export type Database = {
           account_id: string | null
           amount: number
           company_id: string
-          company_title: string | null
           created_at: string
           created_by: string
           description: string
-          e_invoice_number: string | null
-          e_invoice_status: string | null
-          e_invoice_uuid: string | null
-          gib_status: string | null
           id: string
           invoice_date: string
           invoice_number: string | null
           payment_date: string | null
           payment_status: string
-          send_date: string | null
-          tax_number: string | null
           updated_at: string
-          uyumsoft_id: string | null
         }
         Insert: {
           account_id?: string | null
           amount?: number
           company_id: string
-          company_title?: string | null
           created_at?: string
           created_by: string
           description: string
-          e_invoice_number?: string | null
-          e_invoice_status?: string | null
-          e_invoice_uuid?: string | null
-          gib_status?: string | null
           id?: string
           invoice_date?: string
           invoice_number?: string | null
           payment_date?: string | null
           payment_status?: string
-          send_date?: string | null
-          tax_number?: string | null
           updated_at?: string
-          uyumsoft_id?: string | null
         }
         Update: {
           account_id?: string | null
           amount?: number
           company_id?: string
-          company_title?: string | null
           created_at?: string
           created_by?: string
           description?: string
-          e_invoice_number?: string | null
-          e_invoice_status?: string | null
-          e_invoice_uuid?: string | null
-          gib_status?: string | null
           id?: string
           invoice_date?: string
           invoice_number?: string | null
           payment_date?: string | null
           payment_status?: string
-          send_date?: string | null
-          tax_number?: string | null
           updated_at?: string
-          uyumsoft_id?: string | null
         }
         Relationships: [
           {
