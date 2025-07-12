@@ -15,12 +15,12 @@ interface TahsilatMakbuzuData {
 export const generateTahsilatMakbuzu = (data: TahsilatMakbuzuData) => {
   const pdf = new jsPDF();
   
-  // Font ayarları
+  // Font ayarları - UTF-8 desteği için
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(20);
   
-  // Başlık
-  pdf.text('TAHSİLAT MAKBUZU', 105, 30, { align: 'center' });
+  // Başlık - Türkçe karakterler için encoding
+  pdf.text('TAHSILAT MAKBUZU', 105, 30, { align: 'center' });
   
   // Çizgi
   pdf.setLineWidth(0.5);
@@ -41,26 +41,26 @@ export const generateTahsilatMakbuzu = (data: TahsilatMakbuzuData) => {
   pdf.line(20, startY + lineHeight * 3, 190, startY + lineHeight * 3);
   pdf.line(100, startY, 100, startY + lineHeight * 4);
   
-  // İçerik
+  // İçerik - Türkçe karakterler için düzenlenmiş
   pdf.text('Makbuz No:', 22, startY + 7);
   pdf.text(data.makbuzNo, 102, startY + 7);
   
   pdf.text('Tarih:', 22, startY + 17);
   pdf.text(data.tarih, 102, startY + 17);
   
-  pdf.text('Müşteri Adı:', 22, startY + 27);
+  pdf.text('Musteri Adi:', 22, startY + 27);
   pdf.text(data.musteriAdi, 102, startY + 27);
   
-  pdf.text('Ödeme Şekli:', 22, startY + 37);
+  pdf.text('Odeme Sekli:', 22, startY + 37);
   pdf.text(data.odemeShekli, 102, startY + 37);
   
-  pdf.text('Açıklama:', 22, startY + 47);
+  pdf.text('Aciklama:', 22, startY + 47);
   pdf.text(data.aciklama, 102, startY + 47);
   
-  // Açıklama metni
+  // Açıklama metni - Türkçe karakterler için düzenlenmiş
   const aciklamaY = startY + 70;
-  pdf.text(`Aşağıda bilgileri yer alan tutar, [${data.musteriAdi}] tarafından [${data.tahsilEden}]'dan`, 20, aciklamaY);
-  pdf.text(`₺[${data.tutar.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}] olarak [${data.tarih}] tarihinde [${data.odemeShekli}] ile tahsil edilmiştir.`, 20, aciklamaY + 10);
+  pdf.text(`Asagida bilgileri yer alan tutar, [${data.musteriAdi}] tarafindan [${data.tahsilEden}]'dan`, 20, aciklamaY);
+  pdf.text(`TL[${data.tutar.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}] olarak [${data.tarih}] tarihinde [${data.odemeShekli}] ile tahsil edilmistir.`, 20, aciklamaY + 10);
   
   // Alt tablo
   const bottomTableY = aciklamaY + 40;
@@ -69,10 +69,10 @@ export const generateTahsilatMakbuzu = (data: TahsilatMakbuzuData) => {
   pdf.line(100, bottomTableY, 100, bottomTableY + lineHeight * 2);
   
   pdf.text('Tutar:', 22, bottomTableY + 7);
-  pdf.text(`₺[${data.tutar.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}]`, 102, bottomTableY + 7);
+  pdf.text(`TL[${data.tutar.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}]`, 102, bottomTableY + 7);
   
-  pdf.text('Yalnız:', 22, bottomTableY + 17);
-  pdf.text(`[${data.tutarYazisi}] Türk Lirası`, 102, bottomTableY + 17);
+  pdf.text('Yalniz:', 22, bottomTableY + 17);
+  pdf.text(`[${data.tutarYazisi}] Turk Lirasi`, 102, bottomTableY + 17);
   
   // Tahsil Eden
   const tahsilEdenY = bottomTableY + 40;

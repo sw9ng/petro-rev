@@ -124,28 +124,25 @@ const CashRegister = () => {
         <p className="text-gray-600 mt-2">Şirketlerinizin gelir ve gider faturalarını takip edin</p>
       </div>
 
-      {/* Tahsil Edilmemiş Gelirler Kutusu */}
-      {totalOutstandingDebt > 0 && (
-        <Card className="border-orange-200 bg-orange-50">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center space-x-2 text-orange-800">
-              <AlertCircle className="h-5 w-5" />
-              <span>Tahsil Edilmemiş Gelirler</span>
-            </CardTitle>
-            <CardDescription className="text-orange-700">
-              Müşterilerinizden tahsil edilmemiş borçlar
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-800">
-              {formatCurrency(totalOutstandingDebt)}
-            </div>
-            <p className="text-sm text-orange-600 mt-1">
-              Bu miktar, cari satış takibi bölümünden takip edilebilir
-            </p>
-          </CardContent>
-        </Card>
-      )}
+        {/* Tahsil Edilmemiş Gelirler Kutusu - Sadece şirket seçildiğinde gözükür */}
+        {selectedCompany && totalOutstandingDebt > 0 && (
+          <Card className="border-orange-200 bg-orange-50 max-w-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center space-x-2 text-orange-800 text-lg">
+                <AlertCircle className="h-4 w-4" />
+                <span>Tahsil Edilmemiş Gelirler</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl font-bold text-orange-800">
+                {formatCurrency(totalOutstandingDebt)}
+              </div>
+              <p className="text-xs text-orange-600 mt-1">
+                Müşterilerden tahsil edilmemiş borçlar
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {companies.map(company => (
