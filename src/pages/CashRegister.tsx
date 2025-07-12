@@ -1,19 +1,21 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useCompanies } from '@/hooks/useCompanies';
 import { CompanyCashManagement } from '@/components/CompanyCashManagement';
 import { CompanyAccountsList } from '@/components/CompanyAccountsList';
-import { Plus, Building2, ArrowLeft, ChevronRight, Users } from 'lucide-react';
+import { Plus, Building2, ArrowLeft, ChevronRight, Users, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
+import { formatCurrency } from '@/lib/numberUtils';
 import { toast } from 'sonner';
 
 const CashRegister = () => {
   const { companies, loading, addCompany, error } = useCompanies();
+  const { getTotalOutstandingDebt } = useCustomerTransactions();
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'accounts'>('dashboard');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -21,6 +23,8 @@ const CashRegister = () => {
     name: '',
     description: ''
   });
+
+  const totalOutstandingDebt = getTotalOutstandingDebt();
 
   const handleCreateCompany = async () => {
     if (!newCompanyData.name.trim()) {
@@ -119,6 +123,29 @@ const CashRegister = () => {
         </h2>
         <p className="text-gray-600 mt-2">Şirketlerinizin gelir ve gider faturalarını takip edin</p>
       </div>
+
+      {/* Tahsil Edilmemiş Gelirler Kutusu */}
+      {totalOutstandingDebt > 0 && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center space-x-2 text-orange-800">
+              <AlertCircle className="h-5 w-5" />
+              <span>Tahsil Edilmemiş Gelirler</span>
+            </CardTitle>
+            <CardDescription className="text-orange-700">
+              Müşterilerinizden tahsil edilmemiş borçlar
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-800">
+              {formatCurrency(totalOutstandingDebt)}
+            </div>
+            <p className="text-sm text-orange-600 mt-1">
+              Bu miktar, cari satış takibi bölümünden takip edilebilir
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {companies.map(company => (

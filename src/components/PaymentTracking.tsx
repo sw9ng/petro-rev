@@ -14,7 +14,8 @@ import { useCustomers } from '@/hooks/useCustomers';
 import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { usePersonnel } from '@/hooks/usePersonnel';
 import { formatCurrency } from '@/lib/numberUtils';
-import { Plus, Search, CreditCard, ArrowUpDown, Calendar, Users, TrendingUp, TrendingDown, Edit, Trash2 } from 'lucide-react';
+import { generateTahsilatMakbuzu, numberToWords } from '@/lib/pdfUtils';
+import { Plus, Search, CreditCard, ArrowUpDown, Calendar, Users, TrendingUp, TrendingDown, Edit, Trash2, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const PaymentTracking = () => {
@@ -190,6 +191,27 @@ export const PaymentTracking = () => {
     } else {
       toast.success('İşlem başarıyla silindi');
     }
+  };
+
+  const handlePrintReceipt = (transaction: any) => {
+    const customer = customers.find(c => c.id === transaction.customer_id);
+    const personnelMember = personnel.find(p => p.id === transaction.personnel_id);
+    
+    const makbuzData = {
+      makbuzNo: `MKB-${transaction.id.substring(0, 8).toUpperCase()}`,
+      tarih: new Date(transaction.transaction_date).toLocaleDateString('tr-TR'),
+      musteriAdi: customer?.name || 'Bilinmeyen Müşteri',
+      odemeShekli: transaction.payment_method || 'Nakit',
+      aciklama: transaction.description || 'Ödeme tahsilatı',
+      tutar: transaction.amount,
+      tutarYazisi: numberToWords(transaction.amount),
+      tahsilEden: personnelMember?.name || 'Bilinmeyen Personel'
+    };
+
+    const pdf = generateTahsilatMakbuzu(makbuzData);
+    pdf.save(`tahsilat-makbuzu-${makbuzData.makbuzNo}.pdf`);
+    
+    toast.success('Tahsilat makbuzu PDF olarak indirildi');
   };
 
   // Separate transactions by type for history
@@ -551,6 +573,15 @@ export const PaymentTracking = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handlePrintReceipt(transaction)}
+                              className="flex items-center gap-1"
+                            >
+                              <FileText className="h-4 w-4" />
+                              Yazdır
+                            </Button>
                             <Button
                               variant="outline"
                               size="sm"
