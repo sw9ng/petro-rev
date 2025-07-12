@@ -90,7 +90,7 @@ export const numberToWords = (num: number): string => {
   
   if (num === 0) return 'sıfır';
   
-  const intPart = Math.floor(num);
+  let intPart = Math.floor(num);
   const decPart = Math.round((num - intPart) * 100);
   
   let result = '';
@@ -130,15 +130,16 @@ export const numberToWords = (num: number): string => {
   
   if (decPart > 0) {
     result = result.trim() + ' virgül ';
-    if (decPart >= 20) {
-      result += tens[Math.floor(decPart / 10)] + ' ';
-      decPart %= 10;
-    } else if (decPart >= 10) {
-      result += teens[decPart - 10] + ' ';
-      decPart = 0;
+    let decPartCopy = decPart;
+    if (decPartCopy >= 20) {
+      result += tens[Math.floor(decPartCopy / 10)] + ' ';
+      decPartCopy %= 10;
+    } else if (decPartCopy >= 10) {
+      result += teens[decPartCopy - 10] + ' ';
+      decPartCopy = 0;
     }
-    if (decPart > 0) {
-      result += ones[decPart] + ' ';
+    if (decPartCopy > 0) {
+      result += ones[decPartCopy] + ' ';
     }
   }
   
