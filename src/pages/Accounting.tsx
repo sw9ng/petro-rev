@@ -9,19 +9,18 @@ import { CompanyCashManagement } from "@/components/CompanyCashManagement";
 import { UyumsoftIntegration } from "@/components/UyumsoftIntegration";
 import { InvoiceManagement } from "@/components/InvoiceManagement";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useCompanies } from "@/hooks/useCompanies";
 
-interface AccountingProps {
-  selectedCompany: string | null;
-  activeTab:
-    | "overview"
-    | "chart-of-accounts"
-    | "company-accounts"
-    | "invoices"
-    | "uyumsoft"
-    | "cash";
-}
+const Accounting = () => {
+  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "chart-of-accounts" | "company-accounts" | "invoices" | "uyumsoft" | "cash"
+  >("overview");
+  
+  const { companies, isLoading: companiesLoading } = useCompanies();
 
-const Accounting = ({ selectedCompany, activeTab }: AccountingProps) => {
   const renderContent = () => {
     if (!selectedCompany) {
       return (
@@ -53,7 +52,66 @@ const Accounting = ({ selectedCompany, activeTab }: AccountingProps) => {
     }
   };
 
-  return <>{renderContent()}</>;
+  return (
+    <div className="space-y-6 p-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Muhasebe</h1>
+        <div className="w-64">
+          <Select value={selectedCompany || ""} onValueChange={setSelectedCompany}>
+            <SelectTrigger>
+              <SelectValue placeholder="Şirket seçin..." />
+            </SelectTrigger>
+            <SelectContent>
+              {companies.map((company) => (
+                <SelectItem key={company.id} value={company.id}>
+                  {company.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {selectedCompany && (
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
+          <TabsList className="grid w-full grid-cols-6">
+            <TabsTrigger value="overview">Özet</TabsTrigger>
+            <TabsTrigger value="chart-of-accounts">Hesap Planı</TabsTrigger>
+            <TabsTrigger value="company-accounts">Cariler</TabsTrigger>
+            <TabsTrigger value="invoices">Faturalar</TabsTrigger>
+            <TabsTrigger value="uyumsoft">Uyumsoft</TabsTrigger>
+            <TabsTrigger value="cash">Kasa</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-4">
+            {renderContent()}
+          </TabsContent>
+
+          <TabsContent value="chart-of-accounts" className="space-y-4">
+            {renderContent()}
+          </TabsContent>
+
+          <TabsContent value="company-accounts" className="space-y-4">
+            {renderContent()}
+          </TabsContent>
+
+          <TabsContent value="invoices" className="space-y-4">
+            {renderContent()}
+          </TabsContent>
+
+          <TabsContent value="uyumsoft" className="space-y-4">
+            {renderContent()}
+          </TabsContent>
+
+          <TabsContent value="cash" className="space-y-4">
+            {renderContent()}
+          </TabsContent>
+        </Tabs>
+      )}
+
+      {!selectedCompany && renderContent()}
+    </div>
+  );
 };
 
 export default Accounting;
