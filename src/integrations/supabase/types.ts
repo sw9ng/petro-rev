@@ -14,6 +14,149 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounting_entries: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string
+          description: string
+          entry_date: string
+          entry_number: string
+          id: string
+          reference_id: string | null
+          reference_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by: string
+          description: string
+          entry_date: string
+          entry_number: string
+          id?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string
+          entry_date?: string
+          entry_number?: string
+          id?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_entries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accounting_entry_lines: {
+        Row: {
+          account_id: string
+          created_at: string
+          credit_amount: number
+          debit_amount: number
+          description: string | null
+          entry_id: string
+          id: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          credit_amount?: number
+          debit_amount?: number
+          description?: string | null
+          entry_id: string
+          id?: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          credit_amount?: number
+          debit_amount?: number
+          description?: string | null
+          entry_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_entry_lines_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_entry_lines_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chart_of_accounts: {
+        Row: {
+          account_code: string
+          account_name: string
+          account_type: string
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          parent_account_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_code: string
+          account_name: string
+          account_type: string
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          parent_account_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_code?: string
+          account_name?: string
+          account_type?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          parent_account_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chart_of_accounts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chart_of_accounts_parent_account_id_fkey"
+            columns: ["parent_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           created_at: string
@@ -174,6 +317,166 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      e_archive_invoices: {
+        Row: {
+          archive_id: string
+          company_id: string
+          created_at: string
+          created_by: string
+          currency_code: string
+          customer_address: string | null
+          customer_name: string
+          customer_tax_number: string | null
+          customer_tc_number: string | null
+          gib_response: string | null
+          gib_status: string
+          grand_total: number
+          id: string
+          invoice_date: string
+          invoice_number: string
+          pdf_path: string | null
+          tax_amount: number
+          total_amount: number
+          updated_at: string
+          xml_content: string | null
+        }
+        Insert: {
+          archive_id: string
+          company_id: string
+          created_at?: string
+          created_by: string
+          currency_code?: string
+          customer_address?: string | null
+          customer_name: string
+          customer_tax_number?: string | null
+          customer_tc_number?: string | null
+          gib_response?: string | null
+          gib_status?: string
+          grand_total?: number
+          id?: string
+          invoice_date: string
+          invoice_number: string
+          pdf_path?: string | null
+          tax_amount?: number
+          total_amount?: number
+          updated_at?: string
+          xml_content?: string | null
+        }
+        Update: {
+          archive_id?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          currency_code?: string
+          customer_address?: string | null
+          customer_name?: string
+          customer_tax_number?: string | null
+          customer_tc_number?: string | null
+          gib_response?: string | null
+          gib_status?: string
+          grand_total?: number
+          id?: string
+          invoice_date?: string
+          invoice_number?: string
+          pdf_path?: string | null
+          tax_amount?: number
+          total_amount?: number
+          updated_at?: string
+          xml_content?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "e_archive_invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      e_invoices: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string
+          currency_code: string
+          ettn: string
+          exchange_rate: number | null
+          gib_response: string | null
+          gib_status: string
+          grand_total: number
+          id: string
+          invoice_date: string
+          invoice_number: string
+          invoice_type: string
+          invoice_uuid: string
+          pdf_path: string | null
+          recipient_address: string | null
+          recipient_tax_number: string | null
+          recipient_title: string | null
+          tax_amount: number
+          total_amount: number
+          updated_at: string
+          xml_content: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by: string
+          currency_code?: string
+          ettn: string
+          exchange_rate?: number | null
+          gib_response?: string | null
+          gib_status?: string
+          grand_total?: number
+          id?: string
+          invoice_date: string
+          invoice_number: string
+          invoice_type: string
+          invoice_uuid: string
+          pdf_path?: string | null
+          recipient_address?: string | null
+          recipient_tax_number?: string | null
+          recipient_title?: string | null
+          tax_amount?: number
+          total_amount?: number
+          updated_at?: string
+          xml_content?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          currency_code?: string
+          ettn?: string
+          exchange_rate?: number | null
+          gib_response?: string | null
+          gib_status?: string
+          grand_total?: number
+          id?: string
+          invoice_date?: string
+          invoice_number?: string
+          invoice_type?: string
+          invoice_uuid?: string
+          pdf_path?: string | null
+          recipient_address?: string | null
+          recipient_tax_number?: string | null
+          recipient_title?: string | null
+          tax_amount?: number
+          total_amount?: number
+          updated_at?: string
+          xml_content?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "e_invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       expense_invoices: {
         Row: {
@@ -611,6 +914,98 @@ export type Database = {
             columns: ["personnel_id"]
             isOneToOne: false
             referencedRelation: "personnel"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tax_registry: {
+        Row: {
+          address: string | null
+          city: string | null
+          company_title: string
+          created_at: string
+          district: string | null
+          email: string | null
+          id: string
+          phone: string | null
+          tax_number: string
+          tax_office: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          company_title: string
+          created_at?: string
+          district?: string | null
+          email?: string | null
+          id?: string
+          phone?: string | null
+          tax_number: string
+          tax_office?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          company_title?: string
+          created_at?: string
+          district?: string | null
+          email?: string | null
+          id?: string
+          phone?: string | null
+          tax_number?: string
+          tax_office?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      uyumsoft_accounts: {
+        Row: {
+          api_key_encrypted: string | null
+          company_code: string
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          last_sync_at: string | null
+          password_encrypted: string
+          test_mode: boolean
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          api_key_encrypted?: string | null
+          company_code: string
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_sync_at?: string | null
+          password_encrypted: string
+          test_mode?: boolean
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          api_key_encrypted?: string | null
+          company_code?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_sync_at?: string | null
+          password_encrypted?: string
+          test_mode?: boolean
+          updated_at?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uyumsoft_accounts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]

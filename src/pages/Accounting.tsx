@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +27,9 @@ import { CompanyAccountsList } from "@/components/CompanyAccountsList";
 import { CompanyCashManagement } from "@/components/CompanyCashManagement";
 import { UyumsoftIntegration } from "@/components/UyumsoftIntegration";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { EInvoiceManagement } from "@/components/EInvoiceManagement";
+import { EArchiveInvoiceManagement } from "@/components/EArchiveInvoiceManagement";
+import { ChartOfAccountsManagement } from "@/components/ChartOfAccountsManagement";
 
 const Accounting = () => {
   const [isCompanyDialogOpen, setIsCompanyDialogOpen] = useState(false);
@@ -225,10 +227,14 @@ const Accounting = () => {
         {/* Company Management */}
         {selectedCompany && (
           <Tabs defaultValue="accounts" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="accounts" className="flex items-center space-x-2">
                 <Users className="h-4 w-4" />
                 <span>Cari Hesaplar</span>
+              </TabsTrigger>
+              <TabsTrigger value="chart-accounts" className="flex items-center space-x-2">
+                <Calculator className="h-4 w-4" />
+                <span>Hesap Planı</span>
               </TabsTrigger>
               <TabsTrigger value="e-invoice" className="flex items-center space-x-2">
                 <FileText className="h-4 w-4" />
@@ -252,12 +258,16 @@ const Accounting = () => {
               <CompanyAccountsList companyId={selectedCompany} />
             </TabsContent>
 
+            <TabsContent value="chart-accounts">
+              <ChartOfAccountsManagement companyId={selectedCompany} />
+            </TabsContent>
+
             <TabsContent value="e-invoice">
-              <CompanyCashManagement companyId={selectedCompany} type="income" />
+              <EInvoiceManagement companyId={selectedCompany} />
             </TabsContent>
 
             <TabsContent value="e-archive">
-              <CompanyCashManagement companyId={selectedCompany} type="expense" />
+              <EArchiveInvoiceManagement companyId={selectedCompany} />
             </TabsContent>
 
             <TabsContent value="integration">
