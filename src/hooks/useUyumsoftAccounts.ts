@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 
 type UyumsoftAccount = Tables<"uyumsoft_accounts">;
-type UyumsoftAccountInsert = TablesInsert<"uyumsoft_accounts">;
+type UyumsoftAccountInsert = Omit<TablesInsert<"uyumsoft_accounts">, "company_code" | "api_key_encrypted">;
 
 export const useUyumsoftAccounts = (companyId: string) => {
   const { toast } = useToast();
@@ -48,6 +48,7 @@ export const useUyumsoftAccounts = (companyId: string) => {
           .insert({ 
             ...accountData, 
             company_id: companyId,
+            company_code: "", // Set empty since we don't use it
           })
           .select()
           .single();

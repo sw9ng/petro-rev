@@ -11,13 +11,12 @@ interface AuthRequest {
   companyId: string
   username: string
   password: string
-  companyCode: string
   testMode?: boolean
 }
 
 // Uyumsoft authentication endpoints
-const UYUMSOFT_AUTH_TEST = 'https://edonusum.uyum.com.tr/api/test/authenticate'
-const UYUMSOFT_AUTH_LIVE = 'https://edonusum.uyum.com.tr/api/authenticate'
+const UYUMSOFT_AUTH_TEST = 'https://edonusum.uyum.com.tr/api/test/auth'
+const UYUMSOFT_AUTH_LIVE = 'https://edonusum.uyum.com.tr/api/auth'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -35,18 +34,17 @@ serve(async (req) => {
       }
     )
 
-    const { companyId, username, password, companyCode, testMode = true }: AuthRequest = await req.json()
+    const { companyId, username, password, testMode = true }: AuthRequest = await req.json()
 
     // Prepare authentication request
     const authEndpoint = testMode ? UYUMSOFT_AUTH_TEST : UYUMSOFT_AUTH_LIVE
     
     const authPayload = {
       username,
-      password,
-      companyCode
+      password
     }
 
-    console.log('Uyumsoft authentication attempt:', { username, companyCode, testMode })
+    console.log('Uyumsoft authentication attempt:', { username, testMode })
 
     // Try to authenticate with Uyumsoft
     const authResponse = await fetch(authEndpoint, {
@@ -58,7 +56,14 @@ serve(async (req) => {
       body: JSON.stringify(authPayload)
     })
 
-    const authResult = await authResponse.json()
+    let authResult
+    try {
+      authResult = await authResponse.json()
+    } catch (error) {
+      console.error('Failed to parse Uyumsoft response:', error)
+      authResult = { success: false, message: 'Invalid response from Uyumsoft' }
+    }
+
     console.log('Uyumsoft auth response:', authResult)
 
     if (!authResponse.ok || !authResult.success) {
@@ -69,7 +74,6 @@ serve(async (req) => {
     const accountData = {
       username,
       password_encrypted: password, // In production, this should be encrypted
-      company_code: companyCode,
       test_mode: testMode,
       is_active: true,
       last_sync_at: new Date().toISOString()

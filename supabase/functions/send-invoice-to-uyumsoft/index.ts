@@ -59,7 +59,7 @@ serve(async (req) => {
     // Get Uyumsoft credentials for the company
     const { data: uyumsoftAccount, error: credError } = await supabaseClient
       .from('uyumsoft_accounts')
-      .select('username, password_encrypted, company_code, test_mode')
+      .select('username, password_encrypted, test_mode')
       .eq('company_id', invoiceData.company_id)
       .eq('is_active', true)
       .single()
@@ -75,7 +75,6 @@ serve(async (req) => {
     const invoicePayload = {
       username: uyumsoftAccount.username,
       password: uyumsoftAccount.password_encrypted,
-      companyCode: uyumsoftAccount.company_code,
       invoice: {
         invoiceNumber: invoiceData.invoice_number,
         invoiceDate: invoiceData.invoice_date,
@@ -112,7 +111,18 @@ serve(async (req) => {
       body: JSON.stringify(invoicePayload)
     })
 
-    const uyumsoftResult = await uyumsoftResponse.json()
+    let uyumsoftResult
+    try {
+      uyumsoftResult = await uyumsoftResponse.json()
+    } catch (error) {
+      console.error('Failed to parse Uyumsoft response:', error)
+      uyumsoftResult = { 
+        success: false, 
+        message: 'Invalid response from Uyumsoft',
+        statusCode: uyumsoftResponse.status 
+      }
+    }
+
     console.log('Uyumsoft response:', uyumsoftResult)
 
     let updateData

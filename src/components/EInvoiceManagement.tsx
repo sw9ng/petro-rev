@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,9 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Plus, FileText, Send, Eye } from "lucide-react";
+import { Plus, FileText } from "lucide-react";
 import { useEInvoices } from "@/hooks/useEInvoices";
 import { useTaxRegistry } from "@/hooks/useTaxRegistry";
 
@@ -32,7 +29,7 @@ export const EInvoiceManagement = ({ companyId }: EInvoiceManagementProps) => {
     invoice_uuid: "",
   });
 
-  const { eInvoices, isLoading, createEInvoice, sendToUyumsoft } = useEInvoices(companyId);
+  const { createEInvoice } = useEInvoices(companyId);
   const { searchByTaxNumber } = useTaxRegistry();
 
   const handleTaxNumberChange = async (taxNumber: string) => {
@@ -85,25 +82,12 @@ export const EInvoiceManagement = ({ companyId }: EInvoiceManagementProps) => {
     });
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusMap = {
-      draft: { label: "Taslak", variant: "secondary" as const },
-      sent: { label: "Gönderildi", variant: "default" as const },
-      accepted: { label: "Kabul Edildi", variant: "outline" as const },
-      rejected: { label: "Reddedildi", variant: "destructive" as const },
-      cancelled: { label: "İptal Edildi", variant: "outline" as const },
-    };
-    
-    const config = statusMap[status as keyof typeof statusMap] || statusMap.draft;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
-  };
-
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center space-x-2">
           <FileText className="h-5 w-5" />
-          <span>E-Fatura Yönetimi</span>
+          <span>Yeni E-Fatura Oluştur</span>
         </CardTitle>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -234,49 +218,9 @@ export const EInvoiceManagement = ({ companyId }: EInvoiceManagementProps) => {
         </Dialog>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div>Yükleniyor...</div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Fatura No</TableHead>
-                <TableHead>Tarih</TableHead>
-                <TableHead>Alıcı</TableHead>
-                <TableHead>Tutar</TableHead>
-                <TableHead>Durum</TableHead>
-                <TableHead className="text-right">İşlemler</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {eInvoices.map((invoice) => (
-                <TableRow key={invoice.id}>
-                  <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
-                  <TableCell>{new Date(invoice.invoice_date).toLocaleDateString("tr-TR")}</TableCell>
-                  <TableCell>{invoice.recipient_title}</TableCell>
-                  <TableCell>{invoice.grand_total.toLocaleString("tr-TR")} ₺</TableCell>
-                  <TableCell>{getStatusBadge(invoice.gib_status)}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end space-x-2">
-                      <Button variant="outline" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      {invoice.gib_status === 'draft' && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => sendToUyumsoft.mutate(invoice.id)}
-                        >
-                          <Send className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+        <p className="text-sm text-gray-600">
+          E-Fatura oluşturduktan sonra "Fatura Yönetimi" bölümünden Uyumsoft'a gönderebilirsiniz.
+        </p>
       </CardContent>
     </Card>
   );

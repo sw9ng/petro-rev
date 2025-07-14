@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Settings, Link, FileText, Upload, Download, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Settings, Link, FileText, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUyumsoftAccounts } from '@/hooks/useUyumsoftAccounts';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,7 +21,6 @@ export const UyumsoftIntegration = ({ companyId }: UyumsoftIntegrationProps) => 
   const [credentials, setCredentials] = useState({
     username: '',
     password: '',
-    company_code: '',
     test_mode: true,
   });
 
@@ -34,17 +32,16 @@ export const UyumsoftIntegration = ({ companyId }: UyumsoftIntegrationProps) => 
       setCredentials({
         username: uyumsoftAccount.username,
         password: '', // Güvenlik için şifre gösterilmez
-        company_code: uyumsoftAccount.company_code,
         test_mode: uyumsoftAccount.test_mode,
       });
     }
   }, [uyumsoftAccount]);
 
   const handleTestConnection = async () => {
-    if (!credentials.username || !credentials.password || !credentials.company_code) {
+    if (!credentials.username || !credentials.password) {
       toast({
         title: "Hata",
-        description: "Kullanıcı adı, şifre ve şirket kodu gereklidir",
+        description: "Kullanıcı adı ve şifre gereklidir",
         variant: "destructive",
       });
       return;
@@ -66,7 +63,6 @@ export const UyumsoftIntegration = ({ companyId }: UyumsoftIntegrationProps) => 
           companyId,
           username: credentials.username,
           password: credentials.password,
-          companyCode: credentials.company_code,
           testMode: credentials.test_mode
         }),
       });
@@ -124,7 +120,6 @@ export const UyumsoftIntegration = ({ companyId }: UyumsoftIntegrationProps) => 
                 {isConnected && (
                   <div className="mt-2 space-y-1">
                     <p className="text-xs text-gray-500">Kullanıcı: {uyumsoftAccount.username}</p>
-                    <p className="text-xs text-gray-500">Şirket Kodu: {uyumsoftAccount.company_code}</p>
                     <p className="text-xs text-gray-500">
                       Mod: {uyumsoftAccount.test_mode ? 'Test' : 'Canlı'}
                     </p>
@@ -175,16 +170,6 @@ export const UyumsoftIntegration = ({ companyId }: UyumsoftIntegrationProps) => 
                       disabled={isAuthenticating}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="companyCode">Şirket Kodu *</Label>
-                    <Input
-                      id="companyCode"
-                      value={credentials.company_code}
-                      onChange={(e) => setCredentials({...credentials, company_code: e.target.value})}
-                      placeholder="Şirket kodunuz"
-                      disabled={isAuthenticating}
-                    />
-                  </div>
                   <div className="flex items-center space-x-2">
                     <Switch
                       id="test-mode"
@@ -228,46 +213,25 @@ export const UyumsoftIntegration = ({ companyId }: UyumsoftIntegrationProps) => 
         </CardContent>
       </Card>
 
-      {/* E-Fatura Operations */}
+      {/* Invoice Management */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <FileText className="h-5 w-5" />
-            <span>E-Fatura İşlemleri</span>
+            <span>Fatura İşlemleri</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button 
-              variant="outline" 
-              className="flex items-center space-x-2"
-              disabled={!isConnected}
-            >
-              <Upload className="h-4 w-4" />
-              <span>Toplu Fatura Gönder</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              className="flex items-center space-x-2"
-              disabled={!isConnected}
-            >
-              <Download className="h-4 w-4" />
-              <span>Fatura İndir</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              className="flex items-center space-x-2"
-              disabled={!isConnected}
-            >
-              <FileText className="h-4 w-4" />
-              <span>Durum Sorgula</span>
-            </Button>
-          </div>
-          {!isConnected && (
-            <p className="text-sm text-gray-500 mt-2">
-              Bu işlevleri kullanmak için önce Uyumsoft hesabınızı bağlayın.
+          <div className="text-center">
+            <p className="text-sm text-gray-600 mb-4">
+              Tüm faturalarınızı tek yerden yönetin ve Uyumsoft'a gönderin
             </p>
-          )}
+            {!isConnected && (
+              <p className="text-sm text-gray-500">
+                Bu işlevleri kullanmak için önce Uyumsoft hesabınızı bağlayın.
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -4,9 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Archive, Send, Eye } from "lucide-react";
+import { Plus, Archive } from "lucide-react";
 import { useEArchiveInvoices } from "@/hooks/useEArchiveInvoices";
 
 interface EArchiveInvoiceManagementProps {
@@ -27,7 +25,7 @@ export const EArchiveInvoiceManagement = ({ companyId }: EArchiveInvoiceManageme
     grand_total: 0,
   });
 
-  const { eArchiveInvoices, isLoading, createEArchiveInvoice, sendToUyumsoft } = useEArchiveInvoices(companyId);
+  const { createEArchiveInvoice } = useEArchiveInvoices(companyId);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,24 +48,12 @@ export const EArchiveInvoiceManagement = ({ companyId }: EArchiveInvoiceManageme
     });
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusMap = {
-      draft: { label: "Taslak", variant: "secondary" as const },
-      sent: { label: "Gönderildi", variant: "default" as const },
-      accepted: { label: "Kabul Edildi", variant: "outline" as const },
-      rejected: { label: "Reddedildi", variant: "destructive" as const },
-    };
-    
-    const config = statusMap[status as keyof typeof statusMap] || statusMap.draft;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
-  };
-
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center space-x-2">
           <Archive className="h-5 w-5" />
-          <span>E-Arşiv Fatura Yönetimi</span>
+          <span>Yeni E-Arşiv Fatura Oluştur</span>
         </CardTitle>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -188,49 +174,9 @@ export const EArchiveInvoiceManagement = ({ companyId }: EArchiveInvoiceManageme
         </Dialog>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div>Yükleniyor...</div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Fatura No</TableHead>
-                <TableHead>Tarih</TableHead>
-                <TableHead>Müşteri</TableHead>
-                <TableHead>Tutar</TableHead>
-                <TableHead>Durum</TableHead>
-                <TableHead className="text-right">İşlemler</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {eArchiveInvoices.map((invoice) => (
-                <TableRow key={invoice.id}>
-                  <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
-                  <TableCell>{new Date(invoice.invoice_date).toLocaleDateString("tr-TR")}</TableCell>
-                  <TableCell>{invoice.customer_name}</TableCell>
-                  <TableCell>{invoice.grand_total.toLocaleString("tr-TR")} ₺</TableCell>
-                  <TableCell>{getStatusBadge(invoice.gib_status)}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end space-x-2">
-                      <Button variant="outline" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      {invoice.gib_status === 'draft' && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => sendToUyumsoft.mutate(invoice.id)}
-                        >
-                          <Send className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+        <p className="text-sm text-gray-600">
+          E-Arşiv fatura oluşturduktan sonra "Fatura Yönetimi" bölümünden Uyumsoft'a gönderebilirsiniz.
+        </p>
       </CardContent>
     </Card>
   );
