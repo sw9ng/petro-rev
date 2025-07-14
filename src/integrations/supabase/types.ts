@@ -430,12 +430,52 @@ export type Database = {
         }
         Relationships: []
       }
+      petronet_files: {
+        Row: {
+          created_at: string | null
+          file_hash: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id: string
+          processed: boolean | null
+          upload_date: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          file_hash: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id?: string
+          processed?: boolean | null
+          upload_date?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          file_hash?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          processed?: boolean | null
+          upload_date?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
           full_name: string | null
           id: string
           is_premium: boolean | null
+          last_sync_time: string | null
+          petronet_auto_sync: boolean | null
+          petronet_email: string | null
+          petronet_password: string | null
           premium_expires_at: string | null
           station_name: string | null
         }
@@ -444,6 +484,10 @@ export type Database = {
           full_name?: string | null
           id: string
           is_premium?: boolean | null
+          last_sync_time?: string | null
+          petronet_auto_sync?: boolean | null
+          petronet_email?: string | null
+          petronet_password?: string | null
           premium_expires_at?: string | null
           station_name?: string | null
         }
@@ -452,6 +496,10 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_premium?: boolean | null
+          last_sync_time?: string | null
+          petronet_auto_sync?: boolean | null
+          petronet_email?: string | null
+          petronet_password?: string | null
           premium_expires_at?: string | null
           station_name?: string | null
         }
