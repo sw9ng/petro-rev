@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,11 +27,10 @@ export const EArchiveInvoiceManagement = ({ companyId }: EArchiveInvoiceManageme
     grand_total: 0,
   });
 
-  const { eArchiveInvoices, isLoading, createEArchiveInvoice, sendToGib } = useEArchiveInvoices(companyId);
+  const { eArchiveInvoices, isLoading, createEArchiveInvoice, sendToUyumsoft } = useEArchiveInvoices(companyId);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Generate archive_id when creating
     const invoiceData = {
       ...formData,
       archive_id: `ARS${Date.now()}`,
@@ -221,7 +219,7 @@ export const EArchiveInvoiceManagement = ({ companyId }: EArchiveInvoiceManageme
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => sendToGib.mutate(invoice.id)}
+                          onClick={() => sendToUyumsoft.mutate(invoice.id)}
                         >
                           <Send className="h-4 w-4" />
                         </Button>

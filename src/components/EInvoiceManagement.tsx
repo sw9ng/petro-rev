@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,7 +32,7 @@ export const EInvoiceManagement = ({ companyId }: EInvoiceManagementProps) => {
     invoice_uuid: "",
   });
 
-  const { eInvoices, isLoading, createEInvoice, sendToGib } = useEInvoices(companyId);
+  const { eInvoices, isLoading, createEInvoice, sendToUyumsoft } = useEInvoices(companyId);
   const { searchByTaxNumber } = useTaxRegistry();
 
   const handleTaxNumberChange = async (taxNumber: string) => {
@@ -264,7 +265,7 @@ export const EInvoiceManagement = ({ companyId }: EInvoiceManagementProps) => {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => sendToGib.mutate(invoice.id)}
+                          onClick={() => sendToUyumsoft.mutate(invoice.id)}
                         >
                           <Send className="h-4 w-4" />
                         </Button>

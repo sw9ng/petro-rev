@@ -52,12 +52,12 @@ export const useEArchiveInvoices = (companyId: string) => {
     },
   });
 
-  const sendToGib = useMutation({
+  const sendToUyumsoft = useMutation({
     mutationFn: async (invoiceId: string) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Oturum bulunamadı");
 
-      const response = await fetch(`https://duebejkrrvuodwbforkd.supabase.co/functions/v1/send-invoice-to-gib`, {
+      const response = await fetch(`https://duebejkrrvuodwbforkd.supabase.co/functions/v1/send-invoice-to-uyumsoft`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -70,7 +70,7 @@ export const useEArchiveInvoices = (companyId: string) => {
       });
 
       if (!response.ok) {
-        throw new Error('GİB\'e gönderim başarısız');
+        throw new Error('Uyumsoft\'a gönderim başarısız');
       }
 
       return await response.json();
@@ -79,13 +79,13 @@ export const useEArchiveInvoices = (companyId: string) => {
       queryClient.invalidateQueries({ queryKey: ["e-archive-invoices", companyId] });
       toast({
         title: "Başarılı",
-        description: "E-Arşiv Fatura GİB'e gönderildi",
+        description: "E-Arşiv Fatura Uyumsoft üzerinden gönderildi",
       });
     },
     onError: (error) => {
       toast({
         title: "Hata",
-        description: `GİB'e gönderim hatası: ${error.message}`,
+        description: `Uyumsoft gönderim hatası: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -95,6 +95,6 @@ export const useEArchiveInvoices = (companyId: string) => {
     eArchiveInvoices: eArchiveInvoicesQuery.data || [],
     isLoading: eArchiveInvoicesQuery.isLoading,
     createEArchiveInvoice,
-    sendToGib,
+    sendToUyumsoft,
   };
 };
