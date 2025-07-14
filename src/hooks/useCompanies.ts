@@ -1,24 +1,28 @@
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
-type Company = Tables<"companies">;
-type CompanyInsert = TablesInsert<"companies">;
-type CompanyUpdate = TablesUpdate<"companies">;
+export interface Company {
+  id: string;
+  name: string;
+  description: string | null;
+  owner_id: string;
+  created_at: string;
+  updated_at: string;
+}
 
 export const useCompanies = () => {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const companiesQuery = useQuery({
-    queryKey: ["companies"],
+  const { data: companies = [], isLoading, error } = useQuery({
+    queryKey: ['companies'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("companies")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .from('companies')
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data as Company[];
@@ -26,13 +30,17 @@ export const useCompanies = () => {
   });
 
   const createCompany = useMutation({
-    mutationFn: async (company: Omit<CompanyInsert, "owner_id">) => {
+    mutationFn: async (companyData: Omit<Company, 'id' | 'owner_id' | 'created_at' | 'updated_at'>) => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not authenticated");
+      if (!user) throw new Error('Kullanıcı bulunamadı');
 
       const { data, error } = await supabase
-        .from("companies")
-        .insert({ ...company, owner_id: user.id })
+        .from('companies')
+        .insert({
+          name: companyData.name,
+          description: companyData.description,
+          owner_id: user.id,
+        })
         .select()
         .single();
 
@@ -40,27 +48,16 @@ export const useCompanies = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["companies"] });
-      toast({
-        title: "Başarılı",
-        description: "Şirket başarıyla oluşturuldu",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Hata",
-        description: error.message || "Şirket oluşturulurken hata oluştu",
-        variant: "destructive",
-      });
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
     },
   });
 
   const updateCompany = useMutation({
-    mutationFn: async ({ id, ...updates }: CompanyUpdate & { id: string }) => {
+    mutationFn: async ({ id, ...updates }: Partial<Company> & { id: string }) => {
       const { data, error } = await supabase
-        .from("companies")
+        .from('companies')
         .update(updates)
-        .eq("id", id)
+        .eq('id', id)
         .select()
         .single();
 
@@ -68,52 +65,42 @@ export const useCompanies = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["companies"] });
-      toast({
-        title: "Başarılı",
-        description: "Şirket başarıyla güncellendi",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Hata",
-        description: error.message || "Şirket güncellenirken hata oluştu",
-        variant: "destructive",
-      });
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
     },
   });
 
   const deleteCompany = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("companies")
+        .from('companies')
         .delete()
-        .eq("id", id);
+        .eq('id', id);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["companies"] });
-      toast({
-        title: "Başarılı",
-        description: "Şirket başarıyla silindi",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Hata",
-        description: error.message || "Şirket silinirken hata oluştu",
-        variant: "destructive",
-      });
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
     },
   });
 
+  // Legacy interface compatibility
+  const addCompany = async (companyData: Omit<Company, 'id' | 'owner_id' | 'created_at' | 'updated_at'>) => {
+    try {
+      await createCompany.mutateAsync(companyData);
+      return { error: null };
+    } catch (error) {
+      return { error };
+    }
+  };
+
   return {
-    companies: companiesQuery.data || [],
-    isLoading: companiesQuery.isLoading,
-    error: companiesQuery.error,
+    companies,
+    loading: isLoading, // Legacy compatibility
+    isLoading,
+    error: error?.message || null,
     createCompany,
     updateCompany,
     deleteCompany,
+    addCompany, // Legacy compatibility
   };
 };

@@ -35,3 +35,23 @@ export const formatPercentage = (value: number, decimals: number = 1): string =>
     maximumFractionDigits: decimals,
   }).format(value / 100);
 };
+
+/**
+ * Format a date time for display in Turkish locale
+ */
+export const formatDateTimeForDisplay = (dateInput: string | Date): Date => {
+  if (typeof dateInput === 'string') {
+    return new Date(dateInput);
+  }
+  return dateInput;
+};
+
+/**
+ * Get Istanbul time for a given date
+ */
+export const getIstanbulTime = (date?: Date): Date => {
+  const targetDate = date || new Date();
+  // Convert to Istanbul timezone (UTC+3)
+  const istanbulTime = new Date(targetDate.toLocaleString("en-US", {timeZone: "Europe/Istanbul"}));
+  return istanbulTime;
+};
