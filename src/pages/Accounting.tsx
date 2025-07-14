@@ -19,11 +19,15 @@ import {
   Users,
   Eye,
   Edit,
-  Trash2
+  Trash2,
+  Settings,
+  Link as LinkIcon
 } from "lucide-react";
 import { useCompanies } from "@/hooks/useCompanies";
 import { CompanyAccountsList } from "@/components/CompanyAccountsList";
 import { CompanyCashManagement } from "@/components/CompanyCashManagement";
+import { UyumsoftIntegration } from "@/components/UyumsoftIntegration";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Accounting = () => {
   const [isCompanyDialogOpen, setIsCompanyDialogOpen] = useState(false);
@@ -57,48 +61,51 @@ const Accounting = () => {
                 <span>Muhasebe Modülü</span>
               </h1>
               <p className="text-gray-600 dark:text-gray-300 mt-2">
-                E-Fatura, cari hesap ve finansal yönetim sistemi
+                E-Fatura, cari hesap ve finansal yönetim sistemi - Uyumsoft entegrasyonu ile
               </p>
             </div>
-            <Dialog open={isCompanyDialogOpen} onOpenChange={setIsCompanyDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Yeni Şirket
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Yeni Şirket Oluştur</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleCreateCompany} className="space-y-4">
-                  <div>
-                    <Label htmlFor="company-name">Şirket Adı *</Label>
-                    <Input
-                      id="company-name"
-                      value={companyFormData.name}
-                      onChange={(e) => setCompanyFormData(prev => ({ ...prev, name: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="company-description">Açıklama</Label>
-                    <Textarea
-                      id="company-description"
-                      value={companyFormData.description}
-                      onChange={(e) => setCompanyFormData(prev => ({ ...prev, description: e.target.value }))}
-                      rows={3}
-                    />
-                  </div>
-                  <div className="flex justify-end space-x-2">
-                    <Button type="button" variant="outline" onClick={() => setIsCompanyDialogOpen(false)}>
-                      İptal
-                    </Button>
-                    <Button type="submit">Kaydet</Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
+            <div className="flex items-center space-x-2">
+              <ThemeToggle />
+              <Dialog open={isCompanyDialogOpen} onOpenChange={setIsCompanyDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Yeni Şirket
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Yeni Şirket Oluştur</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleCreateCompany} className="space-y-4">
+                    <div>
+                      <Label htmlFor="company-name">Şirket Adı *</Label>
+                      <Input
+                        id="company-name"
+                        value={companyFormData.name}
+                        onChange={(e) => setCompanyFormData(prev => ({ ...prev, name: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="company-description">Açıklama</Label>
+                      <Textarea
+                        id="company-description"
+                        value={companyFormData.description}
+                        onChange={(e) => setCompanyFormData(prev => ({ ...prev, description: e.target.value }))}
+                        rows={3}
+                      />
+                    </div>
+                    <div className="flex justify-end space-x-2">
+                      <Button type="button" variant="outline" onClick={() => setIsCompanyDialogOpen(false)}>
+                        İptal
+                      </Button>
+                      <Button type="submit">Kaydet</Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
         </div>
 
@@ -132,7 +139,7 @@ const Accounting = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-purple-100">Bu Ay Satış</p>
+                  <p className="text-purple-100">E-Fatura</p>
                   <p className="text-3xl font-bold">0</p>
                 </div>
                 <FileText className="h-12 w-12 text-purple-200" />
@@ -144,7 +151,7 @@ const Accounting = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-orange-100">Bu Ay Alış</p>
+                  <p className="text-orange-100">E-Arşiv</p>
                   <p className="text-3xl font-bold">0</p>
                 </div>
                 <TrendingDown className="h-12 w-12 text-orange-200" />
@@ -218,18 +225,22 @@ const Accounting = () => {
         {/* Company Management */}
         {selectedCompany && (
           <Tabs defaultValue="accounts" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="accounts" className="flex items-center space-x-2">
                 <Users className="h-4 w-4" />
                 <span>Cari Hesaplar</span>
               </TabsTrigger>
-              <TabsTrigger value="income" className="flex items-center space-x-2">
-                <TrendingUp className="h-4 w-4" />
-                <span>Satış Faturaları</span>
+              <TabsTrigger value="e-invoice" className="flex items-center space-x-2">
+                <FileText className="h-4 w-4" />
+                <span>E-Fatura</span>
               </TabsTrigger>
-              <TabsTrigger value="expense" className="flex items-center space-x-2">
+              <TabsTrigger value="e-archive" className="flex items-center space-x-2">
                 <TrendingDown className="h-4 w-4" />
-                <span>Alış Faturaları</span>
+                <span>E-Arşiv</span>
+              </TabsTrigger>
+              <TabsTrigger value="integration" className="flex items-center space-x-2">
+                <LinkIcon className="h-4 w-4" />
+                <span>Uyumsoft</span>
               </TabsTrigger>
               <TabsTrigger value="reports" className="flex items-center space-x-2">
                 <FileText className="h-4 w-4" />
@@ -241,12 +252,16 @@ const Accounting = () => {
               <CompanyAccountsList companyId={selectedCompany} />
             </TabsContent>
 
-            <TabsContent value="income">
+            <TabsContent value="e-invoice">
               <CompanyCashManagement companyId={selectedCompany} type="income" />
             </TabsContent>
 
-            <TabsContent value="expense">
+            <TabsContent value="e-archive">
               <CompanyCashManagement companyId={selectedCompany} type="expense" />
+            </TabsContent>
+
+            <TabsContent value="integration">
+              <UyumsoftIntegration />
             </TabsContent>
 
             <TabsContent value="reports">

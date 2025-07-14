@@ -9,13 +9,13 @@ type ExpenseInvoice = Tables<"expense_invoices">;
 type IncomeInvoiceInsert = TablesInsert<"income_invoices">;
 type ExpenseInvoiceInsert = TablesInsert<"expense_invoices">;
 
-export const useInvoices = (type: "income" | "expense" = "income") => {
+export const useInvoices = (companyId: string, type: "income" | "expense" = "income") => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const tableName = type === "income" ? "income_invoices" : "expense_invoices";
 
   const invoicesQuery = useQuery({
-    queryKey: [tableName],
+    queryKey: [tableName, companyId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from(tableName)
@@ -24,6 +24,7 @@ export const useInvoices = (type: "income" | "expense" = "income") => {
           companies(name),
           company_accounts(name)
         `)
+        .eq("company_id", companyId)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -32,13 +33,13 @@ export const useInvoices = (type: "income" | "expense" = "income") => {
   });
 
   const createInvoice = useMutation({
-    mutationFn: async (invoice: Omit<IncomeInvoiceInsert | ExpenseInvoiceInsert, "created_by">) => {
+    mutationFn: async (invoice: Omit<IncomeInvoiceInsert | ExpenseInvoiceInsert, "created_by" | "company_id">) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
       const { data, error } = await supabase
         .from(tableName)
-        .insert({ ...invoice, created_by: user.id })
+        .insert({ ...invoice, created_by: user.id, company_id: companyId })
         .select()
         .single();
 
@@ -46,7 +47,7 @@ export const useInvoices = (type: "income" | "expense" = "income") => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [tableName] });
+      queryClient.invalidateQueries({ queryKey: [tableName, companyId] });
       toast({
         title: "Başarılı",
         description: "Fatura başarıyla oluşturuldu",
@@ -74,7 +75,7 @@ export const useInvoices = (type: "income" | "expense" = "income") => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [tableName] });
+      queryClient.invalidateQueries({ queryKey: [tableName, companyId] });
       toast({
         title: "Başarılı",
         description: "Fatura başarıyla güncellendi",
@@ -92,7 +93,7 @@ export const useInvoices = (type: "income" | "expense" = "income") => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [tableName] });
+      queryClient.invalidateQueries({ queryKey: [tableName, companyId] });
       toast({
         title: "Başarılı",
         description: "Fatura başarıyla silindi",

@@ -25,7 +25,7 @@ export const CompanyCashManagement = ({ companyId, type = 'income' }: CompanyCas
     description: '',
     amount: '',
     invoice_date: new Date().toISOString().split('T')[0],
-    payment_status: 'unpaid' as const,
+    payment_status: 'unpaid' as 'unpaid' | 'paid',
     tax_number: '',
     company_title: ''
   });
