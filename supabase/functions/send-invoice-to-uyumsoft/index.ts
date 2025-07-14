@@ -12,6 +12,10 @@ interface InvoiceRequest {
   invoiceType: 'e-invoice' | 'e-archive'
 }
 
+// Uyumsoft API endpoints
+const UYUMSOFT_API_BASE = 'https://efaturatest.uyumsoft.com.tr/services'
+const UYUMSOFT_API_LIVE = 'https://efatura.uyumsoft.com.tr/services'
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -64,26 +68,44 @@ serve(async (req) => {
       throw new Error('Uyumsoft hesap bilgileri bulunamadı')
     }
 
-    // Uyumsoft API entegrasyonu için gerekli veriler
-    const uyumsoftData = {
+    // Prepare Uyumsoft API request
+    const apiBaseUrl = uyumsoftAccount.test_mode ? UYUMSOFT_API_BASE : UYUMSOFT_API_LIVE
+    
+    // Create invoice payload for Uyumsoft
+    const invoicePayload = {
       username: uyumsoftAccount.username,
-      password: uyumsoftAccount.password_encrypted, // Bu decrypt edilmeli
+      password: uyumsoftAccount.password_encrypted, // In production, this should be decrypted
       companyCode: uyumsoftAccount.company_code,
-      testMode: uyumsoftAccount.test_mode,
-      invoice: invoiceData
+      invoiceData: {
+        invoiceNumber: invoiceData.invoice_number,
+        invoiceDate: invoiceData.invoice_date,
+        totalAmount: invoiceData.total_amount || invoiceData.grand_total,
+        taxAmount: invoiceData.tax_amount,
+        grandTotal: invoiceData.grand_total,
+        customerName: invoiceData.customer_name || invoiceData.recipient_title,
+        customerTaxNumber: invoiceData.customer_tax_number || invoiceData.recipient_tax_number,
+        customerAddress: invoiceData.customer_address || invoiceData.recipient_address,
+        currencyCode: invoiceData.currency_code
+      }
     }
 
-    // Uyumsoft API'ye gönderim (gerçek entegrasyon)
-    console.log('Uyumsoft\'a gönderilecek veri:', uyumsoftData)
+    // Send to Uyumsoft API
+    const uyumsoftEndpoint = invoiceType === 'e-invoice' 
+      ? `${apiBaseUrl}/EInvoiceService` 
+      : `${apiBaseUrl}/EArchiveService`
 
-    // Şimdilik mock response - gerçek entegrasyon yapılacak
+    console.log('Uyumsoft\'a gönderilecek veri:', JSON.stringify(invoicePayload, null, 2))
+
+    // For now, simulate the API call since we don't have the actual Uyumsoft API details
+    // In production, you would make the actual HTTP request to Uyumsoft
     const uyumsoftResponse = {
       success: true,
       invoiceId: invoiceData.id,
       uyumsoftId: `UYM-${Date.now()}`,
       status: 'sent',
       message: 'Fatura Uyumsoft üzerinden başarıyla gönderildi',
-      sendDate: new Date().toISOString()
+      sendDate: new Date().toISOString(),
+      gibStatus: 'pending'
     }
 
     // Update invoice status with Uyumsoft response

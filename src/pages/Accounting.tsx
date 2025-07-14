@@ -276,7 +276,7 @@ const Accounting = () => {
             </TabsContent>
 
             <TabsContent value="integration">
-              <UyumsoftIntegration />
+              <UyumsoftIntegration companyId={selectedCompany} />
             </TabsContent>
 
             <TabsContent value="reports">
