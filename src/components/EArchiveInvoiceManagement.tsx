@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Archive, Eye } from "lucide-react";
+import { Plus, Archive, Send, Eye } from "lucide-react";
 import { useEArchiveInvoices } from "@/hooks/useEArchiveInvoices";
 
 interface EArchiveInvoiceManagementProps {
@@ -28,11 +28,16 @@ export const EArchiveInvoiceManagement = ({ companyId }: EArchiveInvoiceManageme
     grand_total: 0,
   });
 
-  const { eArchiveInvoices, isLoading, createEArchiveInvoice } = useEArchiveInvoices(companyId);
+  const { eArchiveInvoices, isLoading, createEArchiveInvoice, sendToGib } = useEArchiveInvoices(companyId);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createEArchiveInvoice.mutate(formData);
+    // Generate archive_id when creating
+    const invoiceData = {
+      ...formData,
+      archive_id: `ARS${Date.now()}`,
+    };
+    createEArchiveInvoice.mutate(invoiceData);
     setIsDialogOpen(false);
     setFormData({
       invoice_number: "",
@@ -51,7 +56,7 @@ export const EArchiveInvoiceManagement = ({ companyId }: EArchiveInvoiceManageme
     const statusMap = {
       draft: { label: "Taslak", variant: "secondary" as const },
       sent: { label: "Gönderildi", variant: "default" as const },
-      accepted: { label: "Kabul Edildi", variant: "success" as const },
+      accepted: { label: "Kabul Edildi", variant: "outline" as const },
       rejected: { label: "Reddedildi", variant: "destructive" as const },
     };
     
@@ -70,12 +75,12 @@ export const EArchiveInvoiceManagement = ({ companyId }: EArchiveInvoiceManageme
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              Yeni E-Arşiv Faturası
+              Yeni E-Arşiv Fatura
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Yeni E-Arşiv Faturası Oluştur</DialogTitle>
+              <DialogTitle>Yeni E-Arşiv Fatura Oluştur</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -112,7 +117,7 @@ export const EArchiveInvoiceManagement = ({ companyId }: EArchiveInvoiceManageme
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="customer-tax-number">Müşteri VKN</Label>
+                  <Label htmlFor="customer-tax-number">VKN</Label>
                   <Input
                     id="customer-tax-number"
                     value={formData.customer_tax_number}
@@ -120,7 +125,7 @@ export const EArchiveInvoiceManagement = ({ companyId }: EArchiveInvoiceManageme
                   />
                 </div>
                 <div>
-                  <Label htmlFor="customer-tc-number">Müşteri TCKN</Label>
+                  <Label htmlFor="customer-tc-number">TCKN</Label>
                   <Input
                     id="customer-tc-number"
                     value={formData.customer_tc_number}
@@ -208,9 +213,20 @@ export const EArchiveInvoiceManagement = ({ companyId }: EArchiveInvoiceManageme
                   <TableCell>{invoice.grand_total.toLocaleString("tr-TR")} ₺</TableCell>
                   <TableCell>{getStatusBadge(invoice.gib_status)}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="outline" size="sm">
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                    <div className="flex justify-end space-x-2">
+                      <Button variant="outline" size="sm">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      {invoice.gib_status === 'draft' && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => sendToGib.mutate(invoice.id)}
+                        >
+                          <Send className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

@@ -71,7 +71,7 @@ export const EInvoiceManagement = ({ companyId }: EInvoiceManagementProps) => {
     const statusMap = {
       draft: { label: "Taslak", variant: "secondary" as const },
       sent: { label: "Gönderildi", variant: "default" as const },
-      accepted: { label: "Kabul Edildi", variant: "success" as const },
+      accepted: { label: "Kabul Edildi", variant: "outline" as const },
       rejected: { label: "Reddedildi", variant: "destructive" as const },
       cancelled: { label: "İptal Edildi", variant: "outline" as const },
     };
