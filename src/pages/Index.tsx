@@ -15,7 +15,8 @@ import {
   LogOut,
   Star,
   Crown,
-  Banknote
+  Banknote,
+  Calculator
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { FuelStationDashboard } from "@/components/FuelStationDashboard";
@@ -28,6 +29,7 @@ import { CustomerManagement } from "@/components/CustomerManagement";
 import { PaymentTracking } from "@/components/PaymentTracking";
 import { AdminPanel } from "@/components/AdminPanel";
 import CashRegister from "@/pages/CashRegister";
+import Accounting from "@/pages/Accounting";
 
 const Index = () => {
   const { user, signOut } = useAuth();
@@ -119,7 +121,7 @@ const Index = () => {
       <div className="max-w-7xl mx-auto py-4 sm:py-6 px-2 sm:px-4 lg:px-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
           <div className="overflow-x-auto">
-            <TabsList className={`flex w-max min-w-full ${isAdmin ? 'grid-cols-10' : 'grid-cols-9'} bg-white border shadow-sm rounded-xl p-1 gap-1`}>
+            <TabsList className={`flex w-max min-w-full ${isAdmin ? 'grid-cols-11' : 'grid-cols-10'} bg-white border shadow-sm rounded-xl p-1 gap-1`}>
               <TabsTrigger value="dashboard" className="flex items-center space-x-1 sm:space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap">
                 <LayoutDashboard className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span>Özet</span>
@@ -147,6 +149,10 @@ const Index = () => {
               <TabsTrigger value="cash-register" className="flex items-center space-x-1 sm:space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap">
                 <Banknote className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span>Kasa</span>
+              </TabsTrigger>
+              <TabsTrigger value="accounting" className="flex items-center space-x-1 sm:space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap">
+                <Calculator className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span>Muhasebe</span>
               </TabsTrigger>
               <TabsTrigger value="fuel" className="flex items-center space-x-1 sm:space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap">
                 <Fuel className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -191,6 +197,10 @@ const Index = () => {
 
           <TabsContent value="cash-register" className="space-y-4 sm:space-y-6">
             {user && <CashRegister />}
+          </TabsContent>
+
+          <TabsContent value="accounting" className="space-y-4 sm:space-y-6">
+            <Accounting />
           </TabsContent>
 
           <TabsContent value="fuel" className="space-y-4 sm:space-y-6">

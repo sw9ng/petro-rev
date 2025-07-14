@@ -1,646 +1,246 @@
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
+
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useInvoices } from '@/hooks/useInvoices';
-import { formatCurrency } from '@/lib/numberUtils';
-import { Plus, Users, Edit, Eye, ArrowLeft, Phone, MapPin, Calendar, FileText, Trash } from 'lucide-react';
-import { toast } from 'sonner';
+import { Plus, Edit, Trash2, Building2 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
-export const CompanyAccountsList = ({ companyId }: { companyId: string }) => {
-  const { accounts, incomeInvoices, expenseInvoices, loading, addAccount, updateAccount, updateIncomeInvoice, updateExpenseInvoice, deleteIncomeInvoice, deleteExpenseInvoice } = useInvoices(companyId);
+interface CompanyAccountsListProps {
+  companyId: string;
+}
+
+export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
-  const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
-  const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
-  const [editingInvoiceType, setEditingInvoiceType] = useState<'income' | 'expense' | null>(null);
-  const [newAccountData, setNewAccountData] = useState({
-    name: '',
-    phone: '',
-    address: '',
-    notes: ''
-  });
-  const [editAccountData, setEditAccountData] = useState({
-    name: '',
-    phone: '',
-    address: '',
-    notes: ''
-  });
-  const [editInvoiceData, setEditInvoiceData] = useState({
-    invoice_number: '',
-    description: '',
-    amount: 0,
-    invoice_date: '',
-    payment_status: 'unpaid' as 'paid' | 'unpaid',
-    payment_date: ''
+  const [editingAccount, setEditingAccount] = useState<any>(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    phone: "",
+    address: "",
+    notes: ""
   });
 
-  const handleCreateAccount = async () => {
-    if (!newAccountData.name.trim()) {
-      toast.error("Cari hesap adı zorunludur.");
-      return;
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data: accounts, isLoading } = useQuery({
+    queryKey: ["company-accounts", companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("company_accounts")
+        .select("*")
+        .eq("company_id", companyId)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const createAccount = useMutation({
+    mutationFn: async (accountData: any) => {
+      const { data, error } = await supabase
+        .from("company_accounts")
+        .insert({ ...accountData, company_id: companyId })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["company-accounts", companyId] });
+      setIsDialogOpen(false);
+      setFormData({ name: "", phone: "", address: "", notes: "" });
+      toast({
+        title: "Başarılı",
+        description: "Cari hesap başarıyla oluşturuldu",
+      });
+    },
+  });
+
+  const updateAccount = useMutation({
+    mutationFn: async ({ id, ...updates }: any) => {
+      const { data, error } = await supabase
+        .from("company_accounts")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["company-accounts", companyId] });
+      setIsDialogOpen(false);
+      setEditingAccount(null);
+      setFormData({ name: "", phone: "", address: "", notes: "" });
+      toast({
+        title: "Başarılı",
+        description: "Cari hesap başarıyla güncellendi",
+      });
+    },
+  });
+
+  const deleteAccount = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("company_accounts")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["company-accounts", companyId] });
+      toast({
+        title: "Başarılı",
+        description: "Cari hesap başarıyla silindi",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingAccount) {
+      updateAccount.mutate({ id: editingAccount.id, ...formData });
+    } else {
+      createAccount.mutate(formData);
     }
-
-    const { error } = await addAccount({
-      name: newAccountData.name,
-      phone: newAccountData.phone || undefined,
-      address: newAccountData.address || undefined,
-      notes: newAccountData.notes || undefined
-    });
-
-    if (error) {
-      toast.error("Cari hesap oluşturulurken bir hata oluştu.");
-      return;
-    }
-
-    toast.success("Cari hesap başarıyla oluşturuldu.");
-    setNewAccountData({ name: '', phone: '', address: '', notes: '' });
-    setIsDialogOpen(false);
   };
 
-  const handleEditAccount = (account: any) => {
-    setEditingAccountId(account.id);
-    setEditAccountData({
+  const handleEdit = (account: any) => {
+    setEditingAccount(account);
+    setFormData({
       name: account.name,
-      phone: account.phone || '',
-      address: account.address || '',
-      notes: account.notes || ''
+      phone: account.phone || "",
+      address: account.address || "",
+      notes: account.notes || ""
     });
+    setIsDialogOpen(true);
   };
-
-  const handleUpdateAccount = async () => {
-    if (!editingAccountId) return;
-
-    const { error } = await updateAccount(editingAccountId, {
-      name: editAccountData.name,
-      phone: editAccountData.phone || undefined,
-      address: editAccountData.address || undefined,
-      notes: editAccountData.notes || undefined
-    });
-
-    if (error) {
-      toast.error("Cari hesap güncellenirken bir hata oluştu.");
-      return;
-    }
-
-    toast.success("Cari hesap başarıyla güncellendi.");
-    setEditingAccountId(null);
-    setEditAccountData({ name: '', phone: '', address: '', notes: '' });
-  };
-
-  const handleEditInvoice = (invoice: any, type: 'income' | 'expense') => {
-    setEditingInvoiceId(invoice.id);
-    setEditingInvoiceType(type);
-    setEditInvoiceData({
-      invoice_number: invoice.invoice_number || '',
-      description: invoice.description,
-      amount: invoice.amount,
-      invoice_date: invoice.invoice_date,
-      payment_status: invoice.payment_status,
-      payment_date: invoice.payment_date || ''
-    });
-  };
-
-  const handleUpdateInvoice = async () => {
-    if (!editingInvoiceId || !editingInvoiceType) return;
-
-    const updateFunction = editingInvoiceType === 'income' ? updateIncomeInvoice : updateExpenseInvoice;
-    const { error } = await updateFunction(editingInvoiceId, {
-      invoice_number: editInvoiceData.invoice_number || undefined,
-      description: editInvoiceData.description,
-      amount: editInvoiceData.amount,
-      invoice_date: editInvoiceData.invoice_date,
-      payment_status: editInvoiceData.payment_status,
-      payment_date: editInvoiceData.payment_date || undefined
-    });
-
-    if (error) {
-      toast.error("Fatura güncellenirken bir hata oluştu.");
-      return;
-    }
-
-    toast.success("Fatura başarıyla güncellendi.");
-    setEditingInvoiceId(null);
-    setEditingInvoiceType(null);
-    setEditInvoiceData({
-      invoice_number: '',
-      description: '',
-      amount: 0,
-      invoice_date: '',
-      payment_status: 'unpaid',
-      payment_date: ''
-    });
-  };
-
-  const handleDeleteInvoice = async (invoiceId: string, type: 'income' | 'expense') => {
-    const deleteFunction = type === 'income' ? deleteIncomeInvoice : deleteExpenseInvoice;
-    const { error } = await deleteFunction(invoiceId);
-
-    if (error) {
-      toast.error("Fatura silinirken bir hata oluştu.");
-      return;
-    }
-
-    toast.success("Fatura başarıyla silindi.");
-  };
-
-  const getAccountBalance = (accountId: string) => {
-    const accountIncomes = incomeInvoices.filter(invoice => invoice.account_id === accountId);
-    const accountExpenses = expenseInvoices.filter(invoice => invoice.account_id === accountId);
-    
-    const totalIncome = accountIncomes.reduce((sum, invoice) => sum + invoice.amount, 0);
-    const totalExpense = accountExpenses.reduce((sum, invoice) => sum + invoice.amount, 0);
-    
-    return totalIncome - totalExpense;
-  };
-
-  const getAccountTransactions = (accountId: string) => {
-    const accountIncomes = incomeInvoices
-      .filter(invoice => invoice.account_id === accountId)
-      .map(invoice => ({ 
-        ...invoice, 
-        type: 'income' as const,
-        date: invoice.invoice_date 
-      }));
-    
-    const accountExpenses = expenseInvoices
-      .filter(invoice => invoice.account_id === accountId)
-      .map(invoice => ({ 
-        ...invoice, 
-        type: 'expense' as const,
-        date: invoice.invoice_date 
-      }));
-    
-    return [...accountIncomes, ...accountExpenses]
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  };
-
-  const getBalanceColor = (balance: number) => {
-    if (balance > 0) return 'text-green-600';
-    if (balance < 0) return 'text-red-600';
-    return 'text-gray-600';
-  };
-
-  const getBalanceText = (balance: number) => {
-    if (balance > 0) return `Alacak: ${formatCurrency(balance)}`;
-    if (balance < 0) return `Borç: ${formatCurrency(Math.abs(balance))}`;
-    return 'Bakiye: ₺0,00';
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Yükleniyor...</div>
-      </div>
-    );
-  }
-
-  // Account Detail View
-  if (selectedAccountId) {
-    const selectedAccount = accounts.find(acc => acc.id === selectedAccountId);
-    const accountTransactions = getAccountTransactions(selectedAccountId);
-    const balance = getAccountBalance(selectedAccountId);
-
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center space-x-4">
-          <Button variant="outline" onClick={() => setSelectedAccountId(null)} className="flex items-center space-x-2">
-            <ArrowLeft className="h-4 w-4" />
-            <span>Geri</span>
-          </Button>
-          <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Cari Hesap Detayı</h2>
-        </div>
-
-        {/* Account Info */}
-        <Card className="shadow-sm border">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Users className="h-5 w-5 text-blue-500" />
-              <span>{selectedAccount?.name}</span>
-            </CardTitle>
-            <CardDescription>Cari hesap bilgileri ve bakiye durumu</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div className="flex items-center space-x-3">
-                  <Phone className="h-4 w-4 text-gray-400" />
-                  <span className="text-gray-900">{selectedAccount?.phone || 'Telefon bilgisi yok'}</span>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <MapPin className="h-4 w-4 text-gray-400 mt-1" />
-                  <span className="text-gray-900">{selectedAccount?.address || 'Adres bilgisi yok'}</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Calendar className="h-4 w-4 text-gray-400" />
-                  <span className="text-gray-900">
-                    Kayıt: {new Date(selectedAccount?.created_at || '').toLocaleDateString('tr-TR')}
-                  </span>
-                </div>
-                {selectedAccount?.notes && (
-                  <div className="flex items-start space-x-3">
-                    <FileText className="h-4 w-4 text-gray-400 mt-1" />
-                    <span className="text-gray-900">{selectedAccount.notes}</span>
-                  </div>
-                )}
-              </div>
-              <div className="flex flex-col items-center justify-center p-6 bg-gray-50 rounded-lg">
-                <h3 className="text-lg font-medium text-gray-600 mb-2">Güncel Bakiye</h3>
-                <p className={`text-3xl font-bold ${getBalanceColor(balance)}`}>
-                  {getBalanceText(balance)}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Account Transactions */}
-        <Card className="shadow-sm border">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-xl">
-              <FileText className="h-6 w-6 text-green-500" />
-              <span>Cari Hesap Hareketleri</span>
-              <Badge variant="outline" className="ml-auto">
-                {accountTransactions.length} Hareket
-              </Badge>
-            </CardTitle>
-            <CardDescription>Cari hesaba ait tüm gelir ve gider faturalarının listesi</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {accountTransactions.length > 0 ? (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Tarih</TableHead>
-                      <TableHead>Fatura No</TableHead>
-                      <TableHead>Açıklama</TableHead>
-                      <TableHead>Tür</TableHead>
-                      <TableHead>Tutar</TableHead>
-                      <TableHead>Ödeme Durumu</TableHead>
-                      <TableHead>İşlemler</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {accountTransactions.map((transaction) => (
-                      <TableRow key={transaction.id}>
-                        <TableCell className="text-sm">
-                          {new Date(transaction.date).toLocaleDateString('tr-TR')}
-                        </TableCell>
-                        <TableCell>{transaction.invoice_number || 'Yok'}</TableCell>
-                        <TableCell className="max-w-xs">
-                          <span className="text-sm text-gray-600 truncate block" title={transaction.description}>
-                            {transaction.description}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={`${
-                            transaction.type === 'income' 
-                              ? 'bg-green-100 text-green-800 border-green-200' 
-                              : 'bg-red-100 text-red-800 border-red-200'
-                          }`}>
-                            {transaction.type === 'income' ? 'Gelir' : 'Gider'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <span className={`font-bold ${
-                            transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={`${
-                            transaction.payment_status === 'paid' 
-                              ? 'bg-green-100 text-green-800 border-green-200' 
-                              : 'bg-yellow-100 text-yellow-800 border-yellow-200'
-                          }`}>
-                            {transaction.payment_status === 'paid' ? 'Ödendi' : 'Ödenmedi'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleEditInvoice(transaction, transaction.type)}
-                                  className="flex items-center space-x-1"
-                                >
-                                  <Edit className="h-3 w-3" />
-                                  <span>Düzenle</span>
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Fatura Düzenle</DialogTitle>
-                                  <DialogDescription>
-                                    Fatura bilgilerini güncelleyin
-                                  </DialogDescription>
-                                </DialogHeader>
-                                <div className="space-y-4">
-                                  <div className="space-y-2">
-                                    <Label>Fatura No</Label>
-                                    <Input
-                                      value={editInvoiceData.invoice_number}
-                                      onChange={(e) => setEditInvoiceData(prev => ({ ...prev, invoice_number: e.target.value }))}
-                                      placeholder="Fatura numarası"
-                                    />
-                                  </div>
-                                  <div className="space-y-2">
-                                    <Label>Açıklama</Label>
-                                    <Input
-                                      value={editInvoiceData.description}
-                                      onChange={(e) => setEditInvoiceData(prev => ({ ...prev, description: e.target.value }))}
-                                      placeholder="Açıklama"
-                                    />
-                                  </div>
-                                  <div className="space-y-2">
-                                    <Label>Tutar</Label>
-                                    <Input
-                                      type="number"
-                                      value={editInvoiceData.amount}
-                                      onChange={(e) => setEditInvoiceData(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
-                                      placeholder="0.00"
-                                    />
-                                  </div>
-                                  <div className="space-y-2">
-                                    <Label>Fatura Tarihi</Label>
-                                    <Input
-                                      type="date"
-                                      value={editInvoiceData.invoice_date}
-                                      onChange={(e) => setEditInvoiceData(prev => ({ ...prev, invoice_date: e.target.value }))}
-                                    />
-                                  </div>
-                                  <div className="space-y-2">
-                                    <Label>Ödeme Durumu</Label>
-                                    <select
-                                      value={editInvoiceData.payment_status}
-                                      onChange={(e) => setEditInvoiceData(prev => ({ ...prev, payment_status: e.target.value as 'paid' | 'unpaid' }))}
-                                      className="w-full p-2 border rounded"
-                                    >
-                                      <option value="unpaid">Ödenmedi</option>
-                                      <option value="paid">Ödendi</option>
-                                    </select>
-                                  </div>
-                                  {editInvoiceData.payment_status === 'paid' && (
-                                    <div className="space-y-2">
-                                      <Label>Ödeme Tarihi</Label>
-                                      <Input
-                                        type="date"
-                                        value={editInvoiceData.payment_date}
-                                        onChange={(e) => setEditInvoiceData(prev => ({ ...prev, payment_date: e.target.value }))}
-                                      />
-                                    </div>
-                                  )}
-                                </div>
-                                <DialogFooter>
-                                  <Button variant="outline" onClick={() => setEditingInvoiceId(null)}>
-                                    İptal
-                                  </Button>
-                                  <Button onClick={handleUpdateInvoice}>
-                                    Güncelle
-                                  </Button>
-                                </DialogFooter>
-                              </DialogContent>
-                            </Dialog>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDeleteInvoice(transaction.id, transaction.type)}
-                              className="flex items-center space-x-1 text-red-600 hover:text-red-700"
-                            >
-                              <Trash className="h-3 w-3" />
-                              <span>Sil</span>
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Henüz hareket yok</h3>
-                <p className="text-gray-600">Bu cari hesabın henüz hiçbir hareketi bulunmuyor.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col space-y-2">
-        <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Cari Hesaplar</h2>
-        <p className="text-sm lg:text-base text-gray-600">Şirketinize ait cari hesapları görüntüleyin ve yönetin</p>
-      </div>
-
-      <div className="flex justify-end">
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="flex items-center space-x-2">
+          <Building2 className="h-5 w-5" />
+          <span>Cari Hesaplar</span>
+        </CardTitle>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={() => {
+              setEditingAccount(null);
+              setFormData({ name: "", phone: "", address: "", notes: "" });
+            }}>
               <Plus className="h-4 w-4 mr-2" />
-              Yeni Cari Hesap
+              Yeni Cari
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Yeni Cari Hesap Ekle</DialogTitle>
-              <DialogDescription>
-                Cari hesap bilgilerini girin.
-              </DialogDescription>
+              <DialogTitle>
+                {editingAccount ? "Cari Hesap Düzenle" : "Yeni Cari Hesap"}
+              </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Cari Hesap Adı *</Label>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="name">Cari Adı *</Label>
                 <Input
-                  value={newAccountData.name}
-                  onChange={(e) => setNewAccountData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Cari hesap adını girin"
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  required
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Telefon</Label>
+              <div>
+                <Label htmlFor="phone">Telefon</Label>
                 <Input
-                  value={newAccountData.phone}
-                  onChange={(e) => setNewAccountData(prev => ({ ...prev, phone: e.target.value }))}
-                  placeholder="Telefon numarası"
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Adres</Label>
-                <Input
-                  value={newAccountData.address}
-                  onChange={(e) => setNewAccountData(prev => ({ ...prev, address: e.target.value }))}
-                  placeholder="Adres bilgisi"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Notlar</Label>
+              <div>
+                <Label htmlFor="address">Adres</Label>
                 <Textarea
-                  value={newAccountData.notes}
-                  onChange={(e) => setNewAccountData(prev => ({ ...prev, notes: e.target.value }))}
-                  placeholder="Ek notlar..."
+                  id="address"
+                  value={formData.address}
+                  onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
                   rows={3}
                 />
               </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                İptal
-              </Button>
-              <Button onClick={handleCreateAccount} className="bg-blue-600 hover:bg-blue-700">
-                Ekle
-              </Button>
-            </DialogFooter>
+              <div>
+                <Label htmlFor="notes">Notlar</Label>
+                <Textarea
+                  id="notes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                  rows={2}
+                />
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  İptal
+                </Button>
+                <Button type="submit">
+                  {editingAccount ? "Güncelle" : "Kaydet"}
+                </Button>
+              </div>
+            </form>
           </DialogContent>
         </Dialog>
-      </div>
-
-      {/* Accounts List */}
-      <Card className="shadow-sm border">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Users className="h-5 w-5 text-blue-500" />
-            <span>Cari Hesap Listesi</span>
-          </CardTitle>
-          <CardDescription>Cari hesapları ve bakiyelerini görüntüleyin</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {accounts.length > 0 ? (
-            <div className="space-y-2">
-              {accounts.map((account) => {
-                const balance = getAccountBalance(account.id);
-                return (
-                  <div
-                    key={account.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3">
-                        <div className="flex-1">
-                          <h3 className="font-medium text-gray-900">{account.name}</h3>
-                          <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
-                            {account.phone && (
-                              <div className="flex items-center space-x-1">
-                                <Phone className="h-3 w-3" />
-                                <span>{account.phone}</span>
-                              </div>
-                            )}
-                            {account.address && (
-                              <div className="flex items-center space-x-1">
-                                <MapPin className="h-3 w-3" />
-                                <span className="truncate max-w-48">{account.address}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <Badge 
-                            variant="outline" 
-                            className={`${getBalanceColor(balance)} font-medium`}
-                          >
-                            {getBalanceText(balance)}
-                          </Badge>
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleEditAccount(account)}
-                                className="flex items-center space-x-1"
-                              >
-                                <Edit className="h-4 w-4" />
-                                <span>Düzenle</span>
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-[425px]">
-                              <DialogHeader>
-                                <DialogTitle>Cari Hesap Düzenle</DialogTitle>
-                                <DialogDescription>
-                                  Cari hesap bilgilerini güncelleyin
-                                </DialogDescription>
-                              </DialogHeader>
-                              <div className="grid gap-4 py-4">
-                                <div className="space-y-2">
-                                  <Label htmlFor="edit-name">Cari Hesap Adı *</Label>
-                                  <Input 
-                                    id="edit-name" 
-                                    value={editAccountData.name}
-                                    onChange={(e) => setEditAccountData({...editAccountData, name: e.target.value})}
-                                    placeholder="Cari hesap adı"
-                                  />
-                                </div>
-                                <div className="space-y-2">
-                                  <Label htmlFor="edit-phone">Telefon</Label>
-                                  <Input 
-                                    id="edit-phone" 
-                                    value={editAccountData.phone}
-                                    onChange={(e) => setEditAccountData({...editAccountData, phone: e.target.value})}
-                                    placeholder="0555 123 45 67"
-                                  />
-                                </div>
-                                <div className="space-y-2">
-                                  <Label htmlFor="edit-address">Adres</Label>
-                                  <Input 
-                                    id="edit-address" 
-                                    value={editAccountData.address}
-                                    onChange={(e) => setEditAccountData({...editAccountData, address: e.target.value})}
-                                    placeholder="Adres bilgisi"
-                                  />
-                                </div>
-                                <div className="space-y-2">
-                                  <Label htmlFor="edit-notes">Notlar</Label>
-                                  <Textarea 
-                                    id="edit-notes" 
-                                    value={editAccountData.notes}
-                                    onChange={(e) => setEditAccountData({...editAccountData, notes: e.target.value})}
-                                    placeholder="Ek notlar..."
-                                  />
-                                </div>
-                              </div>
-                              <DialogFooter>
-                                <Button variant="outline" onClick={() => setEditingAccountId(null)}>İptal</Button>
-                                <Button onClick={handleUpdateAccount}>Güncelle</Button>
-                              </DialogFooter>
-                            </DialogContent>
-                          </Dialog>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setSelectedAccountId(account.id)}
-                            className="flex items-center space-x-1"
-                          >
-                            <Eye className="h-4 w-4" />
-                            <span>Detay</span>
-                          </Button>
-                        </div>
-                      </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div>Yükleniyor...</div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Cari Adı</TableHead>
+                <TableHead>Telefon</TableHead>
+                <TableHead>Adres</TableHead>
+                <TableHead className="text-right">İşlemler</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {accounts?.map((account) => (
+                <TableRow key={account.id}>
+                  <TableCell className="font-medium">{account.name}</TableCell>
+                  <TableCell>{account.phone}</TableCell>
+                  <TableCell>{account.address}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(account)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => deleteAccount.mutate(account.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Henüz cari hesap yok</h3>
-              <p className="text-gray-600">İlk cari hesabı ekleyin</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
   );
 };

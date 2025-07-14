@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,6 +12,7 @@ import { Landing } from "./pages/Landing";
 import CashRegister from "./pages/CashRegister";
 import CustomerDetail from "./pages/CustomerDetail";
 import NotFound from "./pages/NotFound";
+import Accounting from "./pages/Accounting";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +32,7 @@ function App() {
                 <Route path="/landing" element={<Landing />} />
                 <Route path="/cash-register" element={<CashRegister />} />
                 <Route path="/customer/:id" element={<CustomerDetail />} />
+                <Route path="/accounting" element={<Accounting />} />
                 <Route path="/404" element={<NotFound />} />
                 <Route path="*" element={<Navigate to="/404" replace />} />
               </Routes>

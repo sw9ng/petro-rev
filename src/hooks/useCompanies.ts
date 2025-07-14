@@ -1,139 +1,119 @@
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
-export interface Company {
-  id: string;
-  name: string;
-  description?: string;
-  created_at: string;
-  updated_at: string;
-}
+type Company = Tables<"companies">;
+type CompanyInsert = TablesInsert<"companies">;
+type CompanyUpdate = TablesUpdate<"companies">;
 
 export const useCompanies = () => {
-  const { user } = useAuth();
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const fetchCompanies = async () => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
+  const companiesQuery = useQuery({
+    queryKey: ["companies"],
+    queryFn: async () => {
       const { data, error } = await supabase
-        .from('companies')
-        .select('*')
-        .eq('owner_id', user.id)
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        throw error;
-      }
-      
-      setCompanies(data || []);
-    } catch (err: any) {
-      setError(err.message);
-      console.error('Error fetching companies:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+        .from("companies")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-  const addCompany = async (companyData: { name: string; description?: string }) => {
-    if (!user) {
-      return { error: new Error('Kullanıcı doğrulanmadı') };
-    }
+      if (error) throw error;
+      return data as Company[];
+    },
+  });
 
-    try {
+  const createCompany = useMutation({
+    mutationFn: async (company: Omit<CompanyInsert, "owner_id">) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
       const { data, error } = await supabase
-        .from('companies')
-        .insert([
-          {
-            ...companyData,
-            owner_id: user.id
-          }
-        ])
-        .select();
+        .from("companies")
+        .insert({ ...company, owner_id: user.id })
+        .select()
+        .single();
 
-      if (error) {
-        return { error };
-      }
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
+      toast({
+        title: "Başarılı",
+        description: "Şirket başarıyla oluşturuldu",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Hata",
+        description: error.message || "Şirket oluşturulurken hata oluştu",
+        variant: "destructive",
+      });
+    },
+  });
 
-      setCompanies(prev => [data[0], ...prev]);
-      return { data: data[0] };
-    } catch (err: any) {
-      return { error: err };
-    }
-  };
-
-  const updateCompany = async (companyId: string, companyData: { name?: string; description?: string }) => {
-    if (!user) {
-      return { error: new Error('Kullanıcı doğrulanmadı') };
-    }
-
-    try {
+  const updateCompany = useMutation({
+    mutationFn: async ({ id, ...updates }: CompanyUpdate & { id: string }) => {
       const { data, error } = await supabase
-        .from('companies')
-        .update(companyData)
-        .eq('id', companyId)
-        .eq('owner_id', user.id)
-        .select();
+        .from("companies")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
 
-      if (error) {
-        return { error };
-      }
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
+      toast({
+        title: "Başarılı",
+        description: "Şirket başarıyla güncellendi",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Hata",
+        description: error.message || "Şirket güncellenirken hata oluştu",
+        variant: "destructive",
+      });
+    },
+  });
 
-      setCompanies(prev => prev.map(company => 
-        company.id === companyId ? data[0] : company
-      ));
-      
-      return { data: data[0] };
-    } catch (err: any) {
-      return { error: err };
-    }
-  };
-
-  const deleteCompany = async (companyId: string) => {
-    if (!user) {
-      return { error: new Error('Kullanıcı doğrulanmadı') };
-    }
-
-    try {
+  const deleteCompany = useMutation({
+    mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('companies')
+        .from("companies")
         .delete()
-        .eq('id', companyId)
-        .eq('owner_id', user.id);
+        .eq("id", id);
 
-      if (error) {
-        return { error };
-      }
-
-      setCompanies(prev => prev.filter(company => company.id !== companyId));
-      return { success: true };
-    } catch (err: any) {
-      return { error: err };
-    }
-  };
-
-  useEffect(() => {
-    fetchCompanies();
-  }, [user]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
+      toast({
+        title: "Başarılı",
+        description: "Şirket başarıyla silindi",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Hata",
+        description: error.message || "Şirket silinirken hata oluştu",
+        variant: "destructive",
+      });
+    },
+  });
 
   return {
-    companies,
-    loading,
-    error,
-    addCompany,
+    companies: companiesQuery.data || [],
+    isLoading: companiesQuery.isLoading,
+    error: companiesQuery.error,
+    createCompany,
     updateCompany,
     deleteCompany,
-    refreshCompanies: fetchCompanies
   };
 };

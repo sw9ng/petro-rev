@@ -1,434 +1,111 @@
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
-export interface CompanyAccount {
-  id: string;
-  company_id: string;
-  name: string;
-  phone?: string;
-  address?: string;
-  notes?: string;
-  created_at: string;
-  updated_at: string;
-}
+type IncomeInvoice = Tables<"income_invoices">;
+type ExpenseInvoice = Tables<"expense_invoices">;
+type IncomeInvoiceInsert = TablesInsert<"income_invoices">;
+type ExpenseInvoiceInsert = TablesInsert<"expense_invoices">;
 
-// Simplified account type that matches what Supabase returns for joined accounts
-interface AccountJoin {
-  id: string;
-  name: string;
-}
+export const useInvoices = (type: "income" | "expense" = "income") => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const tableName = type === "income" ? "income_invoices" : "expense_invoices";
 
-export interface Invoice {
-  id: string;
-  company_id: string;
-  invoice_number?: string;
-  description: string;
-  amount: number;
-  invoice_date: string;
-  payment_status: 'paid' | 'unpaid';
-  payment_date?: string;
-  account_id?: string;
-  account?: AccountJoin;
-  created_at: string;
-  updated_at: string;
-}
-
-export const useInvoices = (companyId: string) => {
-  const { user } = useAuth();
-  const [incomeInvoices, setIncomeInvoices] = useState<Invoice[]>([]);
-  const [expenseInvoices, setExpenseInvoices] = useState<Invoice[]>([]);
-  const [accounts, setAccounts] = useState<CompanyAccount[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchData = async () => {
-    if (!user || !companyId) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      // Fetch accounts
-      const { data: accountsData, error: accountsError } = await supabase
-        .from('company_accounts')
-        .select('*')
-        .eq('company_id', companyId);
-
-      if (accountsError) throw accountsError;
-      setAccounts(accountsData || []);
-
-      // Fetch income invoices
-      const { data: incomeData, error: incomeError } = await supabase
-        .from('income_invoices')
+  const invoicesQuery = useQuery({
+    queryKey: [tableName],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from(tableName)
         .select(`
           *,
-          account:account_id(id, name)
+          companies(name),
+          company_accounts(name)
         `)
-        .eq('company_id', companyId)
-        .order('invoice_date', { ascending: false });
+        .order("created_at", { ascending: false });
 
-      if (incomeError) throw incomeError;
-      
-      // Cast the payment_status to the correct type and map to Invoice type
-      const typedIncomeData = (incomeData || []).map(item => ({
-        ...item,
-        payment_status: item.payment_status as 'paid' | 'unpaid'
-      }));
-      
-      setIncomeInvoices(typedIncomeData as unknown as Invoice[]);
+      if (error) throw error;
+      return data;
+    },
+  });
 
-      // Fetch expense invoices
-      const { data: expenseData, error: expenseError } = await supabase
-        .from('expense_invoices')
-        .select(`
-          *,
-          account:account_id(id, name)
-        `)
-        .eq('company_id', companyId)
-        .order('invoice_date', { ascending: false });
+  const createInvoice = useMutation({
+    mutationFn: async (invoice: Omit<IncomeInvoiceInsert | ExpenseInvoiceInsert, "created_by">) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
 
-      if (expenseError) throw expenseError;
-      
-      // Cast the payment_status to the correct type and map to Invoice type
-      const typedExpenseData = (expenseData || []).map(item => ({
-        ...item,
-        payment_status: item.payment_status as 'paid' | 'unpaid'
-      }));
-      
-      setExpenseInvoices(typedExpenseData as unknown as Invoice[]);
-
-    } catch (err) {
-      console.error('Error fetching company data:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Add a new account
-  const addAccount = async (accountData: {
-    name: string;
-    phone?: string;
-    address?: string;
-    notes?: string;
-  }) => {
-    if (!user || !companyId) {
-      return { error: new Error('Kullanıcı doğrulanmadı veya şirket ID eksik') };
-    }
-
-    try {
       const { data, error } = await supabase
-        .from('company_accounts')
-        .insert([{
-          ...accountData,
-          company_id: companyId
-        }])
-        .select();
+        .from(tableName)
+        .insert({ ...invoice, created_by: user.id })
+        .select()
+        .single();
 
-      if (error) {
-        return { error };
-      }
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [tableName] });
+      toast({
+        title: "Başarılı",
+        description: "Fatura başarıyla oluşturuldu",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Hata",
+        description: error.message || "Fatura oluşturulurken hata oluştu",
+        variant: "destructive",
+      });
+    },
+  });
 
-      // Update local accounts state
-      setAccounts(prev => [...prev, data[0] as CompanyAccount]);
-      return { data: data[0] };
-    } catch (err: any) {
-      return { error: err };
-    }
-  };
-
-  // Update an existing account
-  const updateAccount = async (
-    accountId: string,
-    accountData: Partial<CompanyAccount>
-  ) => {
-    if (!user || !companyId) {
-      return { error: new Error('Kullanıcı doğrulanmadı veya şirket ID eksik') };
-    }
-
-    try {
+  const updateInvoice = useMutation({
+    mutationFn: async ({ id, ...updates }: any) => {
       const { data, error } = await supabase
-        .from('company_accounts')
-        .update(accountData)
-        .eq('id', accountId)
-        .eq('company_id', companyId)
-        .select();
+        .from(tableName)
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
 
-      if (error) {
-        return { error };
-      }
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [tableName] });
+      toast({
+        title: "Başarılı",
+        description: "Fatura başarıyla güncellendi",
+      });
+    },
+  });
 
-      // Update local accounts state
-      setAccounts(prev => 
-        prev.map(account => account.id === accountId ? data[0] as CompanyAccount : account)
-      );
-      return { data: data[0] };
-    } catch (err: any) {
-      return { error: err };
-    }
-  };
-
-  // Add a new income invoice
-  const addIncomeInvoice = async (invoiceData: {
-    invoice_number?: string;
-    description: string;
-    amount: number;
-    invoice_date: string;
-    payment_status?: 'paid' | 'unpaid';
-    payment_date?: string;
-    account_id?: string;
-  }) => {
-    if (!user || !companyId) {
-      return { error: new Error('Kullanıcı doğrulanmadı veya şirket ID eksik') };
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('income_invoices')
-        .insert([{
-          ...invoiceData,
-          company_id: companyId,
-          created_by: user.id
-        }])
-        .select(`
-          *,
-          account:account_id(id, name)
-        `);
-
-      if (error) {
-        return { error };
-      }
-
-      const typedData = data.map(item => ({
-        ...item,
-        payment_status: item.payment_status as 'paid' | 'unpaid'
-      }));
-
-      // Update local income invoices state
-      setIncomeInvoices(prev => [typedData[0] as unknown as Invoice, ...prev]);
-      return { data: typedData[0] };
-    } catch (err: any) {
-      return { error: err };
-    }
-  };
-
-  // Add a new expense invoice
-  const addExpenseInvoice = async (invoiceData: {
-    invoice_number?: string;
-    description: string;
-    amount: number;
-    invoice_date: string;
-    payment_status?: 'paid' | 'unpaid';
-    payment_date?: string;
-    account_id?: string;
-  }) => {
-    if (!user || !companyId) {
-      return { error: new Error('Kullanıcı doğrulanmadı veya şirket ID eksik') };
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('expense_invoices')
-        .insert([{
-          ...invoiceData,
-          company_id: companyId,
-          created_by: user.id
-        }])
-        .select(`
-          *,
-          account:account_id(id, name)
-        `);
-
-      if (error) {
-        return { error };
-      }
-
-      const typedData = data.map(item => ({
-        ...item,
-        payment_status: item.payment_status as 'paid' | 'unpaid'
-      }));
-
-      // Update local expense invoices state
-      setExpenseInvoices(prev => [typedData[0] as unknown as Invoice, ...prev]);
-      return { data: typedData[0] };
-    } catch (err: any) {
-      return { error: err };
-    }
-  };
-
-  // Update an income invoice
-  const updateIncomeInvoice = async (
-    invoiceId: string,
-    invoiceData: Partial<Invoice>
-  ) => {
-    if (!user || !companyId) {
-      return { error: new Error('Kullanıcı doğrulanmadı veya şirket ID eksik') };
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('income_invoices')
-        .update(invoiceData)
-        .eq('id', invoiceId)
-        .eq('company_id', companyId)
-        .select(`
-          *,
-          account:account_id(id, name)
-        `);
-
-      if (error) {
-        return { error };
-      }
-
-      const typedData = data.map(item => ({
-        ...item,
-        payment_status: item.payment_status as 'paid' | 'unpaid'
-      }));
-
-      // Update local income invoices state
-      setIncomeInvoices(prev => 
-        prev.map(invoice => invoice.id === invoiceId ? typedData[0] as unknown as Invoice : invoice)
-      );
-      return { data: typedData[0] };
-    } catch (err: any) {
-      return { error: err };
-    }
-  };
-
-  // Update an expense invoice
-  const updateExpenseInvoice = async (
-    invoiceId: string,
-    invoiceData: Partial<Invoice>
-  ) => {
-    if (!user || !companyId) {
-      return { error: new Error('Kullanıcı doğrulanmadı veya şirket ID eksik') };
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('expense_invoices')
-        .update(invoiceData)
-        .eq('id', invoiceId)
-        .eq('company_id', companyId)
-        .select(`
-          *,
-          account:account_id(id, name)
-        `);
-
-      if (error) {
-        return { error };
-      }
-
-      const typedData = data.map(item => ({
-        ...item,
-        payment_status: item.payment_status as 'paid' | 'unpaid'
-      }));
-
-      // Update local expense invoices state
-      setExpenseInvoices(prev => 
-        prev.map(invoice => invoice.id === invoiceId ? typedData[0] as unknown as Invoice : invoice)
-      );
-      return { data: typedData[0] };
-    } catch (err: any) {
-      return { error: err };
-    }
-  };
-
-  // Delete an income invoice
-  const deleteIncomeInvoice = async (invoiceId: string) => {
-    if (!user || !companyId) {
-      return { error: new Error('Kullanıcı doğrulanmadı veya şirket ID eksik') };
-    }
-
-    try {
+  const deleteInvoice = useMutation({
+    mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('income_invoices')
+        .from(tableName)
         .delete()
-        .eq('id', invoiceId)
-        .eq('company_id', companyId);
+        .eq("id", id);
 
-      if (error) {
-        return { error };
-      }
-
-      // Update local income invoices state
-      setIncomeInvoices(prev => prev.filter(invoice => invoice.id !== invoiceId));
-      return { success: true };
-    } catch (err: any) {
-      return { error: err };
-    }
-  };
-
-  // Delete an expense invoice
-  const deleteExpenseInvoice = async (invoiceId: string) => {
-    if (!user || !companyId) {
-      return { error: new Error('Kullanıcı doğrulanmadı veya şirket ID eksik') };
-    }
-
-    try {
-      const { error } = await supabase
-        .from('expense_invoices')
-        .delete()
-        .eq('id', invoiceId)
-        .eq('company_id', companyId);
-
-      if (error) {
-        return { error };
-      }
-
-      // Update local expense invoices state
-      setExpenseInvoices(prev => prev.filter(invoice => invoice.id !== invoiceId));
-      return { success: true };
-    } catch (err: any) {
-      return { error: err };
-    }
-  };
-
-  // Delete an account
-  const deleteAccount = async (accountId: string) => {
-    if (!user || !companyId) {
-      return { error: new Error('Kullanıcı doğrulanmadı veya şirket ID eksik') };
-    }
-
-    try {
-      const { error } = await supabase
-        .from('company_accounts')
-        .delete()
-        .eq('id', accountId)
-        .eq('company_id', companyId);
-
-      if (error) {
-        return { error };
-      }
-
-      // Update local accounts state
-      setAccounts(prev => prev.filter(account => account.id !== accountId));
-      return { success: true };
-    } catch (err: any) {
-      return { error: err };
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, [companyId, user]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [tableName] });
+      toast({
+        title: "Başarılı",
+        description: "Fatura başarıyla silindi",
+      });
+    },
+  });
 
   return {
-    incomeInvoices,
-    expenseInvoices,
-    accounts,
-    loading,
-    addIncomeInvoice,
-    addExpenseInvoice,
-    addAccount,
-    updateAccount,
-    updateIncomeInvoice,
-    updateExpenseInvoice,
-    deleteIncomeInvoice,
-    deleteExpenseInvoice,
-    deleteAccount,
-    refreshData: fetchData
+    invoices: invoicesQuery.data || [],
+    isLoading: invoicesQuery.isLoading,
+    error: invoicesQuery.error,
+    createInvoice,
+    updateInvoice,
+    deleteInvoice,
   };
 };
