@@ -53,9 +53,49 @@ export const useEArchiveInvoices = (companyId: string) => {
     },
   });
 
+  const sendToGib = useMutation({
+    mutationFn: async (invoiceId: string) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Oturum bulunamadı");
+
+      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/send-invoice-to-gib`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          invoiceId,
+          invoiceType: 'e-archive'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('GİB\'e gönderim başarısız');
+      }
+
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["e-archive-invoices", companyId] });
+      toast({
+        title: "Başarılı",
+        description: "E-Arşiv faturası GİB'e gönderildi",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Hata",
+        description: `GİB'e gönderim hatası: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     eArchiveInvoices: eArchiveInvoicesQuery.data || [],
     isLoading: eArchiveInvoicesQuery.isLoading,
     createEArchiveInvoice,
+    sendToGib,
   };
 };

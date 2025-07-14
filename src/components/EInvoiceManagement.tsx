@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +27,8 @@ export const EInvoiceManagement = ({ companyId }: EInvoiceManagementProps) => {
     total_amount: 0,
     tax_amount: 0,
     grand_total: 0,
+    invoice_uuid: "",
+    ettn: "",
   });
 
   const { eInvoices, isLoading, createEInvoice, sendToGib } = useEInvoices(companyId);
@@ -52,7 +53,8 @@ export const EInvoiceManagement = ({ companyId }: EInvoiceManagementProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createEInvoice.mutate(formData);
+    const { invoice_uuid, ettn, ...invoiceData } = formData;
+    createEInvoice.mutate(invoiceData);
     setIsDialogOpen(false);
     setFormData({
       invoice_number: "",
@@ -64,6 +66,8 @@ export const EInvoiceManagement = ({ companyId }: EInvoiceManagementProps) => {
       total_amount: 0,
       tax_amount: 0,
       grand_total: 0,
+      invoice_uuid: "",
+      ettn: "",
     });
   };
 
