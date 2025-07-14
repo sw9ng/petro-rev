@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Building2 } from "lucide-react";
 
@@ -7,8 +8,6 @@ import { CompanyAccountsList } from "@/components/CompanyAccountsList";
 import { CompanyCashManagement } from "@/components/CompanyCashManagement";
 import { UyumsoftIntegration } from "@/components/UyumsoftIntegration";
 import { InvoiceManagement } from "@/components/InvoiceManagement";
-import { EInvoiceManagement } from "@/components/EInvoiceManagement";
-import { EArchiveInvoiceManagement } from "@/components/EArchiveInvoiceManagement";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface AccountingProps {
@@ -22,7 +21,7 @@ interface AccountingProps {
     | "cash";
 }
 
-export const Accounting = ({ selectedCompany, activeTab }: AccountingProps) => {
+const Accounting = ({ selectedCompany, activeTab }: AccountingProps) => {
   const renderContent = () => {
     if (!selectedCompany) {
       return (
@@ -44,15 +43,7 @@ export const Accounting = ({ selectedCompany, activeTab }: AccountingProps) => {
       case "company-accounts":
         return <CompanyAccountsList companyId={selectedCompany} />;
       case "invoices":
-        return (
-          <div className="space-y-6">
-            <InvoiceManagement companyId={selectedCompany} />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <EInvoiceManagement companyId={selectedCompany} />
-              <EArchiveInvoiceManagement companyId={selectedCompany} />
-            </div>
-          </div>
-        );
+        return <InvoiceManagement companyId={selectedCompany} />;
       case "uyumsoft":
         return <UyumsoftIntegration companyId={selectedCompany} />;
       case "cash":
@@ -64,3 +55,5 @@ export const Accounting = ({ selectedCompany, activeTab }: AccountingProps) => {
 
   return <>{renderContent()}</>;
 };
+
+export default Accounting;

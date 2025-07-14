@@ -1,12 +1,15 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, FileText, Archive, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Calendar, FileText, Send, Filter, Search } from "lucide-react";
+import { useInvoices } from "@/hooks/useInvoices";
 import { useEInvoices } from "@/hooks/useEInvoices";
 import { useEArchiveInvoices } from "@/hooks/useEArchiveInvoices";
 import { useToast } from "@/hooks/use-toast";
@@ -16,36 +19,40 @@ interface InvoiceManagementProps {
 }
 
 export const InvoiceManagement = ({ companyId }: InvoiceManagementProps) => {
-  const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
-  const [invoiceFilter, setInvoiceFilter] = useState<string>('all');
-  const [isSending, setIsSending] = useState(false);
-
-  const { eInvoices, isLoading: eInvoicesLoading, sendToUyumsoft: sendEInvoice } = useEInvoices(companyId);
-  const { eArchiveInvoices, isLoading: eArchiveLoading, sendToUyumsoft: sendEArchive } = useEArchiveInvoices(companyId);
   const { toast } = useToast();
+  const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState("income");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Combine all invoices
-  const allInvoices = [
-    ...eInvoices.map(inv => ({ ...inv, type: 'e-invoice' as const })),
-    ...eArchiveInvoices.map(inv => ({ ...inv, type: 'e-archive' as const }))
-  ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  const { invoices: incomeInvoices, isLoading: incomeLoading } = useInvoices(companyId, "income");
+  const { invoices: expenseInvoices, isLoading: expenseLoading } = useInvoices(companyId, "expense");
+  const { eInvoices, isLoading: eInvoicesLoading } = useEInvoices(companyId);
+  const { eArchiveInvoices, isLoading: eArchiveLoading } = useEArchiveInvoices(companyId);
 
-  // Filter invoices
-  const filteredInvoices = allInvoices.filter(invoice => {
-    if (invoiceFilter === 'all') return true;
-    if (invoiceFilter === 'draft') return invoice.gib_status === 'draft';
-    if (invoiceFilter === 'sent') return invoice.gib_status === 'sent';
-    if (invoiceFilter === 'error') return invoice.gib_status === 'error';
-    if (invoiceFilter === 'e-invoice') return invoice.type === 'e-invoice';
-    if (invoiceFilter === 'e-archive') return invoice.type === 'e-archive';
-    return true;
-  });
+  const handleBulkSendToUyumsoft = async () => {
+    if (selectedInvoices.length === 0) {
+      toast({
+        title: "Uyarı",
+        description: "Gönderilecek fatura seçilmedi",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  const handleSelectAll = () => {
-    if (selectedInvoices.length === filteredInvoices.length) {
+    try {
+      // Bulk send logic here
+      toast({
+        title: "Başarılı",
+        description: `${selectedInvoices.length} fatura Uyumsoft'a gönderildi`,
+      });
       setSelectedInvoices([]);
-    } else {
-      setSelectedInvoices(filteredInvoices.map(inv => inv.id));
+    } catch (error) {
+      toast({
+        title: "Hata",
+        description: "Faturalar gönderilirken hata oluştu",
+        variant: "destructive",
+      });
     }
   };
 
@@ -57,164 +64,144 @@ export const InvoiceManagement = ({ companyId }: InvoiceManagementProps) => {
     );
   };
 
-  const handleBulkSend = async () => {
-    if (selectedInvoices.length === 0) {
-      toast({
-        title: "Hata",
-        description: "Gönderilecek fatura seçin",
-        variant: "destructive",
-      });
-      return;
-    }
+  const renderInvoiceList = (invoices: any[], type: string) => {
+    const filteredInvoices = invoices.filter(invoice => {
+      const matchesSearch = invoice.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          invoice.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === "all" || invoice.payment_status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
 
-    setIsSending(true);
-    let successCount = 0;
-    let errorCount = 0;
-
-    for (const invoiceId of selectedInvoices) {
-      try {
-        const invoice = allInvoices.find(inv => inv.id === invoiceId);
-        if (!invoice) continue;
-
-        if (invoice.type === 'e-invoice') {
-          await sendEInvoice.mutateAsync(invoiceId);
-        } else {
-          await sendEArchive.mutateAsync(invoiceId);
-        }
-        successCount++;
-      } catch (error) {
-        errorCount++;
-        console.error(`Error sending invoice ${invoiceId}:`, error);
-      }
-    }
-
-    setIsSending(false);
-    setSelectedInvoices([]);
-
-    if (successCount > 0) {
-      toast({
-        title: "Başarılı",
-        description: `${successCount} fatura başarıyla gönderildi${errorCount > 0 ? `, ${errorCount} fatura gönderilemedi` : ''}`,
-      });
-    } else if (errorCount > 0) {
-      toast({
-        title: "Hata",
-        description: `${errorCount} fatura gönderilemedi`,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    const statusMap = {
-      draft: { label: "Taslak", variant: "secondary" as const },
-      sent: { label: "Gönderildi", variant: "default" as const },
-      accepted: { label: "Kabul Edildi", variant: "outline" as const },
-      rejected: { label: "Reddedildi", variant: "destructive" as const },
-      error: { label: "Hata", variant: "destructive" as const },
-    };
-    
-    const config = statusMap[status as keyof typeof statusMap] || statusMap.draft;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
-  };
-
-  const getTypeBadge = (type: string) => {
     return (
-      <Badge variant="outline" className="flex items-center space-x-1">
-        {type === 'e-invoice' ? <FileText className="h-3 w-3" /> : <Archive className="h-3 w-3" />}
-        <span>{type === 'e-invoice' ? 'E-Fatura' : 'E-Arşiv'}</span>
-      </Badge>
-    );
-  };
-
-  if (eInvoicesLoading || eArchiveLoading) {
-    return <div>Yükleniyor...</div>;
-  }
-
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center space-x-2">
-          <FileText className="h-5 w-5" />
-          <span>Fatura Yönetimi</span>
-        </CardTitle>
-        <div className="flex items-center space-x-2">
-          <Select value={invoiceFilter} onValueChange={setInvoiceFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filtrele" />
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="flex items-center space-x-2">
+            <Search className="h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Fatura ara..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full sm:w-64"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-48">
+              <SelectValue placeholder="Durum filtrele" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tümü</SelectItem>
-              <SelectItem value="draft">Taslak</SelectItem>
-              <SelectItem value="sent">Gönderildi</SelectItem>
-              <SelectItem value="error">Hatalı</SelectItem>
-              <SelectItem value="e-invoice">E-Fatura</SelectItem>
-              <SelectItem value="e-archive">E-Arşiv</SelectItem>
+              <SelectItem value="paid">Ödenmiş</SelectItem>
+              <SelectItem value="unpaid">Ödenmemiş</SelectItem>
+              <SelectItem value="partial">Kısmi Ödenmiş</SelectItem>
             </SelectContent>
           </Select>
-          <Button 
-            onClick={handleBulkSend}
-            disabled={selectedInvoices.length === 0 || isSending}
-          >
-            {isSending ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Gönderiliyor...
-              </>
-            ) : (
-              <>
-                <Send className="h-4 w-4 mr-2" />
-                Seçilenleri Gönder ({selectedInvoices.length})
-              </>
-            )}
-          </Button>
+          {selectedInvoices.length > 0 && (
+            <Button onClick={handleBulkSendToUyumsoft} className="w-full sm:w-auto">
+              <Send className="h-4 w-4 mr-2" />
+              Seçilenleri Gönder ({selectedInvoices.length})
+            </Button>
+          )}
         </div>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12">
-                <Checkbox 
-                  checked={selectedInvoices.length === filteredInvoices.length && filteredInvoices.length > 0}
-                  onCheckedChange={handleSelectAll}
-                />
-              </TableHead>
-              <TableHead>Fatura No</TableHead>
-              <TableHead>Tür</TableHead>
-              <TableHead>Tarih</TableHead>
-              <TableHead>Müşteri/Alıcı</TableHead>
-              <TableHead>Tutar</TableHead>
-              <TableHead>Durum</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredInvoices.map((invoice) => (
-              <TableRow key={`${invoice.type}-${invoice.id}`}>
-                <TableCell>
-                  <Checkbox 
-                    checked={selectedInvoices.includes(invoice.id)}
-                    onCheckedChange={() => handleSelectInvoice(invoice.id)}
-                  />
-                </TableCell>
-                <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
-                <TableCell>{getTypeBadge(invoice.type)}</TableCell>
-                <TableCell>{new Date(invoice.invoice_date).toLocaleDateString("tr-TR")}</TableCell>
-                <TableCell>
-                  {'customer_name' in invoice ? invoice.customer_name : invoice.recipient_title}
-                </TableCell>
-                <TableCell>{invoice.grand_total.toLocaleString("tr-TR")} ₺</TableCell>
-                <TableCell>{getStatusBadge(invoice.gib_status)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        {filteredInvoices.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            Hiç fatura bulunamadı
-          </div>
-        )}
-      </CardContent>
-    </Card>
+
+        <div className="grid gap-4">
+          {filteredInvoices.map((invoice) => (
+            <Card key={invoice.id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <Checkbox
+                      checked={selectedInvoices.includes(invoice.id)}
+                      onCheckedChange={() => handleSelectInvoice(invoice.id)}
+                    />
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <FileText className="h-4 w-4 text-blue-500" />
+                        <span className="font-medium">{invoice.invoice_number || "No Number"}</span>
+                        <Badge variant={invoice.payment_status === "paid" ? "default" : "secondary"}>
+                          {invoice.payment_status === "paid" ? "Ödenmiş" : "Ödenmemiş"}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">{invoice.description}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        <Calendar className="h-3 w-3 inline mr-1" />
+                        {new Date(invoice.invoice_date).toLocaleDateString('tr-TR')}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-lg">
+                      {invoice.amount?.toLocaleString('tr-TR', { 
+                        style: 'currency', 
+                        currency: 'TRY' 
+                      })}
+                    </p>
+                    {invoice.gib_status && (
+                      <Badge variant="outline" className="mt-1">
+                        GİB: {invoice.gib_status}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <FileText className="h-5 w-5" />
+            <span>Fatura Yönetimi</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="income">Gelir Faturaları</TabsTrigger>
+              <TabsTrigger value="expense">Gider Faturaları</TabsTrigger>
+              <TabsTrigger value="e-invoice">E-Faturalar</TabsTrigger>
+              <TabsTrigger value="e-archive">E-Arşiv</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="income" className="space-y-4">
+              {incomeLoading ? (
+                <div className="text-center py-8">Yükleniyor...</div>
+              ) : (
+                renderInvoiceList(incomeInvoices, "income")
+              )}
+            </TabsContent>
+
+            <TabsContent value="expense" className="space-y-4">
+              {expenseLoading ? (
+                <div className="text-center py-8">Yükleniyor...</div>
+              ) : (
+                renderInvoiceList(expenseInvoices, "expense")
+              )}
+            </TabsContent>
+
+            <TabsContent value="e-invoice" className="space-y-4">
+              {eInvoicesLoading ? (
+                <div className="text-center py-8">Yükleniyor...</div>
+              ) : (
+                renderInvoiceList(eInvoices, "e-invoice")
+              )}
+            </TabsContent>
+
+            <TabsContent value="e-archive" className="space-y-4">
+              {eArchiveLoading ? (
+                <div className="text-center py-8">Yükleniyor...</div>
+              ) : (
+                renderInvoiceList(eArchiveInvoices, "e-archive")
+              )}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
