@@ -12,15 +12,27 @@ interface TahsilatMakbuzuData {
   tahsilEden: string;
 }
 
+// Türkçe karakterleri düzelt
+const fixTurkishChars = (text: string): string => {
+  return text
+    .replace(/ğ/g, 'g').replace(/Ğ/g, 'G')
+    .replace(/ü/g, 'u').replace(/Ü/g, 'U')
+    .replace(/ş/g, 's').replace(/Ş/g, 'S')
+    .replace(/ı/g, 'i').replace(/İ/g, 'I')
+    .replace(/ö/g, 'o').replace(/Ö/g, 'O')
+    .replace(/ç/g, 'c').replace(/Ç/g, 'C');
+};
+
 export const generateTahsilatMakbuzu = (data: TahsilatMakbuzuData) => {
   const pdf = new jsPDF();
   
-  // Font ayarları - UTF-8 desteği için
+  // Font ayarları
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(20);
   
-  // Başlık - Türkçe karakterler için encoding
-  pdf.text('TAHSILAT MAKBUZU', 105, 30, { align: 'center' });
+  // Başlık - ortalanmış
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  pdf.text('TAHSILAT MAKBUZU', pageWidth / 2, 30, { align: 'center' });
   
   // Çizgi
   pdf.setLineWidth(0.5);
@@ -30,37 +42,38 @@ export const generateTahsilatMakbuzu = (data: TahsilatMakbuzuData) => {
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(12);
   
-  // Üst tablo
+  // Üst tablo - 5 satır için
   const startY = 50;
   const lineHeight = 10;
   
   // Tablo çerçeveleri
-  pdf.rect(20, startY, 170, lineHeight * 4);
+  pdf.rect(20, startY, 170, lineHeight * 5);
   pdf.line(20, startY + lineHeight, 190, startY + lineHeight);
   pdf.line(20, startY + lineHeight * 2, 190, startY + lineHeight * 2);
   pdf.line(20, startY + lineHeight * 3, 190, startY + lineHeight * 3);
-  pdf.line(100, startY, 100, startY + lineHeight * 4);
+  pdf.line(20, startY + lineHeight * 4, 190, startY + lineHeight * 4);
+  pdf.line(100, startY, 100, startY + lineHeight * 5);
   
-  // İçerik - Türkçe karakterler için düzenlenmiş
+  // İçerik - Türkçe karakterler düzeltilmiş
   pdf.text('Makbuz No:', 22, startY + 7);
-  pdf.text(data.makbuzNo, 102, startY + 7);
+  pdf.text(fixTurkishChars(data.makbuzNo), 102, startY + 7);
   
   pdf.text('Tarih:', 22, startY + 17);
-  pdf.text(data.tarih, 102, startY + 17);
+  pdf.text(fixTurkishChars(data.tarih), 102, startY + 17);
   
   pdf.text('Musteri Adi:', 22, startY + 27);
-  pdf.text(data.musteriAdi, 102, startY + 27);
+  pdf.text(fixTurkishChars(data.musteriAdi), 102, startY + 27);
   
   pdf.text('Odeme Sekli:', 22, startY + 37);
-  pdf.text(data.odemeShekli, 102, startY + 37);
+  pdf.text(fixTurkishChars(data.odemeShekli), 102, startY + 37);
   
   pdf.text('Aciklama:', 22, startY + 47);
-  pdf.text(data.aciklama, 102, startY + 47);
+  pdf.text(fixTurkishChars(data.aciklama), 102, startY + 47);
   
-  // Açıklama metni - Türkçe karakterler için düzenlenmiş
+  // Açıklama metni - Türkçe karakterler düzeltilmiş
   const aciklamaY = startY + 70;
-  pdf.text(`Asagida bilgileri yer alan tutar, [${data.musteriAdi}] tarafindan [${data.tahsilEden}]'dan`, 20, aciklamaY);
-  pdf.text(`TL[${data.tutar.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}] olarak [${data.tarih}] tarihinde [${data.odemeShekli}] ile tahsil edilmistir.`, 20, aciklamaY + 10);
+  pdf.text(fixTurkishChars(`Asagida bilgileri yer alan tutar, [${data.musteriAdi}] tarafindan [${data.tahsilEden}]'dan`), 20, aciklamaY);
+  pdf.text(fixTurkishChars(`TL[${data.tutar.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}] olarak [${data.tarih}] tarihinde [${data.odemeShekli}] ile tahsil edilmistir.`), 20, aciklamaY + 10);
   
   // Alt tablo
   const bottomTableY = aciklamaY + 40;
@@ -72,23 +85,23 @@ export const generateTahsilatMakbuzu = (data: TahsilatMakbuzuData) => {
   pdf.text(`TL[${data.tutar.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}]`, 102, bottomTableY + 7);
   
   pdf.text('Yalniz:', 22, bottomTableY + 17);
-  pdf.text(`[${data.tutarYazisi}] Turk Lirasi`, 102, bottomTableY + 17);
+  pdf.text(fixTurkishChars(`[${data.tutarYazisi}] Turk Lirasi`), 102, bottomTableY + 17);
   
   // Tahsil Eden
   const tahsilEdenY = bottomTableY + 40;
   pdf.text('Tahsil Eden:', 20, tahsilEdenY);
-  pdf.text(`Ad Soyad: [${data.tahsilEden}]`, 20, tahsilEdenY + 20);
+  pdf.text(fixTurkishChars(`Ad Soyad: [${data.tahsilEden}]`), 20, tahsilEdenY + 20);
   
   return pdf;
 };
 
 export const numberToWords = (num: number): string => {
-  const ones = ['', 'bir', 'iki', 'üç', 'dört', 'beş', 'altı', 'yedi', 'sekiz', 'dokuz'];
-  const tens = ['', '', 'yirmi', 'otuz', 'kırk', 'elli', 'altmış', 'yetmiş', 'seksen', 'doksan'];
-  const teens = ['on', 'on bir', 'on iki', 'on üç', 'on dört', 'on beş', 'on altı', 'on yedi', 'on sekiz', 'on dokuz'];
-  const hundreds = ['', 'yüz', 'iki yüz', 'üç yüz', 'dört yüz', 'beş yüz', 'altı yüz', 'yedi yüz', 'sekiz yüz', 'dokuz yüz'];
+  const ones = ['', 'bir', 'iki', 'uc', 'dort', 'bes', 'alti', 'yedi', 'sekiz', 'dokuz'];
+  const tens = ['', '', 'yirmi', 'otuz', 'kirk', 'elli', 'altmis', 'yetmis', 'seksen', 'doksan'];
+  const teens = ['on', 'on bir', 'on iki', 'on uc', 'on dort', 'on bes', 'on alti', 'on yedi', 'on sekiz', 'on dokuz'];
+  const hundreds = ['', 'yuz', 'iki yuz', 'uc yuz', 'dort yuz', 'bes yuz', 'alti yuz', 'yedi yuz', 'sekiz yuz', 'dokuz yuz'];
   
-  if (num === 0) return 'sıfır';
+  if (num === 0) return 'sifir';
   
   let intPart = Math.floor(num);
   const decPart = Math.round((num - intPart) * 100);
@@ -129,7 +142,7 @@ export const numberToWords = (num: number): string => {
   }
   
   if (decPart > 0) {
-    result = result.trim() + ' virgül ';
+    result = result.trim() + ' virgul ';
     let decPartCopy = decPart;
     if (decPartCopy >= 20) {
       result += tens[Math.floor(decPartCopy / 10)] + ' ';
