@@ -27,8 +27,8 @@ export const EInvoiceManagement = ({ companyId }: EInvoiceManagementProps) => {
     total_amount: 0,
     tax_amount: 0,
     grand_total: 0,
-    invoice_uuid: "",
     ettn: "",
+    invoice_uuid: "",
   });
 
   const { eInvoices, isLoading, createEInvoice, sendToGib } = useEInvoices(companyId);
@@ -53,7 +53,20 @@ export const EInvoiceManagement = ({ companyId }: EInvoiceManagementProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const { invoice_uuid, ettn, ...invoiceData } = formData;
+    const invoiceData = {
+      invoice_number: formData.invoice_number,
+      invoice_type: formData.invoice_type,
+      invoice_date: formData.invoice_date,
+      recipient_tax_number: formData.recipient_tax_number,
+      recipient_title: formData.recipient_title,
+      recipient_address: formData.recipient_address,
+      total_amount: formData.total_amount,
+      tax_amount: formData.tax_amount,
+      grand_total: formData.grand_total,
+      ettn: crypto.randomUUID(),
+      invoice_uuid: crypto.randomUUID(),
+    };
+    
     createEInvoice.mutate(invoiceData);
     setIsDialogOpen(false);
     setFormData({
@@ -66,8 +79,8 @@ export const EInvoiceManagement = ({ companyId }: EInvoiceManagementProps) => {
       total_amount: 0,
       tax_amount: 0,
       grand_total: 0,
-      invoice_uuid: "",
       ettn: "",
+      invoice_uuid: "",
     });
   };
 

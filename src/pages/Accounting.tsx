@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { 
   Building2, 
   Plus, 
@@ -18,18 +18,16 @@ import {
   Users,
   Eye,
   Edit,
-  Trash2,
-  Settings,
+  Search,
   Link as LinkIcon
 } from "lucide-react";
 import { useCompanies } from "@/hooks/useCompanies";
 import { CompanyAccountsList } from "@/components/CompanyAccountsList";
-import { CompanyCashManagement } from "@/components/CompanyCashManagement";
 import { UyumsoftIntegration } from "@/components/UyumsoftIntegration";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { EInvoiceManagement } from "@/components/EInvoiceManagement";
 import { EArchiveInvoiceManagement } from "@/components/EArchiveInvoiceManagement";
 import { ChartOfAccountsManagement } from "@/components/ChartOfAccountsManagement";
+import { TaxRegistrySearch } from "@/components/TaxRegistrySearch";
 
 const Accounting = () => {
   const [isCompanyDialogOpen, setIsCompanyDialogOpen] = useState(false);
@@ -52,22 +50,21 @@ const Accounting = () => {
   const activeCompanies = companies.filter(c => c.name).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center space-x-3">
+              <h1 className="text-3xl font-bold text-foreground flex items-center space-x-3">
                 <Calculator className="h-8 w-8 text-blue-600" />
                 <span>Muhasebe Modülü</span>
               </h1>
-              <p className="text-gray-600 dark:text-gray-300 mt-2">
+              <p className="text-muted-foreground mt-2">
                 E-Fatura, cari hesap ve finansal yönetim sistemi - Uyumsoft entegrasyonu ile
               </p>
             </div>
             <div className="flex items-center space-x-2">
-              <ThemeToggle />
               <Dialog open={isCompanyDialogOpen} onOpenChange={setIsCompanyDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
@@ -176,7 +173,7 @@ const Accounting = () => {
             ) : companies.length === 0 ? (
               <div className="text-center py-8">
                 <Building2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 dark:text-gray-300 mb-4">
+                <p className="text-muted-foreground mb-4">
                   Henüz şirket oluşturmadınız. İlk şirketinizi oluşturun.
                 </p>
                 <Button onClick={() => setIsCompanyDialogOpen(true)}>
@@ -191,7 +188,7 @@ const Accounting = () => {
                     key={company.id} 
                     className={`cursor-pointer transition-all hover:shadow-lg ${
                       selectedCompany === company.id 
-                        ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                        ? 'ring-2 ring-blue-500 bg-blue-50' 
                         : ''
                     }`}
                     onClick={() => setSelectedCompany(company.id)}
@@ -200,7 +197,7 @@ const Accounting = () => {
                       <div className="flex items-start justify-between">
                         <div>
                           <h3 className="font-semibold text-lg">{company.name}</h3>
-                          <p className="text-gray-600 dark:text-gray-300 text-sm">
+                          <p className="text-muted-foreground text-sm">
                             {company.description || "Açıklama yok"}
                           </p>
                           <Badge variant="outline" className="mt-2">
@@ -227,7 +224,7 @@ const Accounting = () => {
         {/* Company Management */}
         {selectedCompany && (
           <Tabs defaultValue="accounts" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="accounts" className="flex items-center space-x-2">
                 <Users className="h-4 w-4" />
                 <span>Cari Hesaplar</span>
@@ -243,6 +240,10 @@ const Accounting = () => {
               <TabsTrigger value="e-archive" className="flex items-center space-x-2">
                 <TrendingDown className="h-4 w-4" />
                 <span>E-Arşiv</span>
+              </TabsTrigger>
+              <TabsTrigger value="taxpayer-search" className="flex items-center space-x-2">
+                <Search className="h-4 w-4" />
+                <span>Mükellef Sorgula</span>
               </TabsTrigger>
               <TabsTrigger value="integration" className="flex items-center space-x-2">
                 <LinkIcon className="h-4 w-4" />
@@ -270,6 +271,10 @@ const Accounting = () => {
               <EArchiveInvoiceManagement companyId={selectedCompany} />
             </TabsContent>
 
+            <TabsContent value="taxpayer-search">
+              <TaxRegistrySearch />
+            </TabsContent>
+
             <TabsContent value="integration">
               <UyumsoftIntegration />
             </TabsContent>
@@ -282,7 +287,7 @@ const Accounting = () => {
                 <CardContent>
                   <div className="text-center py-8">
                     <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600 dark:text-gray-300">
+                    <p className="text-muted-foreground">
                       Rapor modülü yakında eklenecek
                     </p>
                   </div>

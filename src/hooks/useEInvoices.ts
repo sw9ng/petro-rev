@@ -36,8 +36,6 @@ export const useEInvoices = (companyId: string) => {
           ...invoice, 
           created_by: user.id, 
           company_id: companyId,
-          invoice_uuid: crypto.randomUUID(),
-          ettn: crypto.randomUUID()
         })
         .select()
         .single();
@@ -59,7 +57,7 @@ export const useEInvoices = (companyId: string) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Oturum bulunamadı");
 
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/send-invoice-to-gib`, {
+      const response = await fetch(`https://duebejkrrvuodwbforkd.supabase.co/functions/v1/send-invoice-to-gib`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

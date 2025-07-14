@@ -36,7 +36,6 @@ export const useEArchiveInvoices = (companyId: string) => {
           ...invoice, 
           created_by: user.id, 
           company_id: companyId,
-          archive_id: `EA${Date.now()}`
         })
         .select()
         .single();
@@ -48,7 +47,7 @@ export const useEArchiveInvoices = (companyId: string) => {
       queryClient.invalidateQueries({ queryKey: ["e-archive-invoices", companyId] });
       toast({
         title: "Başarılı",
-        description: "E-Arşiv faturası başarıyla oluşturuldu",
+        description: "E-Arşiv Fatura başarıyla oluşturuldu",
       });
     },
   });
@@ -58,7 +57,7 @@ export const useEArchiveInvoices = (companyId: string) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Oturum bulunamadı");
 
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/send-invoice-to-gib`, {
+      const response = await fetch(`https://duebejkrrvuodwbforkd.supabase.co/functions/v1/send-invoice-to-gib`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -80,7 +79,7 @@ export const useEArchiveInvoices = (companyId: string) => {
       queryClient.invalidateQueries({ queryKey: ["e-archive-invoices", companyId] });
       toast({
         title: "Başarılı",
-        description: "E-Arşiv faturası GİB'e gönderildi",
+        description: "E-Arşiv Fatura GİB'e gönderildi",
       });
     },
     onError: (error) => {
