@@ -13,8 +13,8 @@ interface InvoiceRequest {
 }
 
 // Uyumsoft API endpoints
-const UYUMSOFT_API_BASE = 'https://efaturatest.uyumsoft.com.tr/services'
-const UYUMSOFT_API_LIVE = 'https://efatura.uyumsoft.com.tr/services'
+const UYUMSOFT_API_TEST = 'https://edonusum.uyum.com.tr/api/test'
+const UYUMSOFT_API_LIVE = 'https://edonusum.uyum.com.tr/api'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -69,54 +69,70 @@ serve(async (req) => {
     }
 
     // Prepare Uyumsoft API request
-    const apiBaseUrl = uyumsoftAccount.test_mode ? UYUMSOFT_API_BASE : UYUMSOFT_API_LIVE
+    const apiBaseUrl = uyumsoftAccount.test_mode ? UYUMSOFT_API_TEST : UYUMSOFT_API_LIVE
     
-    // Create invoice payload for Uyumsoft
+    // Create invoice payload for Uyumsoft API
     const invoicePayload = {
       username: uyumsoftAccount.username,
-      password: uyumsoftAccount.password_encrypted, // In production, this should be decrypted
+      password: uyumsoftAccount.password_encrypted,
       companyCode: uyumsoftAccount.company_code,
-      invoiceData: {
+      invoice: {
         invoiceNumber: invoiceData.invoice_number,
         invoiceDate: invoiceData.invoice_date,
-        totalAmount: invoiceData.total_amount || invoiceData.grand_total,
-        taxAmount: invoiceData.tax_amount,
-        grandTotal: invoiceData.grand_total,
-        customerName: invoiceData.customer_name || invoiceData.recipient_title,
-        customerTaxNumber: invoiceData.customer_tax_number || invoiceData.recipient_tax_number,
-        customerAddress: invoiceData.customer_address || invoiceData.recipient_address,
-        currencyCode: invoiceData.currency_code
+        invoiceType: invoiceType === 'e-invoice' ? 'SATIS' : 'ARSIV',
+        currencyCode: invoiceData.currency_code || 'TRY',
+        customer: {
+          name: invoiceData.customer_name || invoiceData.recipient_title,
+          taxNumber: invoiceData.customer_tax_number || invoiceData.recipient_tax_number,
+          tcNumber: invoiceData.customer_tc_number,
+          address: invoiceData.customer_address || invoiceData.recipient_address
+        },
+        amounts: {
+          totalAmount: parseFloat(invoiceData.total_amount || invoiceData.grand_total),
+          taxAmount: parseFloat(invoiceData.tax_amount || 0),
+          grandTotal: parseFloat(invoiceData.grand_total)
+        }
       }
     }
 
     // Send to Uyumsoft API
     const uyumsoftEndpoint = invoiceType === 'e-invoice' 
-      ? `${apiBaseUrl}/EInvoiceService` 
-      : `${apiBaseUrl}/EArchiveService`
+      ? `${apiBaseUrl}/einvoice/send` 
+      : `${apiBaseUrl}/earchive/send`
 
-    console.log('Uyumsoft\'a gönderilecek veri:', JSON.stringify(invoicePayload, null, 2))
+    console.log('Sending to Uyumsoft:', uyumsoftEndpoint)
+    console.log('Payload:', JSON.stringify(invoicePayload, null, 2))
 
-    // For now, simulate the API call since we don't have the actual Uyumsoft API details
-    // In production, you would make the actual HTTP request to Uyumsoft
-    const uyumsoftResponse = {
-      success: true,
-      invoiceId: invoiceData.id,
-      uyumsoftId: `UYM-${Date.now()}`,
-      status: 'sent',
-      message: 'Fatura Uyumsoft üzerinden başarıyla gönderildi',
-      sendDate: new Date().toISOString(),
-      gibStatus: 'pending'
+    const uyumsoftResponse = await fetch(uyumsoftEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(invoicePayload)
+    })
+
+    const uyumsoftResult = await uyumsoftResponse.json()
+    console.log('Uyumsoft response:', uyumsoftResult)
+
+    let updateData
+    if (uyumsoftResponse.ok && uyumsoftResult.success) {
+      updateData = {
+        gib_status: 'sent',
+        gib_response: JSON.stringify(uyumsoftResult),
+        updated_at: new Date().toISOString()
+      }
+    } else {
+      updateData = {
+        gib_status: 'error',
+        gib_response: JSON.stringify(uyumsoftResult),
+        updated_at: new Date().toISOString()
+      }
     }
 
     // Update invoice status with Uyumsoft response
     const tableName = invoiceType === 'e-invoice' ? 'e_invoices' : 'e_archive_invoices'
     
-    const updateData = {
-      gib_status: 'sent',
-      gib_response: JSON.stringify(uyumsoftResponse),
-      updated_at: new Date().toISOString()
-    }
-
     const { error: updateError } = await supabaseClient
       .from(tableName)
       .update(updateData)
@@ -124,8 +140,16 @@ serve(async (req) => {
 
     if (updateError) throw updateError
 
+    if (!uyumsoftResponse.ok || !uyumsoftResult.success) {
+      throw new Error(uyumsoftResult.message || 'Uyumsoft gönderim hatası')
+    }
+
     return new Response(
-      JSON.stringify({ success: true, data: uyumsoftResponse }),
+      JSON.stringify({ 
+        success: true, 
+        data: uyumsoftResult,
+        message: 'Fatura Uyumsoft üzerinden başarıyla gönderildi'
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
@@ -135,7 +159,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error sending invoice to Uyumsoft:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        success: false, 
+        error: error.message || 'Beklenmeyen hata oluştu'
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,

@@ -7,9 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Settings, Link, FileText, Upload, Download, CheckCircle, AlertCircle } from 'lucide-react';
+import { Settings, Link, FileText, Upload, Download, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUyumsoftAccounts } from '@/hooks/useUyumsoftAccounts';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UyumsoftIntegrationProps {
   companyId: string;
@@ -17,34 +18,81 @@ interface UyumsoftIntegrationProps {
 
 export const UyumsoftIntegration = ({ companyId }: UyumsoftIntegrationProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [credentials, setCredentials] = useState({
     username: '',
-    password_encrypted: '',
+    password: '',
     company_code: '',
-    api_key_encrypted: '',
     test_mode: true,
-    is_active: true
   });
 
   const { toast } = useToast();
-  const { uyumsoftAccount, isLoading, createOrUpdateAccount } = useUyumsoftAccounts(companyId);
+  const { uyumsoftAccount, isLoading } = useUyumsoftAccounts(companyId);
 
   useEffect(() => {
     if (uyumsoftAccount) {
       setCredentials({
         username: uyumsoftAccount.username,
-        password_encrypted: '', // Güvenlik için şifre gösterilmez
+        password: '', // Güvenlik için şifre gösterilmez
         company_code: uyumsoftAccount.company_code,
-        api_key_encrypted: uyumsoftAccount.api_key_encrypted || '',
         test_mode: uyumsoftAccount.test_mode,
-        is_active: uyumsoftAccount.is_active
       });
     }
   }, [uyumsoftAccount]);
 
-  const handleSaveCredentials = () => {
-    createOrUpdateAccount.mutate(credentials);
-    setIsDialogOpen(false);
+  const handleTestConnection = async () => {
+    if (!credentials.username || !credentials.password || !credentials.company_code) {
+      toast({
+        title: "Hata",
+        description: "Kullanıcı adı, şifre ve şirket kodu gereklidir",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsAuthenticating(true);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Oturum bulunamadı");
+
+      const response = await fetch(`https://duebejkrrvuodwbforkd.supabase.co/functions/v1/authenticate-uyumsoft`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          companyId,
+          username: credentials.username,
+          password: credentials.password,
+          companyCode: credentials.company_code,
+          testMode: credentials.test_mode
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast({
+          title: "Başarılı",
+          description: "Uyumsoft bağlantısı başarıyla kuruldu",
+        });
+        setIsDialogOpen(false);
+        // Refresh the page to update the connection status
+        window.location.reload();
+      } else {
+        throw new Error(result.error || 'Bağlantı başarısız');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Bağlantı Hatası",
+        description: error.message || "Uyumsoft bağlantısı kurulamadı",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAuthenticating(false);
+    }
   };
 
   const isConnected = uyumsoftAccount && uyumsoftAccount.is_active;
@@ -80,6 +128,12 @@ export const UyumsoftIntegration = ({ companyId }: UyumsoftIntegrationProps) => 
                     <p className="text-xs text-gray-500">
                       Mod: {uyumsoftAccount.test_mode ? 'Test' : 'Canlı'}
                     </p>
+                    <p className="text-xs text-gray-500">
+                      Son Senkronizasyon: {uyumsoftAccount.last_sync_at ? 
+                        new Date(uyumsoftAccount.last_sync_at).toLocaleString('tr-TR') : 
+                        'Henüz yapılmadı'
+                      }
+                    </p>
                   </div>
                 )}
               </div>
@@ -90,9 +144,9 @@ export const UyumsoftIntegration = ({ companyId }: UyumsoftIntegrationProps) => 
             
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button disabled={isLoading}>
                   <Settings className="h-4 w-4 mr-2" />
-                  {isConnected ? "Bağlantı Düzenle" : "Bağlantı Ayarları"}
+                  {isConnected ? "Bağlantıyı Yenile" : "Bağlantı Kurulumu"}
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[500px]">
@@ -101,40 +155,34 @@ export const UyumsoftIntegration = ({ companyId }: UyumsoftIntegrationProps) => 
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="space-y-2">
-                    <Label htmlFor="username">Kullanıcı Adı</Label>
+                    <Label htmlFor="username">Kullanıcı Adı *</Label>
                     <Input
                       id="username"
                       value={credentials.username}
                       onChange={(e) => setCredentials({...credentials, username: e.target.value})}
                       placeholder="Uyumsoft kullanıcı adınız"
+                      disabled={isAuthenticating}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="password">Şifre</Label>
+                    <Label htmlFor="password">Şifre *</Label>
                     <Input
                       id="password"
                       type="password"
-                      value={credentials.password_encrypted}
-                      onChange={(e) => setCredentials({...credentials, password_encrypted: e.target.value})}
+                      value={credentials.password}
+                      onChange={(e) => setCredentials({...credentials, password: e.target.value})}
                       placeholder="Uyumsoft şifreniz"
+                      disabled={isAuthenticating}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="companyCode">Şirket Kodu</Label>
+                    <Label htmlFor="companyCode">Şirket Kodu *</Label>
                     <Input
                       id="companyCode"
                       value={credentials.company_code}
                       onChange={(e) => setCredentials({...credentials, company_code: e.target.value})}
                       placeholder="Şirket kodunuz"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="apiKey">API Anahtarı (Opsiyonel)</Label>
-                    <Input
-                      id="apiKey"
-                      value={credentials.api_key_encrypted}
-                      onChange={(e) => setCredentials({...credentials, api_key_encrypted: e.target.value})}
-                      placeholder="API anahtarınız"
+                      disabled={isAuthenticating}
                     />
                   </div>
                   <div className="flex items-center space-x-2">
@@ -142,24 +190,36 @@ export const UyumsoftIntegration = ({ companyId }: UyumsoftIntegrationProps) => 
                       id="test-mode"
                       checked={credentials.test_mode}
                       onCheckedChange={(checked) => setCredentials({...credentials, test_mode: checked})}
+                      disabled={isAuthenticating}
                     />
                     <Label htmlFor="test-mode">Test Modu</Label>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="is-active"
-                      checked={credentials.is_active}
-                      onCheckedChange={(checked) => setCredentials({...credentials, is_active: checked})}
-                    />
-                    <Label htmlFor="is-active">Aktif</Label>
+                  <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-md">
+                    <p className="font-medium">Bilgi:</p>
+                    <p>Bağlantı testi yapılacak ve kimlik bilgileri doğrulanacaktır.</p>
+                    <p>Yanlış bilgiler girerseniz bağlantı kurulmayacaktır.</p>
                   </div>
                 </div>
                 <div className="flex justify-end space-x-2">
-                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsDialogOpen(false)}
+                    disabled={isAuthenticating}
+                  >
                     İptal
                   </Button>
-                  <Button onClick={handleSaveCredentials}>
-                    Kaydet
+                  <Button 
+                    onClick={handleTestConnection}
+                    disabled={isAuthenticating}
+                  >
+                    {isAuthenticating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Bağlanıyor...
+                      </>
+                    ) : (
+                      'Bağlantıyı Test Et'
+                    )}
                   </Button>
                 </div>
               </DialogContent>
