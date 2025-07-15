@@ -12,6 +12,7 @@ import { useCustomers } from '@/hooks/useCustomers';
 import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { formatCurrency } from '@/lib/numberUtils';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 interface CustomerListViewProps {
   onCustomerSelect: (customerId: string) => void;
@@ -20,6 +21,7 @@ interface CustomerListViewProps {
 export const CustomerListView = ({ onCustomerSelect }: CustomerListViewProps) => {
   const { customers, loading: customersLoading, updateCustomer } = useCustomers();
   const { getCustomerBalance, loading: transactionsLoading } = useCustomerTransactions();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [editingCustomer, setEditingCustomer] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState({
@@ -74,6 +76,10 @@ export const CustomerListView = ({ onCustomerSelect }: CustomerListViewProps) =>
     toast.success("Müşteri başarıyla güncellendi.");
     setEditingCustomer(null);
     setEditFormData({ name: '', phone: '', address: '', notes: '' });
+  };
+
+  const handleCustomerDetail = (customerId: string) => {
+    navigate(`/customer/${customerId}`);
   };
 
   if (customersLoading || transactionsLoading) {
@@ -201,7 +207,7 @@ export const CustomerListView = ({ onCustomerSelect }: CustomerListViewProps) =>
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => onCustomerSelect(customer.id)}
+                          onClick={() => handleCustomerDetail(customer.id)}
                           className="flex items-center space-x-1"
                         >
                           <Eye className="h-4 w-4" />

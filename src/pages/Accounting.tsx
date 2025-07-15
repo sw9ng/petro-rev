@@ -42,7 +42,7 @@ const Accounting = () => {
       case "company-accounts":
         return <CompanyAccountsList companyId={selectedCompany} />;
       case "invoices":
-        return <InvoiceManagement companyId={selectedCompany} />;
+        return <InvoiceManagement />;
       case "uyumsoft":
         return <UyumsoftIntegration companyId={selectedCompany} />;
       case "cash":
