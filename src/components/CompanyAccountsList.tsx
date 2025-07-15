@@ -1,246 +1,152 @@
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Building2 } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Users, Plus } from 'lucide-react';
+import { useCustomers } from '@/hooks/useCustomers';
+import { useToast } from '@/hooks/use-toast';
+import { CustomerListView } from '@/components/CustomerListView';
 
 interface CompanyAccountsListProps {
   companyId: string;
+  onCustomerSelect?: (customerId: string) => void;
 }
 
-export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingAccount, setEditingAccount] = useState<any>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    phone: "",
-    address: "",
-    notes: ""
-  });
-
+export const CompanyAccountsList = ({ companyId, onCustomerSelect }: CompanyAccountsListProps) => {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  const { data: accounts, isLoading } = useQuery({
-    queryKey: ["company-accounts", companyId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("company_accounts")
-        .select("*")
-        .eq("company_id", companyId)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data;
-    },
+  const { addCustomer, loading } = useCustomers();
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [customerData, setCustomerData] = useState({
+    name: '',
+    phone: '',
+    address: '',
+    notes: ''
   });
 
-  const createAccount = useMutation({
-    mutationFn: async (accountData: any) => {
-      const { data, error } = await supabase
-        .from("company_accounts")
-        .insert({ ...accountData, company_id: companyId })
-        .select()
-        .single();
+  const resetForm = () => {
+    setCustomerData({ name: '', phone: '', address: '', notes: '' });
+  };
 
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["company-accounts", companyId] });
-      setIsDialogOpen(false);
-      setFormData({ name: "", phone: "", address: "", notes: "" });
-      toast({
-        title: "Başarılı",
-        description: "Cari hesap başarıyla oluşturuldu",
-      });
-    },
-  });
-
-  const updateAccount = useMutation({
-    mutationFn: async ({ id, ...updates }: any) => {
-      const { data, error } = await supabase
-        .from("company_accounts")
-        .update(updates)
-        .eq("id", id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["company-accounts", companyId] });
-      setIsDialogOpen(false);
-      setEditingAccount(null);
-      setFormData({ name: "", phone: "", address: "", notes: "" });
-      toast({
-        title: "Başarılı",
-        description: "Cari hesap başarıyla güncellendi",
-      });
-    },
-  });
-
-  const deleteAccount = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("company_accounts")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["company-accounts", companyId] });
-      toast({
-        title: "Başarılı",
-        description: "Cari hesap başarıyla silindi",
-      });
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingAccount) {
-      updateAccount.mutate({ id: editingAccount.id, ...formData });
+    
+    if (!customerData.name.trim()) {
+      toast({
+        title: "Hata",
+        description: "Müşteri adı zorunludur.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const result = await addCustomer(customerData);
+
+    if (result.error) {
+      toast({
+        title: "Hata",
+        description: "Müşteri kaydedilirken bir hata oluştu.",
+        variant: "destructive"
+      });
     } else {
-      createAccount.mutate(formData);
+      toast({
+        title: "Müşteri Eklendi",
+        description: "Yeni müşteri başarıyla eklendi.",
+      });
+      
+      resetForm();
+      setShowAddDialog(false);
     }
   };
 
-  const handleEdit = (account: any) => {
-    setEditingAccount(account);
-    setFormData({
-      name: account.name,
-      phone: account.phone || "",
-      address: account.address || "",
-      notes: account.notes || ""
-    });
-    setIsDialogOpen(true);
+  const handleCustomerSelect = (customerId: string) => {
+    if (onCustomerSelect) {
+      onCustomerSelect(customerId);
+    }
   };
 
+  if (loading) {
+    return <div className="flex justify-center items-center h-64">Yükleniyor...</div>;
+  }
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center space-x-2">
-          <Building2 className="h-5 w-5" />
-          <span>Cari Hesaplar</span>
-        </CardTitle>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+    <div className="space-y-6">
+      <div className="flex flex-col space-y-2">
+        <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Müşteri Yönetimi</h2>
+        <p className="text-sm lg:text-base text-gray-600">Müşterilerinizi ekleyin, yönetin ve detaylarını görüntüleyin</p>
+      </div>
+
+      <div className="flex justify-end">
+        <Dialog open={showAddDialog} onOpenChange={(open) => {
+          setShowAddDialog(open);
+          if (!open) resetForm();
+        }}>
           <DialogTrigger asChild>
-            <Button onClick={() => {
-              setEditingAccount(null);
-              setFormData({ name: "", phone: "", address: "", notes: "" });
-            }}>
+            <Button className="bg-blue-600 hover:bg-blue-700">
               <Plus className="h-4 w-4 mr-2" />
-              Yeni Cari
+              Yeni Müşteri
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>
-                {editingAccount ? "Cari Hesap Düzenle" : "Yeni Cari Hesap"}
-              </DialogTitle>
+              <DialogTitle>Yeni Müşteri Ekle</DialogTitle>
+              <DialogDescription>
+                Müşteri bilgilerini girin.
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="name">Cari Adı *</Label>
+              <div className="space-y-2">
+                <Label>Müşteri Adı *</Label>
                 <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  value={customerData.name}
+                  onChange={(e) => setCustomerData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Müşteri adını girin"
                   required
                 />
               </div>
-              <div>
-                <Label htmlFor="phone">Telefon</Label>
+              <div className="space-y-2">
+                <Label>Telefon</Label>
                 <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                  value={customerData.phone}
+                  onChange={(e) => setCustomerData(prev => ({ ...prev, phone: e.target.value }))}
+                  placeholder="Telefon numarası"
                 />
               </div>
-              <div>
-                <Label htmlFor="address">Adres</Label>
+              <div className="space-y-2">
+                <Label>Adres</Label>
+                <Input
+                  value={customerData.address}
+                  onChange={(e) => setCustomerData(prev => ({ ...prev, address: e.target.value }))}
+                  placeholder="Müşteri adresi"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Notlar</Label>
                 <Textarea
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                  value={customerData.notes}
+                  onChange={(e) => setCustomerData(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Ek notlar..."
                   rows={3}
                 />
               </div>
-              <div>
-                <Label htmlFor="notes">Notlar</Label>
-                <Textarea
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                  rows={2}
-                />
-              </div>
               <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)}>
                   İptal
                 </Button>
-                <Button type="submit">
-                  {editingAccount ? "Güncelle" : "Kaydet"}
+                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                  Ekle
                 </Button>
               </div>
             </form>
           </DialogContent>
         </Dialog>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div>Yükleniyor...</div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Cari Adı</TableHead>
-                <TableHead>Telefon</TableHead>
-                <TableHead>Adres</TableHead>
-                <TableHead className="text-right">İşlemler</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {accounts?.map((account) => (
-                <TableRow key={account.id}>
-                  <TableCell className="font-medium">{account.name}</TableCell>
-                  <TableCell>{account.phone}</TableCell>
-                  <TableCell>{account.address}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(account)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => deleteAccount.mutate(account.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Customer List with Detail and Edit Functionality */}
+      <CustomerListView onCustomerSelect={handleCustomerSelect} />
+    </div>
   );
 };

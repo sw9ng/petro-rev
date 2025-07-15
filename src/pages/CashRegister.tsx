@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useCompanies } from '@/hooks/useCompanies';
 import { CompanyCashManagement } from '@/components/CompanyCashManagement';
 import { CompanyAccountsList } from '@/components/CompanyAccountsList';
+import { CustomerDetailView } from '@/components/CustomerDetailView';
 import { Plus, Building2, ArrowLeft, ChevronRight, Users, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -19,6 +20,7 @@ const CashRegister = () => {
   const { companies, loading, addCompany, error } = useCompanies();
   const { getTotalOutstandingDebt } = useCustomerTransactions();
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'income' | 'expense' | 'accounts'>('income');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newCompanyData, setNewCompanyData] = useState({
@@ -53,6 +55,14 @@ const CashRegister = () => {
     setIsDialogOpen(false);
   };
 
+  const handleCustomerSelect = (customerId: string) => {
+    setSelectedCustomerId(customerId);
+  };
+
+  const handleBackFromCustomer = () => {
+    setSelectedCustomerId(null);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -67,6 +77,11 @@ const CashRegister = () => {
         <div className="text-lg text-red-600">Hata: {error}</div>
       </div>
     );
+  }
+
+  // If customer is selected, show customer detail
+  if (selectedCustomerId) {
+    return <CustomerDetailView customerId={selectedCustomerId} onBack={handleBackFromCustomer} />;
   }
 
   if (selectedCompany) {
@@ -125,7 +140,7 @@ const CashRegister = () => {
           </TabsContent>
 
           <TabsContent value="accounts" className="space-y-4">
-            <CompanyAccountsList companyId={selectedCompany} />
+            <CompanyAccountsList companyId={selectedCompany} onCustomerSelect={handleCustomerSelect} />
           </TabsContent>
         </Tabs>
       </div>

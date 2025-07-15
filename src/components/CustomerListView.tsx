@@ -79,7 +79,14 @@ export const CustomerListView = ({ onCustomerSelect }: CustomerListViewProps) =>
   };
 
   const handleCustomerDetail = (customerId: string) => {
-    navigate(`/customer/${customerId}`);
+    // Check if we're in the main customer management page or cash register page
+    if (window.location.pathname === '/') {
+      // Main customer management page - navigate to separate detail page
+      navigate(`/customer/${customerId}`);
+    } else {
+      // Cash register page - use the callback to show detail inline
+      onCustomerSelect(customerId);
+    }
   };
 
   if (customersLoading || transactionsLoading) {
