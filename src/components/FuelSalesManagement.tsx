@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,6 +38,7 @@ export const FuelSalesManagement = () => {
   const [activeTab, setActiveTab] = useState('daily');
   const [editingSale, setEditingSale] = useState<any>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedShift, setSelectedShift] = useState<string>('all');
   
   // Weekly date range states
   const [weekStartDate, setWeekStartDate] = useState<Date | undefined>();
@@ -162,34 +162,47 @@ export const FuelSalesManagement = () => {
   const dailySales = useMemo(() => {
     if (!selectedDate) return [];
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
-    return adjustedFuelSales.filter(sale => sale.sale_time.startsWith(dateStr));
-  }, [adjustedFuelSales, selectedDate]);
+    let sales = adjustedFuelSales.filter(sale => sale.sale_time.startsWith(dateStr));
+    
+    // Vardiya filtreleme
+    if (selectedShift !== 'all') {
+      sales = sales.filter(sale => sale.shift === selectedShift);
+    }
+    
+    return sales;
+  }, [adjustedFuelSales, selectedDate, selectedShift]);
 
-  // Haftalık satışlar - custom date range support
+  // Haftalık satışlar
   const weeklySales = useMemo(() => {
+    let sales = [];
+    
     if (weekStartDate && weekEndDate) {
-      // Use custom date range
       const startOfDay = new Date(weekStartDate);
       startOfDay.setHours(0, 0, 0, 0);
       const endOfDay = new Date(weekEndDate);
       endOfDay.setHours(23, 59, 59, 999);
       
-      return adjustedFuelSales.filter(sale => {
+      sales = adjustedFuelSales.filter(sale => {
         const saleDate = new Date(sale.sale_time);
         return saleDate >= startOfDay && saleDate <= endOfDay;
       });
     } else if (selectedDate) {
-      // Use default weekly range
       const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
       const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
       
-      return adjustedFuelSales.filter(sale => {
+      sales = adjustedFuelSales.filter(sale => {
         const saleDate = new Date(sale.sale_time);
         return isWithinInterval(saleDate, { start: weekStart, end: weekEnd });
       });
     }
-    return [];
-  }, [adjustedFuelSales, selectedDate, weekStartDate, weekEndDate]);
+    
+    // Vardiya filtreleme
+    if (selectedShift !== 'all') {
+      sales = sales.filter(sale => sale.shift === selectedShift);
+    }
+    
+    return sales;
+  }, [adjustedFuelSales, selectedDate, weekStartDate, weekEndDate, selectedShift]);
 
   // Aylık satışlar
   const monthlySales = useMemo(() => {
@@ -197,11 +210,18 @@ export const FuelSalesManagement = () => {
     const monthStart = startOfMonth(selectedDate);
     const monthEnd = endOfMonth(selectedDate);
     
-    return adjustedFuelSales.filter(sale => {
+    let sales = adjustedFuelSales.filter(sale => {
       const saleDate = new Date(sale.sale_time);
       return isWithinInterval(saleDate, { start: monthStart, end: monthEnd });
     });
-  }, [adjustedFuelSales, selectedDate]);
+    
+    // Vardiya filtreleme
+    if (selectedShift !== 'all') {
+      sales = sales.filter(sale => sale.shift === selectedShift);
+    }
+    
+    return sales;
+  }, [adjustedFuelSales, selectedDate, selectedShift]);
 
   const getSalesData = () => {
     switch (activeTab) {
@@ -230,9 +250,6 @@ export const FuelSalesManagement = () => {
     return stats;
   };
 
-  const currentSales = getSalesData();
-  const stats = getSalesStats(currentSales);
-
   const getPeriodText = () => {
     if (activeTab === 'weekly' && weekStartDate && weekEndDate) {
       return `${format(weekStartDate, 'dd MMM', { locale: tr })} - ${format(weekEndDate, 'dd MMM yyyy', { locale: tr })}`;
@@ -246,6 +263,9 @@ export const FuelSalesManagement = () => {
       default: return '';
     }
   };
+
+  const currentSales = getSalesData();
+  const stats = getSalesStats(currentSales);
 
   if (loading) {
     return <div className="text-center py-8">Yükleniyor...</div>;
@@ -375,7 +395,7 @@ export const FuelSalesManagement = () => {
         </Dialog>
       </div>
 
-      {/* Tabs and Date Selector */}
+      {/* Tabs and Date/Shift Selector */}
       <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
@@ -386,6 +406,24 @@ export const FuelSalesManagement = () => {
         </Tabs>
 
         <div className="flex items-center gap-4">
+          {/* Vardiya Filtresi */}
+          <div className="flex items-center gap-2">
+            <Label className="text-sm">Vardiya:</Label>
+            <Select value={selectedShift} onValueChange={setSelectedShift}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Vardiya" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tümü</SelectItem>
+                {shiftOptions.map(shift => (
+                  <SelectItem key={shift.value} value={shift.value}>
+                    {shift.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {activeTab === 'weekly' && (
             <>
               <div className="flex items-center gap-2">
@@ -539,6 +577,7 @@ export const FuelSalesManagement = () => {
             {activeTab === 'daily' && 'Günlük'}
             {activeTab === 'weekly' && 'Haftalık'}
             {activeTab === 'monthly' && 'Aylık'} yakıt satış detayları
+            {selectedShift !== 'all' && ` - ${shiftOptions.find(s => s.value === selectedShift)?.label}`}
           </CardDescription>
         </CardHeader>
         <CardContent>
