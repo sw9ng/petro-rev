@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,12 +13,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { formatCurrency } from '@/lib/numberUtils';
 import { toast } from 'sonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const CashRegister = () => {
   const { companies, loading, addCompany, error } = useCompanies();
   const { getTotalOutstandingDebt } = useCustomerTransactions();
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'accounts'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'income' | 'expense' | 'accounts'>('income');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newCompanyData, setNewCompanyData] = useState({
     name: '',
@@ -85,27 +87,7 @@ const CashRegister = () => {
             </Button>
             <h2 className="text-2xl font-bold">{company?.name} - Kasa Yönetimi</h2>
           </div>
-          
-          <div className="flex items-center gap-2">
-            <Button
-              variant={activeTab === 'dashboard' ? 'default' : 'outline'}
-              onClick={() => setActiveTab('dashboard')}
-              className="flex items-center gap-2"
-            >
-              <Building2 className="h-4 w-4" />
-              Kasa Paneli
-            </Button>
-            <Button
-              variant={activeTab === 'accounts' ? 'default' : 'outline'}
-              onClick={() => setActiveTab('accounts')}
-              className="flex items-center gap-2"
-            >
-              <Users className="h-4 w-4" />
-              Cari Listesi
-            </Button>
-          </div>
         </div>
-        
         
         {/* Tahsil Edilmemiş Gelirler Kutusu - Şirket seçildiğinde */}
         {totalOutstandingDebt > 0 && (
@@ -126,12 +108,26 @@ const CashRegister = () => {
             </CardContent>
           </Card>
         )}
-        
-        {activeTab === 'dashboard' ? (
-          <CompanyCashManagement companyId={selectedCompany} />
-        ) : (
-          <CompanyAccountsList companyId={selectedCompany} />
-        )}
+
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="income">Gelir Faturaları</TabsTrigger>
+            <TabsTrigger value="expense">Gider Faturaları</TabsTrigger>
+            <TabsTrigger value="accounts">Cari Listesi</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="income" className="space-y-4">
+            <CompanyCashManagement companyId={selectedCompany} type="income" />
+          </TabsContent>
+
+          <TabsContent value="expense" className="space-y-4">
+            <CompanyCashManagement companyId={selectedCompany} type="expense" />
+          </TabsContent>
+
+          <TabsContent value="accounts" className="space-y-4">
+            <CompanyAccountsList companyId={selectedCompany} />
+          </TabsContent>
+        </Tabs>
       </div>
     );
   }
@@ -144,7 +140,6 @@ const CashRegister = () => {
         </h2>
         <p className="text-gray-600 mt-2">Şirketlerinizin gelir ve gider faturalarını takip edin</p>
       </div>
-
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {companies.map(company => (
