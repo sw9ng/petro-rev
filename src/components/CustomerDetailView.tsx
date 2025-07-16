@@ -56,7 +56,7 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
 
   // Calculate filtered balance
   const filteredBalance = filteredTransactions.reduce((acc, transaction) => {
-    if (transaction.transaction_type === 'credit') {
+    if (transaction.transaction_type === 'debt') {
       return acc + transaction.amount;
     } else {
       return acc - transaction.amount;

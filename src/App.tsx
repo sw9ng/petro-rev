@@ -13,7 +13,7 @@ import { toast } from "sonner";
 
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
-import Landing from "./pages/Landing";
+import { Landing } from "./pages/Landing";
 import CustomerDetail from "./pages/CustomerDetail";
 import CashRegister from "./pages/CashRegister";
 import Accounting from "./pages/Accounting";

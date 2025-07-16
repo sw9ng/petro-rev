@@ -51,7 +51,7 @@ const Accounting = () => {
 
     switch (activeTab) {
       case "overview":
-        return <DashboardOverview companyId={selectedCompany} />;
+        return <DashboardOverview />;
       case "chart-of-accounts":
         return <ChartOfAccountsManagement companyId={selectedCompany} />;
       case "company-accounts":
@@ -63,7 +63,7 @@ const Accounting = () => {
       case "cash":
         return <CompanyCashManagement companyId={selectedCompany} />;
       default:
-        return <DashboardOverview companyId={selectedCompany} />;
+        return <DashboardOverview />;
     }
   };
 

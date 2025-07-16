@@ -83,7 +83,8 @@ export const SettingsDialog = () => {
   };
 
   const toggleTheme = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
+    // Karanlık mod şu an desteklenmiyor
+    setTheme('light');
   };
 
   return (
@@ -110,7 +111,7 @@ export const SettingsDialog = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                {theme === 'dark' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+                <Sun className="h-5 w-5" />
                 Tema Ayarları
               </CardTitle>
               <CardDescription>
@@ -121,11 +122,12 @@ export const SettingsDialog = () => {
               <div className="flex items-center space-x-2">
                 <Switch
                   id="theme-mode"
-                  checked={theme === 'dark'}
+                  checked={false}
                   onCheckedChange={toggleTheme}
+                  disabled
                 />
                 <Label htmlFor="theme-mode">
-                  Karanlık Mod {theme === 'dark' ? 'Açık' : 'Kapalı'}
+                  Karanlık Mod (Yakında)
                 </Label>
               </div>
             </CardContent>
