@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,8 +33,22 @@ import CashRegister from "@/pages/CashRegister";
 import Accounting from "@/pages/Accounting";
 
 const Index = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, loading } = useAuth();
   const [activeTab, setActiveTab] = useState("dashboard");
+
+  // Show loading while auth is initializing
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <Fuel className="h-8 w-8 text-white" />
+          </div>
+          <p className="text-lg text-gray-600">Yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Admin kontrol - sadece belirli kullanıcı ID'si admin olabilir
   const isAdmin = user?.id === '3970497f-f994-4cdc-9e56-a319a84ac04b';
@@ -78,6 +93,14 @@ const Index = () => {
     );
   }
 
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       {/* Header */}
@@ -107,7 +130,7 @@ const Index = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={signOut}
+                onClick={handleLogout}
                 className="flex items-center space-x-1 sm:space-x-2 hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-xs sm:text-sm"
               >
                 <LogOut className="h-3 w-3 sm:h-4 sm:w-4" />
