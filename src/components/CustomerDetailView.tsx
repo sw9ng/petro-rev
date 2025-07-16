@@ -12,7 +12,7 @@ import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { formatCurrency } from '@/lib/numberUtils';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { tr } from 'date-fns/locale';
+
 import { cn } from '@/lib/utils';
 import { generateTahsilatMakbuzu, numberToWords } from '@/lib/pdfUtils';
 import * as XLSX from 'xlsx';
@@ -109,10 +109,10 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
     
     const pdf = generateTahsilatMakbuzu({
       makbuzNo: `MKB-${Date.now()}`,
-      tarih: format(new Date(), 'dd/MM/yyyy', { locale: tr }),
+      tarih: format(new Date(), 'dd/MM/yyyy'),
       musteriAdi: customer.name,
       odemeShekli: 'Genel Rapor',
-      aciklama: `${startDate ? format(startDate, 'dd/MM/yyyy', { locale: tr }) : 'Başlangıç'} - ${endDate ? format(endDate, 'dd/MM/yyyy', { locale: tr }) : 'Bitiş'} tarih aralığı`,
+      aciklama: `${startDate ? format(startDate, 'dd/MM/yyyy') : 'Başlangıç'} - ${endDate ? format(endDate, 'dd/MM/yyyy') : 'Bitiş'} tarih aralığı`,
       tutar: Math.abs(balanceToExport),
       tutarYazisi: numberToWords(Math.abs(balanceToExport)),
       tahsilEden: 'Sistem'
@@ -127,7 +127,7 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
     const transactionsToExport = startDate || endDate ? filteredTransactions : customerTransactions;
     
     const data = transactionsToExport.map(transaction => ({
-      'Tarih': format(new Date(transaction.transaction_date), 'dd/MM/yyyy HH:mm', { locale: tr }),
+      'Tarih': format(new Date(transaction.transaction_date), 'dd/MM/yyyy HH:mm'),
       'Personel': transaction.personnel?.name || 'Bilinmeyen',
       'İşlem Türü': transaction.transaction_type === 'payment' ? 'Ödeme' : 'Veresiye',
       'Tutar': `${transaction.transaction_type === 'payment' ? '+' : '-'}${formatCurrency(transaction.amount)}`,
@@ -213,7 +213,7 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
               <div className="flex items-center space-x-3">
                 <CalendarIcon className="h-4 w-4 text-gray-400" />
                 <span className="text-gray-900">
-                  Kayıt: {format(new Date(customer.created_at), 'dd MMMM yyyy', { locale: tr })}
+                  Kayıt: {format(new Date(customer.created_at), 'dd MMMM yyyy')}
                 </span>
               </div>
               {customer.notes && (
@@ -260,7 +260,7 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, "dd/MM/yyyy", { locale: tr }) : "Seç"}
+                    {startDate ? format(startDate, "dd/MM/yyyy") : "Seç"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -268,7 +268,7 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
                     mode="single"
                     selected={startDate}
                     onSelect={setStartDate}
-                    locale={tr}
+                    locale={undefined}
                     initialFocus
                   />
                 </PopoverContent>
@@ -287,7 +287,7 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {endDate ? format(endDate, "dd/MM/yyyy", { locale: tr }) : "Seç"}
+                    {endDate ? format(endDate, "dd/MM/yyyy") : "Seç"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -295,7 +295,7 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
                     mode="single"
                     selected={endDate}
                     onSelect={setEndDate}
-                    locale={tr}
+                    locale={undefined}
                     initialFocus
                   />
                 </PopoverContent>
@@ -332,7 +332,7 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
           </CardTitle>
           <CardDescription>
             {startDate || endDate 
-              ? `Filtrelenmiş işlemler (${startDate ? format(startDate, 'dd/MM/yyyy', { locale: tr }) : 'Başlangıç'} - ${endDate ? format(endDate, 'dd/MM/yyyy', { locale: tr }) : 'Bitiş'})`
+              ? `Filtrelenmiş işlemler (${startDate ? format(startDate, 'dd/MM/yyyy') : 'Başlangıç'} - ${endDate ? format(endDate, 'dd/MM/yyyy') : 'Bitiş'})`
               : 'Tüm işlem geçmişi'}
           </CardDescription>
         </CardHeader>
@@ -355,10 +355,10 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
                   {filteredTransactions.map((transaction) => (
                     <TableRow key={transaction.id}>
                       <TableCell className="text-sm">
-                        {format(new Date(transaction.transaction_date), 'dd/MM/yyyy', { locale: tr })}
+                        {format(new Date(transaction.transaction_date), 'dd/MM/yyyy')}
                         <br />
                         <span className="text-xs text-gray-500">
-                          {format(new Date(transaction.transaction_date), 'HH:mm', { locale: tr })}
+                          {format(new Date(transaction.transaction_date), 'HH:mm')}
                         </span>
                       </TableCell>
                       <TableCell>{transaction.personnel?.name || 'Bilinmeyen'}</TableCell>
