@@ -8,7 +8,7 @@ import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { SettingsDialog } from "@/components/SettingsDialog";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 import Index from "./pages/Index";
@@ -23,18 +23,20 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => {
+  const { signOut, user, loading } = useAuth();
+
   const handleLogout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        toast.error('Çıkış yapılırken hata oluştu: ' + error.message);
-      } else {
-        toast.success('Başarıyla çıkış yapıldı');
-      }
+      await signOut();
+      toast.success('Başarıyla çıkış yapıldı');
     } catch (error) {
       toast.error('Çıkış yapılırken hata oluştu');
     }
   };
+
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">Yükleniyor...</div>;
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -44,26 +46,28 @@ const App = () => {
           <Sonner />
           <BrowserRouter>
             <div className="min-h-screen bg-background">
-              {/* Header with logout and settings */}
-              <header className="border-b bg-card">
-                <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-                  <h1 className="text-lg font-semibold text-foreground">
-                    Akaryakıt İstasyonu Yönetim Sistemi
-                  </h1>
-                  <div className="flex items-center gap-2">
-                    <SettingsDialog />
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleLogout}
-                      className="flex items-center gap-2"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      Çıkış
-                    </Button>
+              {/* Header with logout and settings - only show if user is authenticated */}
+              {user && (
+                <header className="border-b bg-card">
+                  <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+                    <h1 className="text-lg font-semibold text-foreground">
+                      Akaryakıt İstasyonu Yönetim Sistemi
+                    </h1>
+                    <div className="flex items-center gap-2">
+                      <SettingsDialog />
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleLogout}
+                        className="flex items-center gap-2"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Çıkış
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </header>
+                </header>
+              )}
 
               <Routes>
                 <Route path="/auth" element={<Auth />} />
