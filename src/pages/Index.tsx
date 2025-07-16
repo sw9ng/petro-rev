@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,6 +20,7 @@ import {
   Calculator
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import { FuelStationDashboard } from "@/components/FuelStationDashboard";
 import { PersonnelManagement } from "@/components/PersonnelManagement";
 import { ShiftManagement } from "@/components/ShiftManagement";
@@ -35,6 +36,7 @@ import Accounting from "@/pages/Accounting";
 const Index = () => {
   const { user, signOut, loading } = useAuth();
   const [activeTab, setActiveTab] = useState("dashboard");
+  const navigate = useNavigate();
 
   // Show loading while auth is initializing
   if (loading) {
@@ -52,6 +54,13 @@ const Index = () => {
 
   // Admin kontrol - sadece belirli kullanıcı ID'si admin olabilir
   const isAdmin = user?.id === '3970497f-f994-4cdc-9e56-a319a84ac04b';
+
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth');
+    }
+  }, [user, loading, navigate]);
 
   if (!user) {
     return (
@@ -74,7 +83,7 @@ const Index = () => {
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <Button 
-              onClick={() => window.location.href = '/auth'}
+              onClick={() => navigate('/auth')}
               className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-base sm:text-lg py-3 sm:py-6"
             >
               <Star className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
@@ -82,7 +91,7 @@ const Index = () => {
             </Button>
             <Button 
               variant="outline" 
-              onClick={() => window.location.href = '/landing'}
+              onClick={() => navigate('/landing')}
               className="w-full border-gray-300 hover:bg-gray-50"
             >
               Ürün Bilgisi
