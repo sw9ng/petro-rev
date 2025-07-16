@@ -55,13 +55,7 @@ const Index = () => {
   // Admin kontrol - sadece belirli kullanıcı ID'si admin olabilir
   const isAdmin = user?.id === '3970497f-f994-4cdc-9e56-a319a84ac04b';
 
-  // Redirect to auth if not logged in
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate('/auth');
-    }
-  }, [user, loading, navigate]);
-
+  // If not authenticated, show login prompt (don't redirect automatically)
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
