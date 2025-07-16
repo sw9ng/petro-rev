@@ -8,6 +8,7 @@ import { CompanyAccountsList } from "@/components/CompanyAccountsList";
 import { CompanyCashManagement } from "@/components/CompanyCashManagement";
 import { UyumsoftIntegration } from "@/components/UyumsoftIntegration";
 import { InvoiceManagement } from "@/components/InvoiceManagement";
+import { CustomerDetailView } from "@/components/CustomerDetailView";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,11 +16,25 @@ import { useCompanies } from "@/hooks/useCompanies";
 
 const Accounting = () => {
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<
     "overview" | "chart-of-accounts" | "company-accounts" | "invoices" | "uyumsoft" | "cash"
   >("overview");
   
   const { companies, isLoading: companiesLoading } = useCompanies();
+
+  const handleCustomerSelect = (customerId: string) => {
+    setSelectedCustomerId(customerId);
+  };
+
+  const handleBackFromCustomer = () => {
+    setSelectedCustomerId(null);
+  };
+
+  // If customer is selected, show customer detail
+  if (selectedCustomerId) {
+    return <CustomerDetailView customerId={selectedCustomerId} onBack={handleBackFromCustomer} />;
+  }
 
   const renderContent = () => {
     if (!selectedCompany) {
@@ -40,9 +55,9 @@ const Accounting = () => {
       case "chart-of-accounts":
         return <ChartOfAccountsManagement companyId={selectedCompany} />;
       case "company-accounts":
-        return <CompanyAccountsList companyId={selectedCompany} />;
+        return <CompanyAccountsList companyId={selectedCompany} onCustomerSelect={handleCustomerSelect} />;
       case "invoices":
-        return <InvoiceManagement />;
+        return <InvoiceManagement companyId={selectedCompany} />;
       case "uyumsoft":
         return <UyumsoftIntegration companyId={selectedCompany} />;
       case "cash":
