@@ -7,12 +7,15 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Users, Search, Eye, Phone, MapPin, Edit } from 'lucide-react';
+import { Users, Search, Eye, Phone, MapPin, Edit, Download } from 'lucide-react';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { formatCurrency } from '@/lib/numberUtils';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { generateIslemGecmisiRaporu } from '@/lib/pdfUtils';
+import { format } from 'date-fns';
+import * as XLSX from 'xlsx';
 
 interface CustomerListViewProps {
   onCustomerSelect: (customerId: string) => void;
@@ -20,7 +23,7 @@ interface CustomerListViewProps {
 
 export const CustomerListView = ({ onCustomerSelect }: CustomerListViewProps) => {
   const { customers, loading: customersLoading, updateCustomer } = useCustomers();
-  const { getCustomerBalance, loading: transactionsLoading } = useCustomerTransactions();
+  const { getCustomerBalance, getCustomerTransactions, loading: transactionsLoading } = useCustomerTransactions();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [editingCustomer, setEditingCustomer] = useState<string | null>(null);
@@ -46,6 +49,15 @@ export const CustomerListView = ({ onCustomerSelect }: CustomerListViewProps) =>
     if (balance > 0) return `Borç: ${formatCurrency(balance)}`;
     if (balance < 0) return `Alacak: ${formatCurrency(Math.abs(balance))}`;
     return 'Bakiye: ₺0,00';
+  };
+
+  const getPaymentMethodText = (method: string) => {
+    switch (method) {
+      case 'nakit': return 'Nakit';
+      case 'kredi_karti': return 'Kredi Kartı';
+      case 'havale': return 'Havale';
+      default: return method;
+    }
   };
 
   const handleEditCustomer = (customer: any) => {
@@ -87,6 +99,72 @@ export const CustomerListView = ({ onCustomerSelect }: CustomerListViewProps) =>
       // Cash register page - use the callback to show detail inline
       onCustomerSelect(customerId);
     }
+  };
+
+  const exportCustomerTransactionsToPDF = (customerId: string) => {
+    const customer = customers.find(c => c.id === customerId);
+    if (!customer) return;
+
+    const customerTransactions = getCustomerTransactions(customerId);
+    const balance = getCustomerBalance(customerId);
+
+    // İşlemleri düzenle
+    const islemler = customerTransactions.map(transaction => ({
+      tarih: format(new Date(transaction.transaction_date), 'dd/MM/yyyy'),
+      saat: format(new Date(transaction.transaction_date), 'HH:mm'),
+      personel: transaction.personnel?.name || 'Bilinmeyen',
+      islemTuru: transaction.transaction_type === 'payment' ? 'Ödeme' : 'Veresiye',
+      tutar: transaction.amount,
+      odemeYontemi: transaction.payment_method ? getPaymentMethodText(transaction.payment_method) : undefined,
+      aciklama: transaction.description
+    }));
+
+    // Toplam hesaplamalar
+    const toplamBorc = customerTransactions
+      .filter(t => t.transaction_type === 'debt')
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    const toplamOdeme = customerTransactions
+      .filter(t => t.transaction_type === 'payment')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const data = {
+      musteriAdi: customer.name,
+      islemler,
+      toplamBorc,
+      toplamOdeme,
+      bakiye: balance
+    };
+
+    const pdf = generateIslemGecmisiRaporu(data);
+    pdf.save(`${customer.name}_islem_gecmisi.pdf`);
+    
+    toast.success("İşlem geçmişi raporu indirildi.");
+  };
+
+  const exportCustomerTransactionsToExcel = (customerId: string) => {
+    const customer = customers.find(c => c.id === customerId);
+    if (!customer) return;
+
+    const customerTransactions = getCustomerTransactions(customerId);
+    
+    const data = customerTransactions.map(transaction => ({
+      'Tarih': format(new Date(transaction.transaction_date), 'dd/MM/yyyy HH:mm'),
+      'Personel': transaction.personnel?.name || 'Bilinmeyen',
+      'İşlem Türü': transaction.transaction_type === 'payment' ? 'Ödeme' : 'Veresiye',
+      'Tutar': `${transaction.transaction_type === 'payment' ? '+' : '-'}${formatCurrency(transaction.amount)}`,
+      'Ödeme Yöntemi': transaction.payment_method ? getPaymentMethodText(transaction.payment_method) : '-',
+      'Açıklama': transaction.description || '-'
+    }));
+    
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'İşlemler');
+    
+    const fileName = `${customer.name}_islem_gecmisi.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+    
+    toast.success("İşlem geçmişi Excel dosyası indirildi.");
   };
 
   if (customersLoading || transactionsLoading) {
@@ -148,6 +226,28 @@ export const CustomerListView = ({ onCustomerSelect }: CustomerListViewProps) =>
                         >
                           {getBalanceText(balance)}
                         </Badge>
+                        
+                        <div className="flex items-center space-x-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => exportCustomerTransactionsToPDF(customer.id)}
+                            className="flex items-center space-x-1"
+                          >
+                            <Download className="h-4 w-4" />
+                            <span>PDF</span>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => exportCustomerTransactionsToExcel(customer.id)}
+                            className="flex items-center space-x-1"
+                          >
+                            <Download className="h-4 w-4" />
+                            <span>Excel</span>
+                          </Button>
+                        </div>
+                        
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button
