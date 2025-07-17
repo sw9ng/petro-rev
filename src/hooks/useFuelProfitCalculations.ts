@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 
 export interface SavedProfitCalculation {
   id: string;
@@ -30,8 +30,9 @@ export interface SavedProfitCalculation {
 
 export const useFuelProfitCalculations = () => {
   const [savedCalculations, setSavedCalculations] = useState<SavedProfitCalculation[]>([]);
+  const [currentPurchasePrices, setCurrentPurchasePrices] = useState<Record<string, number>>({});
 
-  // Load saved calculations from localStorage
+  // Load saved calculations and purchase prices from localStorage
   useEffect(() => {
     const saved = localStorage.getItem('savedFuelProfitCalculations');
     if (saved) {
@@ -40,6 +41,16 @@ export const useFuelProfitCalculations = () => {
       } catch (error) {
         console.error('Error loading saved calculations:', error);
         setSavedCalculations([]);
+      }
+    }
+
+    const savedPrices = localStorage.getItem('currentPurchasePrices');
+    if (savedPrices) {
+      try {
+        setCurrentPurchasePrices(JSON.parse(savedPrices));
+      } catch (error) {
+        console.error('Error loading saved purchase prices:', error);
+        setCurrentPurchasePrices({});
       }
     }
   }, []);
@@ -69,10 +80,29 @@ export const useFuelProfitCalculations = () => {
     localStorage.removeItem('savedFuelProfitCalculations');
   };
 
+  const updatePurchasePrice = (fuelType: string, price: number) => {
+    const updatedPrices = { ...currentPurchasePrices, [fuelType]: price };
+    setCurrentPurchasePrices(updatedPrices);
+    localStorage.setItem('currentPurchasePrices', JSON.stringify(updatedPrices));
+  };
+
+  const getPurchasePrice = (fuelType: string): number => {
+    return currentPurchasePrices[fuelType] || 0;
+  };
+
+  const clearPurchasePrices = () => {
+    setCurrentPurchasePrices({});
+    localStorage.removeItem('currentPurchasePrices');
+  };
+
   return {
     savedCalculations,
+    currentPurchasePrices,
     saveCalculation,
     deleteCalculation,
-    clearAllCalculations
+    clearAllCalculations,
+    updatePurchasePrice,
+    getPurchasePrice,
+    clearPurchasePrices
   };
 };

@@ -7,9 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Users, Plus } from 'lucide-react';
-import { useCustomers } from '@/hooks/useCustomers';
 import { useToast } from '@/hooks/use-toast';
 import { CustomerListView } from '@/components/CustomerListView';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CompanyAccountsListProps {
   companyId: string;
@@ -18,7 +18,8 @@ interface CompanyAccountsListProps {
 
 export const CompanyAccountsList = ({ companyId, onCustomerSelect }: CompanyAccountsListProps) => {
   const { toast } = useToast();
-  const { addCustomer, loading } = useCustomers();
+  const [loading, setLoading] = useState(false);
+  const [customers, setCustomers] = useState<any[]>([]);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [customerData, setCustomerData] = useState({
     name: '',
@@ -26,6 +27,23 @@ export const CompanyAccountsList = ({ companyId, onCustomerSelect }: CompanyAcco
     address: '',
     notes: ''
   });
+
+  // Fetch company accounts (different from station customers)
+  const fetchCompanyAccounts = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('company_accounts')
+      .select('*')
+      .eq('company_id', companyId)
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching company accounts:', error);
+    } else {
+      setCustomers(data || []);
+    }
+    setLoading(false);
+  };
 
   const resetForm = () => {
     setCustomerData({ name: '', phone: '', address: '', notes: '' });
@@ -43,9 +61,17 @@ export const CompanyAccountsList = ({ companyId, onCustomerSelect }: CompanyAcco
       return;
     }
 
-    const result = await addCustomer(customerData);
+    setLoading(true);
+    const { error } = await supabase
+      .from('company_accounts')
+      .insert([
+        {
+          ...customerData,
+          company_id: companyId
+        }
+      ]);
 
-    if (result.error) {
+    if (error) {
       toast({
         title: "Hata",
         description: "Müşteri kaydedilirken bir hata oluştu.",
@@ -59,7 +85,9 @@ export const CompanyAccountsList = ({ companyId, onCustomerSelect }: CompanyAcco
       
       resetForm();
       setShowAddDialog(false);
+      fetchCompanyAccounts();
     }
+    setLoading(false);
   };
 
   const handleCustomerSelect = (customerId: string) => {
@@ -68,6 +96,11 @@ export const CompanyAccountsList = ({ companyId, onCustomerSelect }: CompanyAcco
     }
   };
 
+  // Use effect to fetch company accounts when component mounts
+  React.useEffect(() => {
+    fetchCompanyAccounts();
+  }, [companyId]);
+
   if (loading) {
     return <div className="flex justify-center items-center h-64">Yükleniyor...</div>;
   }
@@ -75,8 +108,8 @@ export const CompanyAccountsList = ({ companyId, onCustomerSelect }: CompanyAcco
   return (
     <div className="space-y-6">
       <div className="flex flex-col space-y-2">
-        <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Müşteri Yönetimi</h2>
-        <p className="text-sm lg:text-base text-gray-600">Müşterilerinizi ekleyin, yönetin ve detaylarını görüntüleyin</p>
+        <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Şirket Cari Listesi</h2>
+        <p className="text-sm lg:text-base text-gray-600">Bu şirkete ait müşterileri ekleyin, yönetin ve detaylarını görüntüleyin</p>
       </div>
 
       <div className="flex justify-end">
@@ -136,7 +169,7 @@ export const CompanyAccountsList = ({ companyId, onCustomerSelect }: CompanyAcco
                 <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)}>
                   İptal
                 </Button>
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={loading}>
                   Ekle
                 </Button>
               </div>
@@ -145,8 +178,68 @@ export const CompanyAccountsList = ({ companyId, onCustomerSelect }: CompanyAcco
         </Dialog>
       </div>
 
-      {/* Customer List with Detail and Edit Functionality */}
-      <CustomerListView onCustomerSelect={handleCustomerSelect} />
+      {/* Company Accounts List */}
+      <Card className="shadow-sm border">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Users className="h-5 w-5 text-blue-500" />
+            <span>Şirket Cari Listesi</span>
+          </CardTitle>
+          <CardDescription>Bu şirkete ait müşterileri görüntüleyin</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {customers.length > 0 ? (
+            <div className="space-y-2">
+              {customers.map((customer) => (
+                <div
+                  key={customer.id}
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900">{customer.name}</h3>
+                        <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
+                          {customer.phone && (
+                            <div className="flex items-center space-x-1">
+                              <span>{customer.phone}</span>
+                            </div>
+                          )}
+                          {customer.address && (
+                            <div className="flex items-center space-x-1">
+                              <span className="truncate max-w-48">{customer.address}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCustomerSelect(customer.id)}
+                          className="flex items-center space-x-1"
+                        >
+                          <span>Detay</span>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Henüz müşteri yok
+              </h3>
+              <p className="text-gray-600">
+                İlk müşteriyi ekleyin
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

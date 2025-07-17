@@ -108,9 +108,6 @@ export const CustomerListView = ({ onCustomerSelect }: CustomerListViewProps) =>
     const customerTransactions = getCustomerTransactions(customerId);
     const balance = getCustomerBalance(customerId);
 
-    console.log('Customer transactions:', customerTransactions);
-    console.log('Customer balance:', balance);
-
     // İşlemleri düzenle
     const islemler = customerTransactions.map(transaction => ({
       tarih: format(new Date(transaction.transaction_date), 'dd/MM/yyyy'),
@@ -138,8 +135,6 @@ export const CustomerListView = ({ onCustomerSelect }: CustomerListViewProps) =>
       toplamOdeme,
       bakiye: balance
     };
-
-    console.log('PDF data:', data);
     
     const pdf = generateIslemGecmisiRaporu(data);
     pdf.save(`${customer.name}_islem_gecmisi.pdf`);

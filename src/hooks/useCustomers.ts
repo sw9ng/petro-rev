@@ -11,6 +11,7 @@ export interface Customer {
   notes?: string;
   created_at: string;
   updated_at: string;
+  station_id?: string;
 }
 
 export const useCustomers = () => {

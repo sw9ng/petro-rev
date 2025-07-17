@@ -6,7 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ArrowLeft, CreditCard, User, Phone, MapPin, Calendar as CalendarIcon, FileText, Trash2, Download, CalendarCheck } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ArrowLeft, CreditCard, User, Phone, MapPin, Calendar as CalendarIcon, FileText, Trash2, Download, CalendarCheck, Filter } from 'lucide-react';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { formatCurrency } from '@/lib/numberUtils';
@@ -14,7 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
 import { cn } from '@/lib/utils';
-import { generateTahsilatMakbuzu, numberToWords } from '@/lib/pdfUtils';
+import { generateIslemGecmisiRaporu, numberToWords } from '@/lib/pdfUtils';
 import * as XLSX from 'xlsx';
 
 interface CustomerDetailViewProps {
@@ -28,6 +31,9 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
   const { toast } = useToast();
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const [amountFilter, setAmountFilter] = useState<string>('');
+  const [transactionTypeFilter, setTransactionTypeFilter] = useState<string>('all');
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('all');
   
   console.log('CustomerDetailView - customerId:', customerId);
   console.log('CustomerDetailView - customers:', customers);
@@ -39,15 +45,31 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
   const customerTransactions = getCustomerTransactions(customerId);
   const balance = getCustomerBalance(customerId);
 
-  // Filter transactions based on selected date range
+  // Filter transactions based on selected filters
   const filteredTransactions = customerTransactions.filter(transaction => {
     const transactionDate = new Date(transaction.transaction_date);
     
+    // Date range filter
     if (startDate && transactionDate < startDate) {
       return false;
     }
     
     if (endDate && transactionDate > endDate) {
+      return false;
+    }
+    
+    // Amount filter
+    if (amountFilter && !transaction.amount.toString().includes(amountFilter)) {
+      return false;
+    }
+    
+    // Transaction type filter
+    if (transactionTypeFilter !== 'all' && transaction.transaction_type !== transactionTypeFilter) {
+      return false;
+    }
+    
+    // Payment method filter
+    if (paymentMethodFilter !== 'all' && transaction.payment_method !== paymentMethodFilter) {
       return false;
     }
     
@@ -104,27 +126,46 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
   const exportToPDF = () => {
     if (!customer) return;
     
-    const balanceToExport = startDate || endDate ? filteredBalance : balance;
-    const transactionsToExport = startDate || endDate ? filteredTransactions : customerTransactions;
+    const transactionsToExport = filteredTransactions;
     
-    const pdf = generateTahsilatMakbuzu({
-      makbuzNo: `MKB-${Date.now()}`,
-      tarih: format(new Date(), 'dd/MM/yyyy'),
+    // İşlemleri düzenle
+    const islemler = transactionsToExport.map(transaction => ({
+      tarih: format(new Date(transaction.transaction_date), 'dd/MM/yyyy'),
+      saat: format(new Date(transaction.transaction_date), 'HH:mm'),
+      personel: transaction.personnel?.name || 'Bilinmeyen',
+      islemTuru: transaction.transaction_type === 'payment' ? 'Ödeme' : 'Veresiye',
+      tutar: transaction.amount,
+      odemeYontemi: transaction.payment_method ? getPaymentMethodText(transaction.payment_method) : undefined,
+      aciklama: transaction.description || ''
+    }));
+
+    // Toplam hesaplamalar
+    const toplamBorc = transactionsToExport
+      .filter(t => t.transaction_type === 'debt')
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    const toplamOdeme = transactionsToExport
+      .filter(t => t.transaction_type === 'payment')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const data = {
       musteriAdi: customer.name,
-      odemeShekli: 'Genel Rapor',
-      aciklama: `${startDate ? format(startDate, 'dd/MM/yyyy') : 'Başlangıç'} - ${endDate ? format(endDate, 'dd/MM/yyyy') : 'Bitiş'} tarih aralığı`,
-      tutar: Math.abs(balanceToExport),
-      tutarYazisi: numberToWords(Math.abs(balanceToExport)),
-      tahsilEden: 'Sistem'
-    });
-    
+      baslangicTarihi: startDate ? format(startDate, 'dd/MM/yyyy') : undefined,
+      bitisTarihi: endDate ? format(endDate, 'dd/MM/yyyy') : undefined,
+      islemler,
+      toplamBorc,
+      toplamOdeme,
+      bakiye: filteredBalance
+    };
+
+    const pdf = generateIslemGecmisiRaporu(data);
     pdf.save(`${customer.name}_${startDate ? format(startDate, 'ddMMyyyy') : 'baslangic'}_${endDate ? format(endDate, 'ddMMyyyy') : 'bitis'}.pdf`);
   };
 
   const exportToExcel = () => {
     if (!customer) return;
     
-    const transactionsToExport = startDate || endDate ? filteredTransactions : customerTransactions;
+    const transactionsToExport = filteredTransactions;
     
     const data = transactionsToExport.map(transaction => ({
       'Tarih': format(new Date(transaction.transaction_date), 'dd/MM/yyyy HH:mm'),
@@ -143,9 +184,12 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
     XLSX.writeFile(workbook, fileName);
   };
 
-  const clearDateFilter = () => {
+  const clearAllFilters = () => {
     setStartDate(undefined);
     setEndDate(undefined);
+    setAmountFilter('');
+    setTransactionTypeFilter('all');
+    setPaymentMethodFilter('all');
   };
 
   if (customersLoading || transactionsLoading) {
@@ -225,89 +269,129 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
             </div>
             <div className="flex flex-col items-center justify-center p-6 bg-gray-50 rounded-lg">
               <h3 className="text-lg font-medium text-gray-600 mb-2">
-                {startDate || endDate ? 'Seçilen Dönem Bakiyesi' : 'Güncel Bakiye'}
+                Filtrelenmiş Bakiye
               </h3>
-              <p className={`text-3xl font-bold ${getBalanceColor(startDate || endDate ? filteredBalance : balance)}`}>
-                {getBalanceText(startDate || endDate ? filteredBalance : balance)}
+              <p className={`text-3xl font-bold ${getBalanceColor(filteredBalance)}`}>
+                {getBalanceText(filteredBalance)}
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                Toplam: {getBalanceText(balance)}
               </p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Date Filter and Export */}
+      {/* Filters */}
       <Card className="shadow-sm border">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <CalendarCheck className="h-5 w-5 text-blue-500" />
-            <span>Tarih Filtresi ve İndir</span>
+            <Filter className="h-5 w-5 text-blue-500" />
+            <span>Filtreler</span>
           </CardTitle>
           <CardDescription>
-            Belirli bir tarih aralığındaki işlemleri filtreleyin ve raporları indirin
+            İşlemleri filtreleyin ve raporları indirin
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap items-center gap-4 mb-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Başlangıç:</span>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-[140px] justify-start text-left font-normal",
-                      !startDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, "dd/MM/yyyy") : "Seç"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={startDate}
-                    onSelect={setStartDate}
-                    locale={undefined}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+            {/* Date Range */}
+            <div className="space-y-2">
+              <Label>Tarih Aralığı</Label>
+              <div className="flex items-center gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !startDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {startDate ? format(startDate, "dd/MM/yyyy") : "Başlangıç"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={startDate}
+                      onSelect={setStartDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !endDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {endDate ? format(endDate, "dd/MM/yyyy") : "Bitiş"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={endDate}
+                      onSelect={setEndDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
-            
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Bitiş:</span>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-[140px] justify-start text-left font-normal",
-                      !endDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {endDate ? format(endDate, "dd/MM/yyyy") : "Seç"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={endDate}
-                    onSelect={setEndDate}
-                    locale={undefined}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+
+            {/* Amount Filter */}
+            <div className="space-y-2">
+              <Label>Tutar Filtresi</Label>
+              <Input
+                placeholder="Tutar ara..."
+                value={amountFilter}
+                onChange={(e) => setAmountFilter(e.target.value)}
+              />
             </div>
-            
-            <Button variant="outline" onClick={clearDateFilter} size="sm">
-              Filtreyi Temizle
-            </Button>
+
+            {/* Transaction Type Filter */}
+            <div className="space-y-2">
+              <Label>İşlem Türü</Label>
+              <Select value={transactionTypeFilter} onValueChange={setTransactionTypeFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Tümü" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tümü</SelectItem>
+                  <SelectItem value="debt">Veresiye</SelectItem>
+                  <SelectItem value="payment">Ödeme</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Payment Method Filter */}
+            <div className="space-y-2">
+              <Label>Ödeme Yöntemi</Label>
+              <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Tümü" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tümü</SelectItem>
+                  <SelectItem value="nakit">Nakit</SelectItem>
+                  <SelectItem value="kredi_karti">Kredi Kartı</SelectItem>
+                  <SelectItem value="havale">Havale</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={clearAllFilters} variant="outline" size="sm">
+              Tüm Filtreleri Temizle
+            </Button>
             <Button onClick={exportToPDF} variant="outline" className="flex items-center gap-2">
               <Download className="h-4 w-4" />
               PDF İndir
@@ -331,9 +415,7 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
             </Badge>
           </CardTitle>
           <CardDescription>
-            {startDate || endDate 
-              ? `Filtrelenmiş işlemler (${startDate ? format(startDate, 'dd/MM/yyyy') : 'Başlangıç'} - ${endDate ? format(endDate, 'dd/MM/yyyy') : 'Bitiş'})`
-              : 'Tüm işlem geçmişi'}
+            Filtrelenmiş işlemler
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -415,12 +497,10 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
             <div className="text-center py-8">
               <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {startDate || endDate ? 'Seçilen tarih aralığında işlem yok' : 'Henüz işlem yok'}
+                Filtrelere uygun işlem bulunamadı
               </h3>
               <p className="text-gray-600">
-                {startDate || endDate 
-                  ? 'Farklı bir tarih aralığı seçmeyi deneyin.'
-                  : 'Bu müşterinin henüz hiçbir işlemi bulunmuyor.'}
+                Farklı filtreler deneyebilir veya filtreleri temizleyebilirsiniz.
               </p>
             </div>
           )}
