@@ -8,8 +8,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, Receipt, CreditCard, FileText, Calendar, Banknote } from 'lucide-react';
+import { PlusCircle, Receipt, CreditCard, FileText, Calendar, Banknote, User } from 'lucide-react';
 import { useInvoices } from '@/hooks/useInvoices';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/numberUtils';
 import { toast } from 'sonner';
 
@@ -27,12 +29,33 @@ export const CompanyCashManagement = ({ companyId, type = 'income' }: CompanyCas
     invoice_date: new Date().toISOString().split('T')[0],
     payment_status: 'unpaid' as 'unpaid' | 'paid',
     tax_number: '',
-    company_title: ''
+    company_title: '',
+    account_id: ''
+  });
+
+  // Company accounts'u getir
+  const { data: companyAccounts = [] } = useQuery({
+    queryKey: ['company-accounts', companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('company_accounts')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('name', { ascending: true });
+      
+      if (error) throw error;
+      return data;
+    },
   });
 
   const handleCreateInvoice = async () => {
     if (!newInvoice.description || !newInvoice.amount) {
       toast.error('Açıklama ve tutar zorunludur');
+      return;
+    }
+
+    if (!newInvoice.account_id) {
+      toast.error('Cari seçimi zorunludur');
       return;
     }
 
@@ -44,6 +67,7 @@ export const CompanyCashManagement = ({ companyId, type = 'income' }: CompanyCas
         payment_status: newInvoice.payment_status,
         tax_number: newInvoice.tax_number || undefined,
         company_title: newInvoice.company_title || undefined,
+        account_id: newInvoice.account_id,
       });
       
       setNewInvoice({
@@ -52,7 +76,8 @@ export const CompanyCashManagement = ({ companyId, type = 'income' }: CompanyCas
         invoice_date: new Date().toISOString().split('T')[0],
         payment_status: 'unpaid',
         tax_number: '',
-        company_title: ''
+        company_title: '',
+        account_id: ''
       });
       setIsDialogOpen(false);
       toast.success(`${type === 'income' ? 'Gelir' : 'Gider'} faturası oluşturuldu`);
@@ -144,6 +169,27 @@ export const CompanyCashManagement = ({ companyId, type = 'income' }: CompanyCas
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="account_id">Cari Seçimi *</Label>
+                <Select
+                  value={newInvoice.account_id}
+                  onValueChange={(value) => setNewInvoice({...newInvoice, account_id: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Cari seçin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companyAccounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4" />
+                          {account.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="description">Açıklama</Label>
                 <Textarea
@@ -253,6 +299,12 @@ export const CompanyCashManagement = ({ companyId, type = 'income' }: CompanyCas
                         <Calendar className="h-3 w-3" />
                         {new Date(invoice.invoice_date).toLocaleDateString('tr-TR')}
                       </div>
+                      {invoice.company_accounts?.name && (
+                        <div className="flex items-center gap-1">
+                          <User className="h-3 w-3" />
+                          {invoice.company_accounts.name}
+                        </div>
+                      )}
                       {invoice.tax_number && (
                         <div>Vergi No: {invoice.tax_number}</div>
                       )}
