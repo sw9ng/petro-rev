@@ -16,6 +16,7 @@ import { CompanyAccountDetailView } from './CompanyAccountDetailView';
 
 interface CompanyAccountsListProps {
   companyId: string;
+  onCustomerSelect?: (customerId: string) => void;
 }
 
 export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => {

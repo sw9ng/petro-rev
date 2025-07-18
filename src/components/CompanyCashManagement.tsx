@@ -27,6 +27,7 @@ export const CompanyCashManagement = ({ companyId, type = 'income' }: CompanyCas
     description: '',
     amount: '',
     invoice_date: new Date().toISOString().split('T')[0],
+    invoice_time: new Date().toTimeString().split(' ')[0].slice(0, 5),
     payment_status: 'unpaid' as 'unpaid' | 'paid',
     tax_number: '',
     company_title: '',
@@ -74,6 +75,7 @@ export const CompanyCashManagement = ({ companyId, type = 'income' }: CompanyCas
         description: '',
         amount: '',
         invoice_date: new Date().toISOString().split('T')[0],
+        invoice_time: new Date().toTimeString().split(' ')[0].slice(0, 5),
         payment_status: 'unpaid',
         tax_number: '',
         company_title: '',
@@ -199,18 +201,18 @@ export const CompanyCashManagement = ({ companyId, type = 'income' }: CompanyCas
                   placeholder="Fatura açıklaması"
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="amount">Tutar (₺)</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  step="0.01"
+                  value={newInvoice.amount}
+                  onChange={(e) => setNewInvoice({...newInvoice, amount: e.target.value})}
+                  placeholder="0,00"
+                />
+              </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="amount">Tutar (₺)</Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    step="0.01"
-                    value={newInvoice.amount}
-                    onChange={(e) => setNewInvoice({...newInvoice, amount: e.target.value})}
-                    placeholder="0,00"
-                  />
-                </div>
                 <div className="space-y-2">
                   <Label htmlFor="invoice_date">Fatura Tarihi</Label>
                   <Input
@@ -218,6 +220,15 @@ export const CompanyCashManagement = ({ companyId, type = 'income' }: CompanyCas
                     type="date"
                     value={newInvoice.invoice_date}
                     onChange={(e) => setNewInvoice({...newInvoice, invoice_date: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="invoice_time">Saat</Label>
+                  <Input
+                    id="invoice_time"
+                    type="time"
+                    value={newInvoice.invoice_time}
+                    onChange={(e) => setNewInvoice({...newInvoice, invoice_time: e.target.value})}
                   />
                 </div>
               </div>
@@ -298,6 +309,14 @@ export const CompanyCashManagement = ({ companyId, type = 'income' }: CompanyCas
                       <div className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         {new Date(invoice.invoice_date).toLocaleDateString('tr-TR')}
+                        {invoice.created_at && (
+                          <span className="ml-1">
+                            {new Date(invoice.created_at).toLocaleTimeString('tr-TR', { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </span>
+                        )}
                       </div>
                       {invoice.company_accounts?.name && (
                         <div className="flex items-center gap-1">

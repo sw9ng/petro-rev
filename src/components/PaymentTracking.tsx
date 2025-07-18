@@ -36,6 +36,8 @@ export const PaymentTracking = () => {
   const [amount, setAmount] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('');
   const [description, setDescription] = useState<string>('');
+  const [transactionDate, setTransactionDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [transactionTime, setTransactionTime] = useState<string>(new Date().toTimeString().split(' ')[0].slice(0, 5));
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [sortBy, setSortBy] = useState<string>('name');
@@ -111,7 +113,7 @@ export const PaymentTracking = () => {
       amount: parseFloat(amount),
       payment_method: paymentMethod,
       description: description,
-      transaction_date: new Date().toISOString()
+      transaction_date: new Date(`${transactionDate}T${transactionTime}:00`).toISOString()
     });
 
     if (result.error) {
@@ -123,6 +125,8 @@ export const PaymentTracking = () => {
       setAmount('');
       setPaymentMethod('');
       setDescription('');
+      setTransactionDate(new Date().toISOString().split('T')[0]);
+      setTransactionTime(new Date().toTimeString().split(' ')[0].slice(0, 5));
     }
   };
 
@@ -137,7 +141,7 @@ export const PaymentTracking = () => {
       personnel_id: selectedPersonnel,
       amount: parseFloat(amount),
       description: description,
-      transaction_date: new Date().toISOString()
+      transaction_date: new Date(`${transactionDate}T${transactionTime}:00`).toISOString()
     });
 
     if (result.error) {
@@ -148,6 +152,8 @@ export const PaymentTracking = () => {
       setSelectedPersonnel('');
       setAmount('');
       setDescription('');
+      setTransactionDate(new Date().toISOString().split('T')[0]);
+      setTransactionTime(new Date().toTimeString().split(' ')[0].slice(0, 5));
     }
   };
 
@@ -440,6 +446,24 @@ export const PaymentTracking = () => {
                     />
                   </div>
 
+                  <div className="space-y-2">
+                    <Label>Tarih</Label>
+                    <Input
+                      type="date"
+                      value={transactionDate}
+                      onChange={(e) => setTransactionDate(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Saat</Label>
+                    <Input
+                      type="time"
+                      value={transactionTime}
+                      onChange={(e) => setTransactionTime(e.target.value)}
+                    />
+                  </div>
+
                   <div className="space-y-2 md:col-span-2">
                     <Label>Açıklama</Label>
                     <Input
@@ -509,6 +533,24 @@ export const PaymentTracking = () => {
                     />
                   </div>
 
+                  <div className="space-y-2">
+                    <Label>Tarih</Label>
+                    <Input
+                      type="date"
+                      value={transactionDate}
+                      onChange={(e) => setTransactionDate(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Saat</Label>
+                    <Input
+                      type="time"
+                      value={transactionTime}
+                      onChange={(e) => setTransactionTime(e.target.value)}
+                    />
+                  </div>
+
                   <div className="space-y-2 md:col-span-2">
                     <Label>Açıklama</Label>
                     <Input
@@ -554,7 +596,15 @@ export const PaymentTracking = () => {
                     {paymentTransactions.map((transaction) => (
                       <TableRow key={transaction.id}>
                         <TableCell>
-                          {new Date(transaction.transaction_date).toLocaleDateString('tr-TR')}
+                          <div className="flex flex-col">
+                            <span>{new Date(transaction.transaction_date).toLocaleDateString('tr-TR')}</span>
+                            <span className="text-xs text-gray-500">
+                              {new Date(transaction.transaction_date).toLocaleTimeString('tr-TR', { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              })}
+                            </span>
+                          </div>
                         </TableCell>
                         <TableCell className="font-medium">
                           {transaction.customer.name}
@@ -651,7 +701,15 @@ export const PaymentTracking = () => {
                     {debtTransactions.map((transaction) => (
                       <TableRow key={transaction.id}>
                         <TableCell>
-                          {new Date(transaction.transaction_date).toLocaleDateString('tr-TR')}
+                          <div className="flex flex-col">
+                            <span>{new Date(transaction.transaction_date).toLocaleDateString('tr-TR')}</span>
+                            <span className="text-xs text-gray-500">
+                              {new Date(transaction.transaction_date).toLocaleTimeString('tr-TR', { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              })}
+                            </span>
+                          </div>
                         </TableCell>
                         <TableCell className="font-medium">
                           {transaction.customer.name}
