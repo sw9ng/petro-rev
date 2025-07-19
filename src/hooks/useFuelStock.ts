@@ -19,22 +19,28 @@ export const useFuelStock = () => {
 
   const fetchFuelStock = async () => {
     if (!user) {
+      console.log('No user found, clearing fuel stock');
       setFuelStock([]);
       setLoading(false);
       return;
     }
     
+    console.log('Fetching fuel stock for user:', user.id);
     setLoading(true);
+    
     const { data, error } = await supabase
       .from('fuel_stock')
       .select('*')
       .eq('station_id', user.id)
       .order('fuel_type');
 
+    console.log('Fuel stock fetch result:', { data, error });
+
     if (error) {
       console.error('Error fetching fuel stock:', error);
       setFuelStock([]);
     } else {
+      console.log('Setting fuel stock:', data || []);
       setFuelStock(data || []);
     }
     setLoading(false);
@@ -42,6 +48,8 @@ export const useFuelStock = () => {
 
   const updateStock = async (fuelType: string, newStock: number) => {
     if (!user) return { error: 'Kullanıcı doğrulanmadı' };
+
+    console.log('Updating stock:', { fuelType, newStock, userId: user.id });
 
     const { data, error } = await supabase
       .from('fuel_stock')
@@ -55,6 +63,8 @@ export const useFuelStock = () => {
       })
       .select('*')
       .single();
+
+    console.log('Update stock result:', { data, error });
 
     if (!error && data) {
       setFuelStock(prev => {
@@ -72,15 +82,20 @@ export const useFuelStock = () => {
 
   const getStockForFuelType = (fuelType: string): number => {
     const stock = fuelStock.find(s => s.fuel_type === fuelType);
-    return stock?.current_stock || 0;
+    const currentStock = stock?.current_stock || 0;
+    console.log(`Stock for ${fuelType}:`, currentStock);
+    return currentStock;
   };
 
   const checkStockAvailability = (fuelType: string, requestedLiters: number): boolean => {
     const currentStock = getStockForFuelType(fuelType);
-    return currentStock >= requestedLiters;
+    const isAvailable = currentStock >= requestedLiters;
+    console.log(`Stock check for ${fuelType}: ${currentStock} >= ${requestedLiters} = ${isAvailable}`);
+    return isAvailable;
   };
 
   useEffect(() => {
+    console.log('useEffect triggered for fetchFuelStock, user:', user?.id);
     fetchFuelStock();
   }, [user]);
 
@@ -88,6 +103,7 @@ export const useFuelStock = () => {
   useEffect(() => {
     if (!user) return;
 
+    console.log('Setting up realtime subscription for fuel stock');
     const channel = supabase
       .channel('fuel-stock-changes')
       .on(
@@ -98,13 +114,15 @@ export const useFuelStock = () => {
           table: 'fuel_stock',
           filter: `station_id=eq.${user.id}`
         },
-        () => {
+        (payload) => {
+          console.log('Real-time fuel stock change:', payload);
           fetchFuelStock(); // Refresh stock when changes occur
         }
       )
       .subscribe();
 
     return () => {
+      console.log('Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
   }, [user]);
