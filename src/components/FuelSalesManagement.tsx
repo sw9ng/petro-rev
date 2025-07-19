@@ -252,8 +252,8 @@ export const FuelSalesManagement = () => {
                       <SelectValue placeholder="Vardiya Seç" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="V1">V1 (06:00-18:00)</SelectItem>
-                      <SelectItem value="V2">V2 (18:00-06:00)</SelectItem>
+                      <SelectItem value="V1">V1</SelectItem>
+                      <SelectItem value="V2">V2</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -319,8 +319,8 @@ export const FuelSalesManagement = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tümü</SelectItem>
-                  <SelectItem value="V1">V1 (06:00-18:00)</SelectItem>
-                  <SelectItem value="V2">V2 (18:00-06:00)</SelectItem>
+                  <SelectItem value="V1">V1</SelectItem>
+                  <SelectItem value="V2">V2</SelectItem>
                 </SelectContent>
               </Select>
             </div>

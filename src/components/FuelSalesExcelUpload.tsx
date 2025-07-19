@@ -112,8 +112,13 @@ export const FuelSalesExcelUpload = () => {
             saleDate = new Date();
           }
 
-          // Determine shift based on time (V1: 06:00-18:00, V2: 18:00-06:00)
+          // Handle midnight transition - if time is between 00:00 and 05:59, move to next day
           const hour = saleDate.getHours();
+          if (hour >= 0 && hour < 6) {
+            saleDate.setDate(saleDate.getDate() + 1);
+          }
+
+          // Determine shift based on time (V1: 06:00-18:00, V2: 18:00-06:00)
           const shift = (hour >= 6 && hour < 18) ? 'V1' : 'V2';
 
           const fuelSaleData = {
