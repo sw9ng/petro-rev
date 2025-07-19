@@ -7,10 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 import { FuelSalesEditDialog } from '@/components/FuelSalesEditDialog';
 import { FuelSalesExcelUpload } from '@/components/FuelSalesExcelUpload';
+import { FuelStockDisplay } from '@/components/FuelStockDisplay';
 import { Fuel, Plus, Edit, Trash2, Calendar as CalendarIcon, TrendingUp, BarChart3 } from 'lucide-react';
 import { useFuelSales } from '@/hooks/useFuelSales';
+import { useFuelStock } from '@/hooks/useFuelStock';
 import { formatCurrency } from '@/lib/numberUtils';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -19,6 +22,7 @@ import { cn } from '@/lib/utils';
 
 export const FuelSalesManagement = () => {
   const { fuelSales, loading, addFuelSale, deleteFuelSale, updateFuelSale } = useFuelSales();
+  const { refreshFuelStock } = useFuelStock();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingSale, setEditingSale] = useState<any>(null);
   const [dateRange, setDateRange] = useState('today');
@@ -26,6 +30,8 @@ export const FuelSalesManagement = () => {
   const [customEndDate, setCustomEndDate] = useState<Date>();
   const [fuelTypeFilter, setFuelTypeFilter] = useState('all');
   const [shiftFilter, setShiftFilter] = useState('all');
+  const [selectedSales, setSelectedSales] = useState<string[]>([]);
+  const [selectAll, setSelectAll] = useState(false);
   const [fuelSaleData, setFuelSaleData] = useState({
     fuel_type: '',
     liters: '',
@@ -71,6 +77,7 @@ export const FuelSalesManagement = () => {
       toast.error("Yakıt satışı eklenirken bir hata oluştu.");
     } else {
       toast.success("Yakıt satışı başarıyla eklendi.");
+      refreshFuelStock();
       setShowAddDialog(false);
       setFuelSaleData({
         fuel_type: '',
@@ -92,6 +99,7 @@ export const FuelSalesManagement = () => {
       toast.error("Yakıt satışı güncellenirken bir hata oluştu.");
     } else {
       toast.success("Yakıt satışı başarıyla güncellendi.");
+      refreshFuelStock();
       setEditingSale(null);
     }
   };
@@ -106,10 +114,60 @@ export const FuelSalesManagement = () => {
       toast.error("Yakıt satışı silinirken bir hata oluştu.");
     } else {
       toast.success("Yakıt satışı başarıyla silindi.");
+      refreshFuelStock();
     }
   };
 
-  // Date filtering logic
+  const handleSelectSale = (saleId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedSales(prev => [...prev, saleId]);
+    } else {
+      setSelectedSales(prev => prev.filter(id => id !== saleId));
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    setSelectAll(checked);
+    if (checked) {
+      setSelectedSales(filteredSales.map(sale => sale.id));
+    } else {
+      setSelectedSales([]);
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedSales.length === 0) {
+      toast.error("Silinecek kayıt seçin.");
+      return;
+    }
+
+    const confirmDelete = window.confirm(`${selectedSales.length} yakıt satışını silmek istediğinizden emin misiniz?`);
+    if (!confirmDelete) return;
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const saleId of selectedSales) {
+      const { error } = await deleteFuelSale(saleId);
+      if (error) {
+        errorCount++;
+      } else {
+        successCount++;
+      }
+    }
+
+    if (successCount > 0) {
+      toast.success(`${successCount} yakıt satışı başarıyla silindi.`);
+      refreshFuelStock();
+    }
+    if (errorCount > 0) {
+      toast.error(`${errorCount} yakıt satışı silinirken hata oluştu.`);
+    }
+
+    setSelectedSales([]);
+    setSelectAll(false);
+  };
+
   const getDateFilter = () => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -180,6 +238,12 @@ export const FuelSalesManagement = () => {
 
   return (
     <div className="space-y-6">
+      {/* Stok Durumu */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Stok Durumu</h3>
+        <FuelStockDisplay />
+      </div>
+
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Yakıt Satışları</h2>
@@ -417,16 +481,36 @@ export const FuelSalesManagement = () => {
       {/* Sales List */}
       <Card>
         <CardHeader>
-          <CardTitle>Satış Listesi ({filteredSales.length} kayıt)</CardTitle>
-          <CardDescription>
-            Seçilen kriterlere göre yakıt satışları - Toplam: {formatCurrency(totalSalesAmount)} / {totalLitersSold.toFixed(2)} Litre
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Satış Listesi ({filteredSales.length} kayıt)</CardTitle>
+              <CardDescription>
+                Seçilen kriterlere göre yakıt satışları - Toplam: {formatCurrency(totalSalesAmount)} / {totalLitersSold.toFixed(2)} Litre
+              </CardDescription>
+            </div>
+            {selectedSales.length > 0 && (
+              <Button 
+                variant="destructive" 
+                size="sm"
+                onClick={handleDeleteSelected}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Seçilenleri Sil ({selectedSales.length})
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead>
                 <tr>
+                  <th className="px-4 py-3 bg-gray-50">
+                    <Checkbox
+                      checked={selectAll}
+                      onCheckedChange={handleSelectAll}
+                    />
+                  </th>
                   <th className="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">
                     Yakıt Tipi
                   </th>
@@ -451,6 +535,12 @@ export const FuelSalesManagement = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredSales.map((sale) => (
                   <tr key={sale.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <Checkbox
+                        checked={selectedSales.includes(sale.id)}
+                        onCheckedChange={(checked) => handleSelectSale(sale.id, checked as boolean)}
+                      />
+                    </td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                         {sale.fuel_type}
