@@ -562,48 +562,6 @@ export type Database = {
           },
         ]
       }
-      fuel_purchases: {
-        Row: {
-          created_at: string
-          fuel_type: string
-          id: string
-          invoice_number: string | null
-          liters: number
-          notes: string | null
-          purchase_date: string
-          purchase_price_per_liter: number
-          station_id: string
-          supplier: string | null
-          total_amount: number
-        }
-        Insert: {
-          created_at?: string
-          fuel_type: string
-          id?: string
-          invoice_number?: string | null
-          liters: number
-          notes?: string | null
-          purchase_date?: string
-          purchase_price_per_liter: number
-          station_id: string
-          supplier?: string | null
-          total_amount: number
-        }
-        Update: {
-          created_at?: string
-          fuel_type?: string
-          id?: string
-          invoice_number?: string | null
-          liters?: number
-          notes?: string | null
-          purchase_date?: string
-          purchase_price_per_liter?: number
-          station_id?: string
-          supplier?: string | null
-          total_amount?: number
-        }
-        Relationships: []
-      }
       fuel_sales: {
         Row: {
           amount: number
@@ -646,33 +604,6 @@ export type Database = {
           shift_id?: string | null
           station_id?: string
           total_amount?: number
-        }
-        Relationships: []
-      }
-      fuel_stock: {
-        Row: {
-          created_at: string
-          current_stock: number
-          fuel_type: string
-          id: string
-          station_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          current_stock?: number
-          fuel_type: string
-          id?: string
-          station_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          current_stock?: number
-          fuel_type?: string
-          id?: string
-          station_id?: string
-          updated_at?: string
         }
         Relationships: []
       }
