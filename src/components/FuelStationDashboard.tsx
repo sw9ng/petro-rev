@@ -28,121 +28,83 @@ export const FuelStationDashboard = () => {
             <div className="flex items-center space-x-4">
               <Fuel className="h-8 w-8 text-blue-600" />
               <div>
-                <p className="text-sm text-gray-500">Hoş geldiniz, {user?.email}</p>
+                <h1 className="text-xl font-bold text-gray-900">PetroRev Premium</h1>
+                <p className="text-xs text-gray-500">Akaryakıt İstasyonu Yönetim Sistemi</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              <div className="text-sm text-gray-600">
+                Hoşgeldiniz!
+                <span className="font-medium text-blue-600 ml-1">Premium Üye</span>
+              </div>
               <ThemeToggle />
               <SettingsDialog />
               <button
                 onClick={signOut}
                 className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium"
               >
-                Çıkış Yap
+                Çıkış
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="fuel-sales" className="flex items-center gap-2">
-              <Fuel className="h-4 w-4" />
-              Yakıt Satışları
-            </TabsTrigger>
-            <TabsTrigger value="customers" className="flex items-center gap-2">
-              <ShoppingCart className="h-4 w-4" />
-              Cari Satış
-            </TabsTrigger>
-            <TabsTrigger value="stock" className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              Stok & Alım
-            </TabsTrigger>
-            <TabsTrigger value="shifts" className="flex items-center gap-2">
+      <div className="bg-gray-50 border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center space-x-8 py-3">
+            <button className="flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-md text-sm font-medium">
+              <Calculator className="h-4 w-4" />
+              Özet
+            </button>
+            <button className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 text-sm">
               <Users className="h-4 w-4" />
-              Vardiyalar
-            </TabsTrigger>
-            <TabsTrigger value="personnel" className="flex items-center gap-2">
+              Vardiya
+            </button>
+            <button className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 text-sm">
+              <Fuel className="h-4 w-4" />
+              Liste
+            </button>
+            <button className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 text-sm">
               <Users className="h-4 w-4" />
               Personel
-            </TabsTrigger>
-            <TabsTrigger value="reports" className="flex items-center gap-2">
+            </button>
+            <button className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 text-sm">
+              <Users className="h-4 w-4" />
+              Müşteri
+            </button>
+            <button className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 text-sm">
+              <ShoppingCart className="h-4 w-4" />
+              Cari Satış
+            </button>
+            <button className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 text-sm">
+              <Package className="h-4 w-4" />
+              Stok & Alım
+            </button>
+            <button className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 text-sm">
               <BarChart3 className="h-4 w-4" />
-              Raporlar
-            </TabsTrigger>
-            <TabsTrigger value="calculator" className="flex items-center gap-2">
+              Kasa
+            </button>
+            <button className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 text-sm">
               <Calculator className="h-4 w-4" />
-              Kâr Hesap
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="fuel-sales">
-            <FuelSalesManagement />
-          </TabsContent>
-
-          <TabsContent value="stock">
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Package className="h-5 w-5" />
-                    Mevcut Stok Durumu
-                  </CardTitle>
-                  <CardDescription>
-                    Yakıt stoklarınızın anlık durumunu görün
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <FuelStockDisplay />
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Truck className="h-5 w-5" />
-                    Yakıt Alımları
-                  </CardTitle>
-                  <CardDescription>
-                    Yeni yakıt alımı yapın ve stok geçmişini görün
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <FuelPurchaseManagement />
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="shifts">
-            <ShiftManagement />
-          </TabsContent>
-
-          <TabsContent value="personnel">
-            <PersonnelManagement />
-          </TabsContent>
-
-          <TabsContent value="customers">
-            <CustomerManagement />
-          </TabsContent>
-
-          <TabsContent value="reports">
-            <ReportsView />
-          </TabsContent>
-
-          <TabsContent value="calculator">
-            <FuelProfitCalculator 
-              fuelSalesData={[]}
-              dateRange={{
-                startDate: new Date(),
-                endDate: new Date()
-              }}
-            />
-          </TabsContent>
-        </Tabs>
+              Muhasebe
+            </button>
+            <button className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 text-sm">
+              <Fuel className="h-4 w-4" />
+              Yakıt
+            </button>
+            <button className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 text-sm">
+              <BarChart3 className="h-4 w-4" />
+              Rapor
+            </button>
+            <button className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 text-sm">
+              <Settings className="h-4 w-4" />
+              Admin
+            </button>
+          </div>
+        </div>
       </div>
+
     </div>
   );
 };
