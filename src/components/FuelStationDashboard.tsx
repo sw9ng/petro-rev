@@ -48,18 +48,14 @@ export const FuelStationDashboard = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="fuel-sales" className="flex items-center gap-2">
               <Fuel className="h-4 w-4" />
               Yakıt Satışları
             </TabsTrigger>
-            <TabsTrigger value="fuel-purchases" className="flex items-center gap-2">
-              <Truck className="h-4 w-4" />
-              Yakıt Alımları
-            </TabsTrigger>
             <TabsTrigger value="stock" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
-              Stok Takibi
+              Stok & Alım
             </TabsTrigger>
             <TabsTrigger value="shifts" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
@@ -87,25 +83,38 @@ export const FuelStationDashboard = () => {
             <FuelSalesManagement />
           </TabsContent>
 
-          <TabsContent value="fuel-purchases">
-            <FuelPurchaseManagement />
-          </TabsContent>
-
           <TabsContent value="stock">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="h-5 w-5" />
-                  Stok Takibi
-                </CardTitle>
-                <CardDescription>
-                  Yakıt stoklarınızın anlık durumunu takip edin
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <FuelStockDisplay />
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Package className="h-5 w-5" />
+                    Mevcut Stok Durumu
+                  </CardTitle>
+                  <CardDescription>
+                    Yakıt stoklarınızın anlık durumunu görün
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <FuelStockDisplay />
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Truck className="h-5 w-5" />
+                    Yakıt Alımları
+                  </CardTitle>
+                  <CardDescription>
+                    Yeni yakıt alımı yapın ve stok geçmişini görün
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <FuelPurchaseManagement />
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="shifts">
