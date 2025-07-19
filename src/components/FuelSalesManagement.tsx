@@ -8,10 +8,12 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FuelSalesEditDialog } from '@/components/FuelSalesEditDialog';
 import { FuelSalesExcelUpload } from '@/components/FuelSalesExcelUpload';
-import { Fuel, Plus, Edit, Trash2, Calendar as CalendarIcon, TrendingUp, BarChart3, Check, X } from 'lucide-react';
+import { Fuel, Plus, Edit, Trash2, Calendar as CalendarIcon, TrendingUp, BarChart3, Check, X, AlertTriangle, Package } from 'lucide-react';
 import { useFuelSales } from '@/hooks/useFuelSales';
+import { useFuelStock } from '@/hooks/useFuelStock';
 import { formatCurrency } from '@/lib/numberUtils';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -20,6 +22,7 @@ import { cn } from '@/lib/utils';
 
 export const FuelSalesManagement = () => {
   const { fuelSales, loading, addFuelSale, deleteFuelSale, updateFuelSale } = useFuelSales();
+  const { fuelStock, getStockForFuelType, checkStockAvailability } = useFuelStock();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingSale, setEditingSale] = useState<any>(null);
   const [dateRange, setDateRange] = useState('today');
@@ -56,6 +59,13 @@ export const FuelSalesManagement = () => {
       return;
     }
 
+    // Stok kontrolü
+    if (!checkStockAvailability(fuelSaleData.fuel_type, liters)) {
+      const currentStock = getStockForFuelType(fuelSaleData.fuel_type);
+      toast.error(`Yetersiz stok! Mevcut stok: ${currentStock.toFixed(2)} Lt, İstenen: ${liters.toFixed(2)} Lt`);
+      return;
+    }
+
     const saleTime = new Date(fuelSaleData.sale_time).toISOString();
 
     const newFuelSale = {
@@ -73,7 +83,7 @@ export const FuelSalesManagement = () => {
     if (error) {
       toast.error("Yakıt satışı eklenirken bir hata oluştu.");
     } else {
-      toast.success("Yakıt satışı başarıyla eklendi.");
+      toast.success("Yakıt satışı başarıyla eklendi ve stok güncellendi.");
       setShowAddDialog(false);
       setFuelSaleData({
         fuel_type: '',
@@ -100,7 +110,7 @@ export const FuelSalesManagement = () => {
   };
 
   const handleDeleteFuelSale = async (saleId: string) => {
-    const confirmDelete = window.confirm("Bu yakıt satışını silmek istediğinizden emin misiniz?");
+    const confirmDelete = window.confirm("Bu yakıt satışını silmek istediğinizden emin misiniz? Stok da güncellenecektir.");
     if (!confirmDelete) return;
 
     const { error } = await deleteFuelSale(saleId);
@@ -108,7 +118,7 @@ export const FuelSalesManagement = () => {
     if (error) {
       toast.error("Yakıt satışı silinirken bir hata oluştu.");
     } else {
-      toast.success("Yakıt satışı başarıyla silindi.");
+      toast.success("Yakıt satışı başarıyla silindi ve stok güncellendi.");
     }
   };
 
@@ -223,6 +233,33 @@ export const FuelSalesManagement = () => {
     return acc;
   }, {} as Record<string, { amount: number; liters: number }>);
 
+  const getCurrentStock = (fuelType: string) => {
+    return getStockForFuelType(fuelType);
+  };
+
+  const getStockWarning = (fuelType: string, requestedLiters: number) => {
+    if (!fuelType || !requestedLiters) return null;
+    
+    const currentStock = getCurrentStock(fuelType);
+    const isAvailable = checkStockAvailability(fuelType, requestedLiters);
+
+    if (!isAvailable) {
+      return {
+        type: 'error',
+        message: `Yetersiz stok! Mevcut: ${currentStock.toFixed(2)} Lt`
+      };
+    }
+
+    if (currentStock - requestedLiters <= 100) {
+      return {
+        type: 'warning',
+        message: `Uyarı: Satış sonrası kalan stok düşük olacak (${(currentStock - requestedLiters).toFixed(2)} Lt)`
+      };
+    }
+
+    return null;
+  };
+
   if (loading) {
     return <div className="flex justify-center items-center h-64">Yükleniyor...</div>;
   }
@@ -275,7 +312,7 @@ export const FuelSalesManagement = () => {
                   <DialogHeader>
                     <DialogTitle>Yeni Yakıt Satışı Ekle</DialogTitle>
                     <DialogDescription>
-                      Yakıt satış bilgilerini girin.
+                      Yakıt satış bilgilerini girin. Stok otomatik olarak güncellenecektir.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
@@ -286,10 +323,38 @@ export const FuelSalesManagement = () => {
                           <SelectValue placeholder="Yakıt Tipi Seç" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="MOTORİN">Motorin</SelectItem>
-                          <SelectItem value="LPG">LPG</SelectItem>
-                          <SelectItem value="BENZİN">Benzin</SelectItem>
-                          <SelectItem value="MOTORİN(DİĞER)">Motorin (Diğer)</SelectItem>
+                          <SelectItem value="MOTORİN">
+                            <div className="flex items-center justify-between w-full">
+                              <span>Motorin</span>
+                              <span className="text-xs text-gray-500 ml-2">
+                                Stok: {getCurrentStock('MOTORİN').toFixed(2)} Lt
+                              </span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="LPG">
+                            <div className="flex items-center justify-between w-full">
+                              <span>LPG</span>
+                              <span className="text-xs text-gray-500 ml-2">
+                                Stok: {getCurrentStock('LPG').toFixed(2)} Lt
+                              </span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="BENZİN">
+                            <div className="flex items-center justify-between w-full">
+                              <span>Benzin</span>
+                              <span className="text-xs text-gray-500 ml-2">
+                                Stok: {getCurrentStock('BENZİN').toFixed(2)} Lt
+                              </span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="MOTORİN(DİĞER)">
+                            <div className="flex items-center justify-between w-full">
+                              <span>Motorin (Diğer)</span>
+                              <span className="text-xs text-gray-500 ml-2">
+                                Stok: {getCurrentStock('MOTORİN(DİĞER)').toFixed(2)} Lt
+                              </span>
+                            </div>
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -303,6 +368,23 @@ export const FuelSalesManagement = () => {
                         placeholder="Litre"
                       />
                     </div>
+                    
+                    {/* Stok uyarısı */}
+                    {fuelSaleData.fuel_type && fuelSaleData.liters && (
+                      (() => {
+                        const warning = getStockWarning(fuelSaleData.fuel_type, parseFloat(fuelSaleData.liters) || 0);
+                        if (warning) {
+                          return (
+                            <Alert variant={warning.type === 'error' ? 'destructive' : 'default'}>
+                              <AlertTriangle className="h-4 w-4" />
+                              <AlertDescription>{warning.message}</AlertDescription>
+                            </Alert>
+                          );
+                        }
+                        return null;
+                      })()
+                    )}
+
                     <div className="space-y-2">
                       <Label htmlFor="price_per_liter">Litre Fiyatı</Label>
                       <Input
@@ -347,6 +429,47 @@ export const FuelSalesManagement = () => {
           )}
         </div>
       </div>
+
+      {/* Stok durumu kartı */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            Mevcut Stok Durumu
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {['MOTORİN', 'LPG', 'BENZİN', 'MOTORİN(DİĞER)'].map(fuelType => {
+              const stock = getCurrentStock(fuelType);
+              const isLow = stock <= 500;
+              const isCritical = stock <= 100;
+              
+              return (
+                <div key={fuelType} className={`p-3 rounded-lg border ${
+                  isCritical ? 'bg-red-50 border-red-200' : 
+                  isLow ? 'bg-yellow-50 border-yellow-200' : 
+                  'bg-green-50 border-green-200'
+                }`}>
+                  <div className="text-sm font-medium">{fuelType}</div>
+                  <div className={`text-lg font-bold ${
+                    isCritical ? 'text-red-600' : 
+                    isLow ? 'text-yellow-600' : 
+                    'text-green-600'
+                  }`}>
+                    {stock.toFixed(2)} Lt
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {isCritical ? 'Kritik Seviye' : 
+                     isLow ? 'Düşük Stok' : 
+                     'Normal'}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

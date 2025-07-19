@@ -65,6 +65,41 @@ export const useFuelStock = () => {
     return { data, error };
   };
 
+  const getStockForFuelType = (fuelType: string): number => {
+    const stock = fuelStock.find(s => s.fuel_type === fuelType);
+    return stock?.current_stock || 0;
+  };
+
+  const checkStockAvailability = (fuelType: string, requestedLiters: number): boolean => {
+    const currentStock = getStockForFuelType(fuelType);
+    return currentStock >= requestedLiters;
+  };
+
+  // Realtime subscription for stock updates
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('fuel-stock-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'fuel_stock',
+          filter: `station_id=eq.${user.id}`
+        },
+        () => {
+          fetchFuelStock(); // Refresh stock when changes occur
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   useEffect(() => {
     fetchFuelStock();
   }, [user]);
@@ -73,6 +108,8 @@ export const useFuelStock = () => {
     fuelStock,
     loading,
     updateStock,
-    refreshStock: fetchFuelStock
+    refreshStock: fetchFuelStock,
+    getStockForFuelType,
+    checkStockAvailability
   };
 };
