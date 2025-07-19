@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { FuelSalesEditDialog } from '@/components/FuelSalesEditDialog';
 import { FuelSalesExcelUpload } from '@/components/FuelSalesExcelUpload';
-import { Fuel, Plus, Edit, Trash2, Calendar } from 'lucide-react';
+import { Fuel, Plus, Edit, Trash2, Calendar, TrendingUp, BarChart3 } from 'lucide-react';
 import { useFuelSales } from '@/hooks/useFuelSales';
 import { formatCurrency } from '@/lib/numberUtils';
 import { toast } from 'sonner';
@@ -16,8 +17,9 @@ export const FuelSalesManagement = () => {
   const { fuelSales, loading, addFuelSale, deleteFuelSale, updateFuelSale } = useFuelSales();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingSale, setEditingSale] = useState<any>(null);
-  const [dateFilter, setDateFilter] = useState('');
+  const [dateRange, setDateRange] = useState('today');
   const [fuelTypeFilter, setFuelTypeFilter] = useState('all');
+  const [shiftFilter, setShiftFilter] = useState('all');
   const [fuelSaleData, setFuelSaleData] = useState({
     fuel_type: '',
     liters: '',
@@ -101,16 +103,44 @@ export const FuelSalesManagement = () => {
     }
   };
 
+  // Date filtering logic
+  const getDateFilter = () => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    switch (dateRange) {
+      case 'today':
+        return { start: today, end: new Date(today.getTime() + 24 * 60 * 60 * 1000) };
+      case 'week':
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - today.getDay());
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 7);
+        return { start: weekStart, end: weekEnd };
+      case 'month':
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        return { start: monthStart, end: monthEnd };
+      default:
+        return null;
+    }
+  };
+
   const filteredSales = fuelSales.filter(sale => {
+    const dateFilter = getDateFilter();
     if (dateFilter) {
-      const saleDate = sale.sale_time.split('T')[0];
-      if (saleDate !== dateFilter) {
+      const saleDate = new Date(sale.sale_time);
+      if (saleDate < dateFilter.start || saleDate >= dateFilter.end) {
         return false;
       }
     }
 
-    if (fuelTypeFilter !== 'all') {
-      return sale.fuel_type === fuelTypeFilter;
+    if (fuelTypeFilter !== 'all' && sale.fuel_type !== fuelTypeFilter) {
+      return false;
+    }
+
+    if (shiftFilter !== 'all' && sale.shift !== shiftFilter) {
+      return false;
     }
 
     return true;
@@ -118,6 +148,16 @@ export const FuelSalesManagement = () => {
 
   const totalSalesAmount = filteredSales.reduce((sum, sale) => sum + sale.total_amount, 0);
   const totalLitersSold = filteredSales.reduce((sum, sale) => sum + sale.liters, 0);
+
+  // Calculate sales by fuel type
+  const salesByType = filteredSales.reduce((acc, sale) => {
+    if (!acc[sale.fuel_type]) {
+      acc[sale.fuel_type] = { amount: 0, liters: 0 };
+    }
+    acc[sale.fuel_type].amount += sale.total_amount;
+    acc[sale.fuel_type].liters += sale.liters;
+    return acc;
+  }, {} as Record<string, { amount: number; liters: number }>);
 
   if (loading) {
     return <div className="flex justify-center items-center h-64">Yükleniyor...</div>;
@@ -150,7 +190,7 @@ export const FuelSalesManagement = () => {
                 <div className="space-y-2">
                   <Label htmlFor="fuel_type">Yakıt Tipi</Label>
                   <Select onValueChange={(value) => setFuelSaleData(prev => ({ ...prev, fuel_type: value }))}>
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Yakıt Tipi Seç" />
                     </SelectTrigger>
                     <SelectContent>
@@ -193,7 +233,7 @@ export const FuelSalesManagement = () => {
                 <div className="space-y-2">
                   <Label htmlFor="shift">Vardiya</Label>
                   <Select onValueChange={(value) => setFuelSaleData(prev => ({ ...prev, shift: value }))}>
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Vardiya Seç" />
                     </SelectTrigger>
                     <SelectContent>
@@ -214,124 +254,160 @@ export const FuelSalesManagement = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Toplam Satış Tutarı</CardTitle>
-            <CardDescription>Filtrelenmiş satışların toplam tutarı</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalSalesAmount)}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Toplam Satılan Litre</CardTitle>
-            <CardDescription>Filtrelenmiş satışlarda toplam satılan litre</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalLitersSold.toFixed(2)} L</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="flex items-center space-x-4">
-        <div>
-          <Label htmlFor="date">Tarihe Göre Filtrele</Label>
-          <Input
-            type="date"
-            id="date"
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
-          />
-        </div>
-        <div>
-          <Label htmlFor="fuel_type_filter">Yakıt Tipine Göre Filtrele</Label>
-          <Select onValueChange={setDateFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Yakıt Tipi Seç" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tümü</SelectItem>
-              <SelectItem value="MOTORİN">Motorin</SelectItem>
-              <SelectItem value="LPG">LPG</SelectItem>
-              <SelectItem value="BENZİN">Benzin</SelectItem>
-              <SelectItem value="MOTORİN(DİĞER)">Motorin (Diğer)</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <Button variant="outline" onClick={() => {
-          setDateFilter('');
-          setFuelTypeFilter('all');
-        }}>
-          Filtreleri Temizle
-        </Button>
-      </div>
-
+      {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle>Satış Listesi</CardTitle>
-          <CardDescription>Yakıt satışlarınızın listesi</CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" />
+            Filtreler
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label>Zaman Aralığı</Label>
+              <Select value={dateRange} onValueChange={setDateRange}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="today">Bugün</SelectItem>
+                  <SelectItem value="week">Bu Hafta</SelectItem>
+                  <SelectItem value="month">Bu Ay</SelectItem>
+                  <SelectItem value="all">Tümü</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Yakıt Tipi</Label>
+              <Select value={fuelTypeFilter} onValueChange={setFuelTypeFilter}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tümü</SelectItem>
+                  <SelectItem value="MOTORİN">Motorin</SelectItem>
+                  <SelectItem value="LPG">LPG</SelectItem>
+                  <SelectItem value="BENZİN">Benzin</SelectItem>
+                  <SelectItem value="MOTORİN(DİĞER)">Motorin (Diğer)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Vardiya</Label>
+              <Select value={shiftFilter} onValueChange={setShiftFilter}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tümü</SelectItem>
+                  <SelectItem value="Gündüz">Gündüz</SelectItem>
+                  <SelectItem value="Gece">Gece</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Toplam Satış
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{formatCurrency(totalSalesAmount)}</div>
+            <p className="text-xs text-gray-500">{totalLitersSold.toFixed(2)} Litre</p>
+          </CardContent>
+        </Card>
+
+        {Object.entries(salesByType).map(([fuelType, data]) => (
+          <Card key={fuelType}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Fuel className="h-4 w-4" />
+                {fuelType}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl font-bold">{formatCurrency(data.amount)}</div>
+              <p className="text-xs text-gray-500">{data.liters.toFixed(2)} Litre</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Sales List */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Satış Listesi ({filteredSales.length} kayıt)</CardTitle>
+          <CardDescription>Seçilen kriterlere göre yakıt satışları</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead>
                 <tr>
-                  <th className="px-6 py-3 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">
                     Yakıt Tipi
                   </th>
-                  <th className="px-6 py-3 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">
                     Litre
                   </th>
-                  <th className="px-6 py-3 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
-                    Litre Fiyatı
+                  <th className="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">
+                    Birim Fiyat
                   </th>
-                  <th className="px-6 py-3 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
-                    Toplam Tutar
+                  <th className="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">
+                    Toplam
                   </th>
-                  <th className="px-6 py-3 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
-                    Satış Zamanı
+                  <th className="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">
+                    Tarih/Saat
                   </th>
-                  <th className="px-6 py-3 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">
                     Vardiya
                   </th>
-                  <th className="px-6 py-3 bg-gray-50"></th>
+                  <th className="px-4 py-3 bg-gray-50"></th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredSales.map((sale) => (
-                  <tr key={sale.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{sale.fuel_type}</div>
+                  <tr key={sale.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {sale.fuel_type}
+                      </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{sale.liters}</div>
+                    <td className="px-4 py-3 text-sm">{sale.liters.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-sm">{formatCurrency(sale.price_per_liter)}</td>
+                    <td className="px-4 py-3 text-sm font-medium">{formatCurrency(sale.total_amount)}</td>
+                    <td className="px-4 py-3 text-sm">
+                      {new Date(sale.sale_time).toLocaleString('tr-TR')}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{formatCurrency(sale.price_per_liter)}</div>
+                    <td className="px-4 py-3">
+                      {sale.shift && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          {sale.shift}
+                        </span>
+                      )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{formatCurrency(sale.total_amount)}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {new Date(sale.sale_time).toLocaleString()}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{sale.shift}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <td className="px-4 py-3">
                       <div className="flex space-x-2">
                         <Button size="sm" variant="outline" onClick={() => handleEditFuelSale(sale)}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Düzenle
+                          <Edit className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700" onClick={() => handleDeleteFuelSale(sale.id)}>
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Sil
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="text-red-600 hover:text-red-700" 
+                          onClick={() => handleDeleteFuelSale(sale.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </td>

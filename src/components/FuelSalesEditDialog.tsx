@@ -11,24 +11,24 @@ import { format } from 'date-fns';
 
 interface FuelSalesEditDialogProps {
   sale: FuelSale | null;
-  isOpen: boolean;
+  open: boolean;
   onClose: () => void;
+  onUpdate: (saleId: string, updatedData: any) => Promise<void>;
 }
 
 const fuelTypes = [
   { value: 'BENZİN', label: 'Benzin' },
   { value: 'LPG', label: 'LPG' },
   { value: 'MOTORİN', label: 'Motorin' },
-  { value: 'MOTORİN(DİĞER)', label: 'Motorin (Diğer)' },
-  { value: 'TRANSFER(KÖY-TANKERİ)', label: 'Köy Tankeri (Transfer)' }
+  { value: 'MOTORİN(DİĞER)', label: 'Motorin (Diğer)' }
 ];
 
 const shiftOptions = [
-  { value: 'V1', label: 'Vardiya 1' },
-  { value: 'V2', label: 'Vardiya 2' }
+  { value: 'Gündüz', label: 'Gündüz' },
+  { value: 'Gece', label: 'Gece' }
 ];
 
-export const FuelSalesEditDialog = ({ sale, isOpen, onClose }: FuelSalesEditDialogProps) => {
+export const FuelSalesEditDialog = ({ sale, open, onClose, onUpdate }: FuelSalesEditDialogProps) => {
   const [editData, setEditData] = useState({
     fuel_type: '',
     liters: '',
@@ -36,8 +36,6 @@ export const FuelSalesEditDialog = ({ sale, isOpen, onClose }: FuelSalesEditDial
     shift: '',
     sale_time: ''
   });
-
-  const { updateFuelSale } = useFuelSales();
 
   useEffect(() => {
     if (sale) {
@@ -76,8 +74,8 @@ export const FuelSalesEditDialog = ({ sale, isOpen, onClose }: FuelSalesEditDial
     const saleDate = new Date(editData.sale_time);
     
     try {
-      const { error } = await updateFuelSale(sale.id, {
-        fuel_type: editData.fuel_type as 'MOTORİN' | 'LPG' | 'BENZİN' | 'MOTORİN(DİĞER)' | 'TRANSFER(KÖY-TANKERİ)',
+      await onUpdate(sale.id, {
+        fuel_type: editData.fuel_type as 'MOTORİN' | 'LPG' | 'BENZİN' | 'MOTORİN(DİĞER)',
         liters: liters,
         price_per_liter: pricePerLiter,
         total_amount: totalAmount,
@@ -86,12 +84,8 @@ export const FuelSalesEditDialog = ({ sale, isOpen, onClose }: FuelSalesEditDial
         shift: editData.shift || null
       });
 
-      if (error) {
-        toast.error('Yakıt satışı güncellenirken hata oluştu');
-      } else {
-        toast.success('Yakıt satışı başarıyla güncellendi');
-        onClose();
-      }
+      toast.success('Yakıt satışı başarıyla güncellendi');
+      onClose();
     } catch (err) {
       toast.error('Beklenmeyen hata oluştu');
     }
@@ -100,7 +94,7 @@ export const FuelSalesEditDialog = ({ sale, isOpen, onClose }: FuelSalesEditDial
   if (!sale) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Yakıt Satışını Düzenle</DialogTitle>
