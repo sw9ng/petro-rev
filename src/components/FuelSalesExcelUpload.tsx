@@ -41,7 +41,8 @@ export const FuelSalesExcelUpload = () => {
 
       let successCount = 0;
       let errorCount = 0;
-      let skippedCount = 0; // Count of rows skipped due to amount > 50,000
+      let skippedAmountCount = 0; // Count of rows skipped due to amount > 50,000
+      let skippedLiterCount = 0; // Count of rows skipped due to liters > 1000
 
       for (const row of rows) {
         // Skip empty rows
@@ -76,7 +77,14 @@ export const FuelSalesExcelUpload = () => {
           // Skip if total amount is above 50,000 TL
           if (totalAmount > 50000) {
             console.log(`Skipping row due to amount > 50,000: Total=${totalAmount}`);
-            skippedCount++;
+            skippedAmountCount++;
+            continue;
+          }
+
+          // Skip if liters is above 1000
+          if (liters > 1000) {
+            console.log(`Skipping row due to liters > 1000: Liters=${liters}`);
+            skippedLiterCount++;
             continue;
           }
 
@@ -156,8 +164,11 @@ export const FuelSalesExcelUpload = () => {
 
       if (successCount > 0) {
         let message = `${successCount} yakıt satışı başarıyla eklendi.`;
-        if (skippedCount > 0) {
-          message += ` ${skippedCount} kayıt 50.000 TL üstü olduğu için atlandı.`;
+        if (skippedAmountCount > 0) {
+          message += ` ${skippedAmountCount} kayıt 50.000 TL üstü olduğu için atlandı.`;
+        }
+        if (skippedLiterCount > 0) {
+          message += ` ${skippedLiterCount} kayıt 1000 litre üstü olduğu için atlandı.`;
         }
         if (errorCount > 0) {
           message += ` ${errorCount} kayıt eklenemedi.`;
@@ -202,7 +213,7 @@ export const FuelSalesExcelUpload = () => {
             <br />
             • <strong>I Sütunu:</strong> Toplam Tutar
             <br /><br />
-            <strong>Not:</strong> 50.000 TL üstündeki satışlar yüklenmeyecektir.
+            <strong>Not:</strong> 50.000 TL üstündeki ve 1000 litre üstündeki satışlar yüklenmeyecektir.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
