@@ -6,18 +6,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { FuelSalesEditDialog } from '@/components/FuelSalesEditDialog';
 import { FuelSalesExcelUpload } from '@/components/FuelSalesExcelUpload';
-import { Fuel, Plus, Edit, Trash2, Calendar, TrendingUp, BarChart3 } from 'lucide-react';
+import { Fuel, Plus, Edit, Trash2, Calendar as CalendarIcon, TrendingUp, BarChart3 } from 'lucide-react';
 import { useFuelSales } from '@/hooks/useFuelSales';
 import { formatCurrency } from '@/lib/numberUtils';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { tr } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 export const FuelSalesManagement = () => {
   const { fuelSales, loading, addFuelSale, deleteFuelSale, updateFuelSale } = useFuelSales();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingSale, setEditingSale] = useState<any>(null);
   const [dateRange, setDateRange] = useState('today');
+  const [customStartDate, setCustomStartDate] = useState<Date>();
+  const [customEndDate, setCustomEndDate] = useState<Date>();
   const [fuelTypeFilter, setFuelTypeFilter] = useState('all');
   const [shiftFilter, setShiftFilter] = useState('all');
   const [fuelSaleData, setFuelSaleData] = useState({
@@ -121,6 +128,15 @@ export const FuelSalesManagement = () => {
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
         const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
         return { start: monthStart, end: monthEnd };
+      case 'custom':
+        if (customStartDate && customEndDate) {
+          const start = new Date(customStartDate);
+          start.setHours(0, 0, 0, 0);
+          const end = new Date(customEndDate);
+          end.setHours(23, 59, 59, 999);
+          return { start, end };
+        }
+        return null;
       default:
         return null;
     }
@@ -259,11 +275,11 @@ export const FuelSalesManagement = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5" />
-            Filtreler
+            Filtreler ve Tarih Seçimi
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <Label>Zaman Aralığı</Label>
               <Select value={dateRange} onValueChange={setDateRange}>
@@ -274,6 +290,7 @@ export const FuelSalesManagement = () => {
                   <SelectItem value="today">Bugün</SelectItem>
                   <SelectItem value="week">Bu Hafta</SelectItem>
                   <SelectItem value="month">Bu Ay</SelectItem>
+                  <SelectItem value="custom">Özel Tarih</SelectItem>
                   <SelectItem value="all">Tümü</SelectItem>
                 </SelectContent>
               </Select>
@@ -308,6 +325,61 @@ export const FuelSalesManagement = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            {dateRange === 'custom' && (
+              <div className="col-span-1 md:col-span-2 lg:col-span-1">
+                <Label>Tarih Aralığı</Label>
+                <div className="flex space-x-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "justify-start text-left font-normal",
+                          !customStartDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {customStartDate ? format(customStartDate, "dd.MM.yyyy", { locale: tr }) : "Başlangıç"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={customStartDate}
+                        onSelect={setCustomStartDate}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "justify-start text-left font-normal",
+                          !customEndDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {customEndDate ? format(customEndDate, "dd.MM.yyyy", { locale: tr }) : "Bitiş"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={customEndDate}
+                        onSelect={setCustomEndDate}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -347,7 +419,9 @@ export const FuelSalesManagement = () => {
       <Card>
         <CardHeader>
           <CardTitle>Satış Listesi ({filteredSales.length} kayıt)</CardTitle>
-          <CardDescription>Seçilen kriterlere göre yakıt satışları</CardDescription>
+          <CardDescription>
+            Seçilen kriterlere göre yakıt satışları - Toplam: {formatCurrency(totalSalesAmount)} / {totalLitersSold.toFixed(2)} Litre
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -383,9 +457,9 @@ export const FuelSalesManagement = () => {
                         {sale.fuel_type}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm">{sale.liters.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-sm font-medium">{sale.liters.toFixed(2)} Lt</td>
                     <td className="px-4 py-3 text-sm">{formatCurrency(sale.price_per_liter)}</td>
-                    <td className="px-4 py-3 text-sm font-medium">{formatCurrency(sale.total_amount)}</td>
+                    <td className="px-4 py-3 text-sm font-bold text-green-600">{formatCurrency(sale.total_amount)}</td>
                     <td className="px-4 py-3 text-sm">
                       {new Date(sale.sale_time).toLocaleString('tr-TR')}
                     </td>
