@@ -44,25 +44,29 @@ export const FuelSalesExcelUpload = () => {
 
       for (const row of rows) {
         // Skip empty rows
-        if (!row || row.length < 4) continue;
+        if (!row || row.length < 7) continue;
 
         try {
-          // Extract data from columns based on the format shown in image
-          // Column B: Tarih (Date)
-          // Column C: Yakıt (Fuel Type) 
-          // Column E: Fiyat (Price)
-          // Column F: Litre (Liters)
-          // Column G: Tutar (Total Amount)
+          // Based on the image provided:
+          // Column A: Document number (skip)
+          // Column B: Date/Time (as Excel serial number)
+          // Column C: Fuel Type
+          // Column D: Transaction number (skip)
+          // Column E: License plate (skip)
+          // Column F: (empty/skip)
+          // Column G: Price per liter
+          // Column H: Liters
 
-          const dateStr = row[1]?.toString().trim(); // Column B - Tarih
-          const fuelTypeRaw = row[2]?.toString().trim(); // Column C - Yakıt
-          const pricePerLiter = parseFloat(row[4]?.toString().replace(',', '.') || '0'); // Column E - Fiyat
-          const liters = parseFloat(row[5]?.toString().replace(',', '.') || '0'); // Column F - Litre
-          const totalAmount = parseFloat(row[6]?.toString().replace(',', '.') || '0'); // Column G - Tutar
+          const excelDate = row[1]; // Column B - Date as Excel serial number
+          const fuelTypeRaw = row[2]?.toString().trim(); // Column C - Fuel Type
+          const pricePerLiter = parseFloat(row[6]?.toString().replace(',', '.') || '0'); // Column G - Price
+          const liters = parseFloat(row[7]?.toString().replace(',', '.') || '0'); // Column H - Liters
+
+          console.log(`Processing row: Date=${excelDate}, Fuel=${fuelTypeRaw}, Price=${pricePerLiter}, Liters=${liters}`);
 
           // Skip if essential data is missing
-          if (!fuelTypeRaw || !dateStr || liters <= 0 || totalAmount <= 0) {
-            console.log(`Skipping row due to missing data: ${JSON.stringify(row.slice(0, 8))}`);
+          if (!fuelTypeRaw || !excelDate || liters <= 0 || pricePerLiter <= 0) {
+            console.log(`Skipping row due to missing essential data: Date=${excelDate}, Fuel=${fuelTypeRaw}, Price=${pricePerLiter}, Liters=${liters}`);
             continue;
           }
 
@@ -70,32 +74,31 @@ export const FuelSalesExcelUpload = () => {
           let fuelType: 'MOTORİN' | 'LPG' | 'BENZİN' | 'MOTORİN(DİĞER)';
           
           if (fuelTypeRaw.includes('Motorin') || fuelTypeRaw.includes('MOTORİN')) {
-            fuelType = 'MOTORİN';
+            if (fuelTypeRaw.includes('Diğer') || fuelTypeRaw.includes('(Diğer)')) {
+              fuelType = 'MOTORİN(DİĞER)';
+            } else {
+              fuelType = 'MOTORİN';
+            }
           } else if (fuelTypeRaw.includes('LPG')) {
             fuelType = 'LPG';
-          } else if (fuelTypeRaw.includes('Kurşunsuz') || fuelTypeRaw.includes('BENZİN')) {
+          } else if (fuelTypeRaw.includes('Kurşunsuz') || fuelTypeRaw.includes('BENZİN') || fuelTypeRaw.includes('Benzin')) {
             fuelType = 'BENZİN';
           } else {
             fuelType = 'MOTORİN(DİĞER)';
           }
 
-          // Parse date - handle various date formats
+          // Convert Excel serial date to JavaScript Date
           let saleDate: Date;
           try {
-            // Try different date parsing approaches
-            if (typeof dateStr === 'string') {
-              // Handle DD.MM.YYYY format or similar
-              const dateParts = dateStr.split(/[.\-\/]/);
-              if (dateParts.length >= 3) {
-                const day = parseInt(dateParts[0]);
-                const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed
-                const year = parseInt(dateParts[2]);
-                saleDate = new Date(year, month, day);
-              } else {
-                saleDate = new Date(dateStr);
-              }
+            if (typeof excelDate === 'number') {
+              // Excel date serial number to JavaScript Date
+              // Excel's epoch starts from January 1, 1900
+              const excelEpoch = new Date(1900, 0, 1);
+              const daysSinceEpoch = excelDate - 1; // Excel starts from day 1, not 0
+              saleDate = new Date(excelEpoch.getTime() + daysSinceEpoch * 24 * 60 * 60 * 1000);
             } else {
-              saleDate = new Date(dateStr);
+              // Try to parse as string date
+              saleDate = new Date(excelDate);
             }
 
             // If date is invalid, use current date
@@ -103,21 +106,23 @@ export const FuelSalesExcelUpload = () => {
               saleDate = new Date();
             }
           } catch (e) {
+            console.error('Date parsing error:', e);
             saleDate = new Date();
           }
 
-          // Calculate price per liter if not provided or zero
-          const calculatedPricePerLiter = pricePerLiter > 0 ? pricePerLiter : (totalAmount / liters);
+          const totalAmount = liters * pricePerLiter;
 
           const fuelSaleData = {
             fuel_type: fuelType,
             liters: liters,
-            price_per_liter: calculatedPricePerLiter,
+            price_per_liter: pricePerLiter,
             total_amount: totalAmount,
             amount: totalAmount,
             sale_time: saleDate.toISOString(),
             shift: saleDate.getHours() >= 6 && saleDate.getHours() < 18 ? 'Gündüz' : 'Gece'
           };
+
+          console.log('Adding fuel sale:', fuelSaleData);
 
           const result = await addFuelSale(fuelSaleData);
           if (result.error) {
@@ -163,15 +168,13 @@ export const FuelSalesExcelUpload = () => {
             <br /><br />
             <strong>Dosya formatı:</strong>
             <br />
-            • <strong>B Sütunu:</strong> Tarih
+            • <strong>B Sütunu:</strong> Tarih/Saat
             <br />
-            • <strong>C Sütunu:</strong> Yakıt Tipi (Motorin, LPG, Kurşunsuz vb.)
+            • <strong>C Sütunu:</strong> Yakıt Tipi (Motorin, LPG, Kurşunsuz Benzin vb.)
             <br />
-            • <strong>E Sütunu:</strong> Birim Fiyat
+            • <strong>G Sütunu:</strong> Litre Fiyatı
             <br />
-            • <strong>F Sütunu:</strong> Litre
-            <br />
-            • <strong>G Sütunu:</strong> Toplam Tutar
+            • <strong>H Sütunu:</strong> Litre Miktarı
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
