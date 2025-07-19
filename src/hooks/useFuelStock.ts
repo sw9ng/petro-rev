@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export interface FuelStock {
   id: string;
   station_id: string;
-  fuel_type: 'MOTORİN' | 'LPG' | 'BENZİN' | 'MOTORİN(DİĞER)';
+  fuel_type: string; // Changed from union type to string
   current_stock: number;
   created_at: string;
   updated_at: string;

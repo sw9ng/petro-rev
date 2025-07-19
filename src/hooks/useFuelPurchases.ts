@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export interface FuelPurchase {
   id: string;
   station_id: string;
-  fuel_type: 'MOTORİN' | 'LPG' | 'BENZİN' | 'MOTORİN(DİĞER)';
+  fuel_type: string; // Changed from union type to string
   liters: number;
   purchase_price_per_liter: number;
   total_amount: number;

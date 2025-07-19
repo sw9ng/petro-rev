@@ -125,7 +125,13 @@ export const FuelStationDashboard = () => {
           </TabsContent>
 
           <TabsContent value="calculator">
-            <FuelProfitCalculator />
+            <FuelProfitCalculator 
+              fuelSalesData={[]}
+              dateRange={{
+                startDate: new Date(),
+                endDate: new Date()
+              }}
+            />
           </TabsContent>
         </Tabs>
       </div>
