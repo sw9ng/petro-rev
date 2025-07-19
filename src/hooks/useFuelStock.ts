@@ -18,7 +18,11 @@ export const useFuelStock = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchFuelStock = async () => {
-    if (!user) return;
+    if (!user) {
+      setFuelStock([]);
+      setLoading(false);
+      return;
+    }
     
     setLoading(true);
     const { data, error } = await supabase
@@ -29,6 +33,7 @@ export const useFuelStock = () => {
 
     if (error) {
       console.error('Error fetching fuel stock:', error);
+      setFuelStock([]);
     } else {
       setFuelStock(data || []);
     }
@@ -75,6 +80,10 @@ export const useFuelStock = () => {
     return currentStock >= requestedLiters;
   };
 
+  useEffect(() => {
+    fetchFuelStock();
+  }, [user]);
+
   // Realtime subscription for stock updates
   useEffect(() => {
     if (!user) return;
@@ -98,10 +107,6 @@ export const useFuelStock = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
-
-  useEffect(() => {
-    fetchFuelStock();
   }, [user]);
 
   return {

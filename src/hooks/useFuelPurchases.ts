@@ -23,7 +23,11 @@ export const useFuelPurchases = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchFuelPurchases = async () => {
-    if (!user) return;
+    if (!user) {
+      setFuelPurchases([]);
+      setLoading(false);
+      return;
+    }
     
     setLoading(true);
     const { data, error } = await supabase
@@ -34,6 +38,7 @@ export const useFuelPurchases = () => {
 
     if (error) {
       console.error('Error fetching fuel purchases:', error);
+      setFuelPurchases([]);
     } else {
       setFuelPurchases(data || []);
     }
