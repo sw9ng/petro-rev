@@ -44,7 +44,7 @@ export const FuelSalesExcelUpload = () => {
 
       for (const row of rows) {
         // Skip empty rows
-        if (!row || row.length < 7) continue;
+        if (!row || row.length < 9) continue;
 
         try {
           // Based on the image provided:
@@ -56,17 +56,19 @@ export const FuelSalesExcelUpload = () => {
           // Column F: (empty/skip)
           // Column G: Price per liter
           // Column H: Liters
+          // Column I: Total amount (tutar)
 
           const excelDate = row[1]; // Column B - Date as Excel serial number
           const fuelTypeRaw = row[2]?.toString().trim(); // Column C - Fuel Type
           const pricePerLiter = parseFloat(row[6]?.toString().replace(',', '.') || '0'); // Column G - Price
           const liters = parseFloat(row[7]?.toString().replace(',', '.') || '0'); // Column H - Liters
+          const totalAmount = parseFloat(row[8]?.toString().replace(',', '.') || '0'); // Column I - Total amount
 
-          console.log(`Processing row: Date=${excelDate}, Fuel=${fuelTypeRaw}, Price=${pricePerLiter}, Liters=${liters}`);
+          console.log(`Processing row: Date=${excelDate}, Fuel=${fuelTypeRaw}, Price=${pricePerLiter}, Liters=${liters}, Total=${totalAmount}`);
 
           // Skip if essential data is missing
-          if (!fuelTypeRaw || !excelDate || liters <= 0 || pricePerLiter <= 0) {
-            console.log(`Skipping row due to missing essential data: Date=${excelDate}, Fuel=${fuelTypeRaw}, Price=${pricePerLiter}, Liters=${liters}`);
+          if (!fuelTypeRaw || !excelDate || liters <= 0 || pricePerLiter <= 0 || totalAmount <= 0) {
+            console.log(`Skipping row due to missing essential data: Date=${excelDate}, Fuel=${fuelTypeRaw}, Price=${pricePerLiter}, Liters=${liters}, Total=${totalAmount}`);
             continue;
           }
 
@@ -110,16 +112,18 @@ export const FuelSalesExcelUpload = () => {
             saleDate = new Date();
           }
 
-          const totalAmount = liters * pricePerLiter;
+          // Determine shift based on time (V1: 06:00-18:00, V2: 18:00-06:00)
+          const hour = saleDate.getHours();
+          const shift = (hour >= 6 && hour < 18) ? 'V1' : 'V2';
 
           const fuelSaleData = {
             fuel_type: fuelType,
             liters: liters,
             price_per_liter: pricePerLiter,
-            total_amount: totalAmount,
+            total_amount: totalAmount, // Use the actual total from Excel
             amount: totalAmount,
             sale_time: saleDate.toISOString(),
-            shift: saleDate.getHours() >= 6 && saleDate.getHours() < 18 ? 'Gündüz' : 'Gece'
+            shift: shift
           };
 
           console.log('Adding fuel sale:', fuelSaleData);
@@ -175,6 +179,8 @@ export const FuelSalesExcelUpload = () => {
             • <strong>G Sütunu:</strong> Litre Fiyatı
             <br />
             • <strong>H Sütunu:</strong> Litre Miktarı
+            <br />
+            • <strong>I Sütunu:</strong> Toplam Tutar
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">

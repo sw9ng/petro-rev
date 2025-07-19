@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,7 +31,7 @@ export const FuelSalesManagement = () => {
     liters: '',
     price_per_liter: '',
     sale_time: new Date().toISOString().slice(0, 16),
-    shift: 'Gündüz'
+    shift: 'V1'
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -78,7 +77,7 @@ export const FuelSalesManagement = () => {
         liters: '',
         price_per_liter: '',
         sale_time: new Date().toISOString().slice(0, 16),
-        shift: 'Gündüz'
+        shift: 'V1'
       });
     }
   };
@@ -253,8 +252,8 @@ export const FuelSalesManagement = () => {
                       <SelectValue placeholder="Vardiya Seç" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Gündüz">Gündüz</SelectItem>
-                      <SelectItem value="Gece">Gece</SelectItem>
+                      <SelectItem value="V1">V1 (06:00-18:00)</SelectItem>
+                      <SelectItem value="V2">V2 (18:00-06:00)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -320,8 +319,8 @@ export const FuelSalesManagement = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tümü</SelectItem>
-                  <SelectItem value="Gündüz">Gündüz</SelectItem>
-                  <SelectItem value="Gece">Gece</SelectItem>
+                  <SelectItem value="V1">V1 (06:00-18:00)</SelectItem>
+                  <SelectItem value="V2">V2 (18:00-06:00)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
