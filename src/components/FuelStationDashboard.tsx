@@ -9,10 +9,8 @@ import { PersonnelManagement } from '@/components/PersonnelManagement';
 import { CustomerManagement } from '@/components/CustomerManagement';
 import { ReportsView } from '@/components/ReportsView';
 import { PaymentTracking } from '@/components/PaymentTracking';
-import { SettingsDialog } from '@/components/SettingsDialog';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { DashboardOverview } from '@/components/DashboardOverview';
-import { Fuel, Users, BarChart3, Settings, Calculator, ShoppingCart, Truck, Package } from 'lucide-react';
+import { Fuel, Users, BarChart3, Calculator, ShoppingCart, Truck, Package, Clock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 export const FuelStationDashboard = () => {
@@ -28,7 +26,6 @@ export const FuelStationDashboard = () => {
               <Fuel className="h-8 w-8 text-blue-600" />
               <div>
                 <h1 className="text-xl font-bold text-gray-900">PetroRev Premium</h1>
-                <p className="text-xs text-gray-500">Akaryakıt İstasyonu Yönetim Sistemi</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -36,8 +33,6 @@ export const FuelStationDashboard = () => {
                 Hoşgeldiniz!
                 <span className="font-medium text-blue-600 ml-1">Premium Üye</span>
               </div>
-              <ThemeToggle />
-              <SettingsDialog />
               <button
                 onClick={signOut}
                 className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium"
@@ -63,7 +58,7 @@ export const FuelStationDashboard = () => {
                 activeTab === 'shifts' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              <Users className="h-4 w-4" />
+              <Clock className="h-4 w-4" />
               Vardiya
             </button>
             <button 
@@ -132,10 +127,6 @@ export const FuelStationDashboard = () => {
               <BarChart3 className="h-4 w-4" />
               Rapor
             </button>
-            <button className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 text-sm">
-              <Settings className="h-4 w-4" />
-              Admin
-            </button>
           </div>
         </div>
       </div>
@@ -182,7 +173,6 @@ export const FuelStationDashboard = () => {
         {activeTab === 'cari-satis' && <PaymentTracking />}
         {activeTab === 'reports' && <ReportsView />}
       </div>
-
     </div>
   );
 };
