@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Fuel, Plus, Package, ShoppingCart, Trash2, AlertTriangle } from 'lucide-react';
+import { Fuel, Plus, Package, ShoppingCart, Trash2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useFuelStock } from '@/hooks/useFuelStock';
 import { useFuelPurchases } from '@/hooks/useFuelPurchases';
 import { formatCurrency } from '@/lib/numberUtils';
@@ -21,7 +21,7 @@ const fuelTypes = [
 ];
 
 export const FuelStockManagement = () => {
-  const { fuelStock, loading: stockLoading, updateStock } = useFuelStock();
+  const { fuelStock, loading: stockLoading, updateStock, recalculateStock } = useFuelStock();
   const { fuelPurchases, loading: purchasesLoading, addFuelPurchase, deleteFuelPurchase } = useFuelPurchases();
   
   const [showAddPurchaseDialog, setShowAddPurchaseDialog] = useState(false);
@@ -49,6 +49,12 @@ export const FuelStockManagement = () => {
       return;
     }
 
+    console.log('Adding purchase:', { 
+      fuel_type: purchaseData.fuel_type, 
+      liters, 
+      price: pricePerLiter 
+    });
+
     const newPurchase = {
       fuel_type: purchaseData.fuel_type,
       liters: liters,
@@ -63,6 +69,7 @@ export const FuelStockManagement = () => {
     const { error } = await addFuelPurchase(newPurchase);
 
     if (error) {
+      console.error('Purchase add error:', error);
       toast.error("Yakıt alımı eklenirken bir hata oluştu.");
     } else {
       toast.success("Yakıt alımı başarıyla eklendi ve stok güncellendi.");
@@ -76,6 +83,11 @@ export const FuelStockManagement = () => {
         invoice_number: '',
         notes: ''
       });
+      
+      // Wait a bit then recalculate stock to ensure consistency
+      setTimeout(async () => {
+        await recalculateStock();
+      }, 1000);
     }
   };
 
@@ -83,13 +95,28 @@ export const FuelStockManagement = () => {
     const confirmDelete = window.confirm("Bu yakıt alımını silmek istediğinizden emin misiniz? Stok da güncellenecektir.");
     if (!confirmDelete) return;
 
+    console.log('Deleting purchase:', purchaseId);
+
     const { error } = await deleteFuelPurchase(purchaseId);
 
     if (error) {
+      console.error('Purchase delete error:', error);
       toast.error("Yakıt alımı silinirken bir hata oluştu.");
     } else {
       toast.success("Yakıt alımı başarıyla silindi ve stok güncellendi.");
+      
+      // Wait a bit then recalculate stock to ensure consistency
+      setTimeout(async () => {
+        await recalculateStock();
+      }, 1000);
     }
+  };
+
+  const handleRecalculateStock = async () => {
+    console.log('Manual stock recalculation triggered');
+    toast.info("Stok yeniden hesaplanıyor...");
+    await recalculateStock();
+    toast.success("Stok başarıyla yeniden hesaplandı.");
   };
 
   const getStockLevel = (currentStock: number) => {
@@ -119,109 +146,119 @@ export const FuelStockManagement = () => {
           <h2 className="text-2xl font-bold text-gray-900">Stok & Alım Takibi</h2>
           <p className="text-gray-600">Yakıt stoklarınızı ve alımlarınızı takip edin</p>
         </div>
-        <Dialog open={showAddPurchaseDialog} onOpenChange={setShowAddPurchaseDialog}>
-          <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="h-4 w-4 mr-2" />
-              Yakıt Alımı Ekle
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Yeni Yakıt Alımı</DialogTitle>
-              <DialogDescription>
-                Yakıt alım bilgilerini girin. Stok otomatik olarak güncellenecektir.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Yakıt Tipi</Label>
-                <Select value={purchaseData.fuel_type} onValueChange={(value) => setPurchaseData(prev => ({ ...prev, fuel_type: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Yakıt tipi seçin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {fuelTypes.map(type => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label>Litre</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={purchaseData.liters}
-                  onChange={(e) => setPurchaseData(prev => ({ ...prev, liters: e.target.value }))}
-                  placeholder="0.00"
-                />
-              </div>
-
-              <div>
-                <Label>Alış Fiyatı (Litre)</Label>
-                <Input
-                  type="number"
-                  step="0.001"
-                  value={purchaseData.purchase_price_per_liter}
-                  onChange={(e) => setPurchaseData(prev => ({ ...prev, purchase_price_per_liter: e.target.value }))}
-                  placeholder="0.000"
-                />
-              </div>
-
-              {purchaseData.liters && purchaseData.purchase_price_per_liter && (
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            onClick={handleRecalculateStock}
+            className="bg-yellow-50 hover:bg-yellow-100 border-yellow-200"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Stok Yeniden Hesapla
+          </Button>
+          <Dialog open={showAddPurchaseDialog} onOpenChange={setShowAddPurchaseDialog}>
+            <DialogTrigger asChild>
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="h-4 w-4 mr-2" />
+                Yakıt Alımı Ekle
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Yeni Yakıt Alımı</DialogTitle>
+                <DialogDescription>
+                  Yakıt alım bilgilerini girin. Stok otomatik olarak güncellenecektir.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
                 <div>
-                  <Label>Toplam Tutar</Label>
+                  <Label>Yakıt Tipi</Label>
+                  <Select value={purchaseData.fuel_type} onValueChange={(value) => setPurchaseData(prev => ({ ...prev, fuel_type: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Yakıt tipi seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {fuelTypes.map(type => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label>Litre</Label>
                   <Input
-                    type="text"
-                    value={formatCurrency(parseFloat(purchaseData.liters) * parseFloat(purchaseData.purchase_price_per_liter))}
-                    readOnly
-                    className="bg-gray-50"
+                    type="number"
+                    step="0.01"
+                    value={purchaseData.liters}
+                    onChange={(e) => setPurchaseData(prev => ({ ...prev, liters: e.target.value }))}
+                    placeholder="0.00"
                   />
                 </div>
-              )}
 
-              <div>
-                <Label>Alım Tarihi</Label>
-                <Input
-                  type="datetime-local"
-                  value={purchaseData.purchase_date}
-                  onChange={(e) => setPurchaseData(prev => ({ ...prev, purchase_date: e.target.value }))}
-                />
+                <div>
+                  <Label>Alış Fiyatı (Litre)</Label>
+                  <Input
+                    type="number"
+                    step="0.001"
+                    value={purchaseData.purchase_price_per_liter}
+                    onChange={(e) => setPurchaseData(prev => ({ ...prev, purchase_price_per_liter: e.target.value }))}
+                    placeholder="0.000"
+                  />
+                </div>
+
+                {purchaseData.liters && purchaseData.purchase_price_per_liter && (
+                  <div>
+                    <Label>Toplam Tutar</Label>
+                    <Input
+                      type="text"
+                      value={formatCurrency(parseFloat(purchaseData.liters) * parseFloat(purchaseData.purchase_price_per_liter))}
+                      readOnly
+                      className="bg-gray-50"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <Label>Alım Tarihi</Label>
+                  <Input
+                    type="datetime-local"
+                    value={purchaseData.purchase_date}
+                    onChange={(e) => setPurchaseData(prev => ({ ...prev, purchase_date: e.target.value }))}
+                  />
+                </div>
+
+                <div>
+                  <Label>Tedarikçi (Opsiyonel)</Label>
+                  <Input
+                    value={purchaseData.supplier}
+                    onChange={(e) => setPurchaseData(prev => ({ ...prev, supplier: e.target.value }))}
+                    placeholder="Tedarikçi adı"
+                  />
+                </div>
+
+                <div>
+                  <Label>Fatura No (Opsiyonel)</Label>
+                  <Input
+                    value={purchaseData.invoice_number}
+                    onChange={(e) => setPurchaseData(prev => ({ ...prev, invoice_number: e.target.value }))}
+                    placeholder="Fatura numarası"
+                  />
+                </div>
               </div>
 
-              <div>
-                <Label>Tedarikçi (Opsiyonel)</Label>
-                <Input
-                  value={purchaseData.supplier}
-                  onChange={(e) => setPurchaseData(prev => ({ ...prev, supplier: e.target.value }))}
-                  placeholder="Tedarikçi adı"
-                />
-              </div>
-
-              <div>
-                <Label>Fatura No (Opsiyonel)</Label>
-                <Input
-                  value={purchaseData.invoice_number}
-                  onChange={(e) => setPurchaseData(prev => ({ ...prev, invoice_number: e.target.value }))}
-                  placeholder="Fatura numarası"
-                />
-              </div>
-            </div>
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowAddPurchaseDialog(false)}>
-                İptal
-              </Button>
-              <Button onClick={handleAddPurchase}>
-                Alım Ekle
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowAddPurchaseDialog(false)}>
+                  İptal
+                </Button>
+                <Button onClick={handleAddPurchase}>
+                  Alım Ekle
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <Tabs defaultValue="stock" className="w-full">
@@ -265,6 +302,11 @@ export const FuelStockManagement = () => {
                         {level === 'good' && 'İyi Seviye'}
                       </span>
                     </div>
+                    {stock?.updated_at && (
+                      <div className="text-xs text-gray-400 mt-1">
+                        Son güncelleme: {new Date(stock.updated_at).toLocaleString('tr-TR')}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               );

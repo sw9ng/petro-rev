@@ -26,6 +26,8 @@ export const useFuelStock = () => {
     
     setLoading(true);
     
+    console.log('Fetching fuel stock for user:', user.id);
+    
     const { data, error } = await supabase
       .from('fuel_stock')
       .select('*')
@@ -36,6 +38,7 @@ export const useFuelStock = () => {
       console.error('Error fetching fuel stock:', error);
       setFuelStock([]);
     } else {
+      console.log('Fuel stock data received:', data);
       setFuelStock(data || []);
     }
     setLoading(false);
@@ -43,6 +46,8 @@ export const useFuelStock = () => {
 
   const updateStock = async (fuelType: string, newStock: number) => {
     if (!user) return { error: 'Kullanıcı doğrulanmadı' };
+
+    console.log('Manually updating stock:', { fuelType, newStock, userId: user.id });
 
     const { data, error } = await supabase
       .from('fuel_stock')
@@ -58,6 +63,7 @@ export const useFuelStock = () => {
       .single();
 
     if (!error && data) {
+      console.log('Stock updated manually:', data);
       setFuelStock(prev => {
         const existing = prev.find(stock => stock.fuel_type === fuelType);
         if (existing) {
@@ -66,6 +72,8 @@ export const useFuelStock = () => {
           return [...prev, data];
         }
       });
+    } else {
+      console.error('Error updating stock manually:', error);
     }
 
     return { data, error };
@@ -73,12 +81,94 @@ export const useFuelStock = () => {
 
   const getStockForFuelType = (fuelType: string): number => {
     const stock = fuelStock.find(s => s.fuel_type === fuelType);
-    return stock?.current_stock || 0;
+    const currentStock = stock?.current_stock || 0;
+    console.log(`Stock for ${fuelType}:`, currentStock);
+    return currentStock;
   };
 
   const checkStockAvailability = (fuelType: string, requestedLiters: number): boolean => {
     const currentStock = getStockForFuelType(fuelType);
-    return currentStock >= requestedLiters;
+    const isAvailable = currentStock >= requestedLiters;
+    console.log(`Stock check for ${fuelType}: current=${currentStock}, requested=${requestedLiters}, available=${isAvailable}`);
+    return isAvailable;
+  };
+
+  const recalculateStock = async () => {
+    if (!user) return;
+
+    console.log('Recalculating stock for user:', user.id);
+
+    try {
+      // Get all purchases
+      const { data: purchases, error: purchasesError } = await supabase
+        .from('fuel_purchases')
+        .select('fuel_type, liters')
+        .eq('station_id', user.id);
+
+      if (purchasesError) {
+        console.error('Error fetching purchases:', purchasesError);
+        return;
+      }
+
+      // Get all sales
+      const { data: sales, error: salesError } = await supabase
+        .from('fuel_sales')
+        .select('fuel_type, liters')
+        .eq('station_id', user.id);
+
+      if (salesError) {
+        console.error('Error fetching sales:', salesError);
+        return;
+      }
+
+      console.log('Purchases data:', purchases);
+      console.log('Sales data:', sales);
+
+      // Calculate stock for each fuel type
+      const stockByType: Record<string, number> = {};
+
+      // Add purchases
+      purchases?.forEach(purchase => {
+        if (!stockByType[purchase.fuel_type]) {
+          stockByType[purchase.fuel_type] = 0;
+        }
+        stockByType[purchase.fuel_type] += purchase.liters;
+      });
+
+      // Subtract sales
+      sales?.forEach(sale => {
+        if (!stockByType[sale.fuel_type]) {
+          stockByType[sale.fuel_type] = 0;
+        }
+        stockByType[sale.fuel_type] -= sale.liters;
+      });
+
+      console.log('Calculated stock by type:', stockByType);
+
+      // Update stock in database
+      for (const [fuelType, calculatedStock] of Object.entries(stockByType)) {
+        const finalStock = Math.max(0, calculatedStock); // Prevent negative stock
+        
+        await supabase
+          .from('fuel_stock')
+          .upsert({
+            station_id: user.id,
+            fuel_type: fuelType,
+            current_stock: finalStock,
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'station_id,fuel_type'
+          });
+
+        console.log(`Updated ${fuelType} stock to: ${finalStock}`);
+      }
+
+      // Refresh the local stock data
+      await fetchFuelStock();
+
+    } catch (error) {
+      console.error('Error recalculating stock:', error);
+    }
   };
 
   useEffect(() => {
@@ -100,6 +190,7 @@ export const useFuelStock = () => {
           filter: `station_id=eq.${user.id}`
         },
         (payload) => {
+          console.log('Realtime stock change:', payload);
           fetchFuelStock(); // Refresh stock when changes occur
         }
       )
@@ -116,6 +207,7 @@ export const useFuelStock = () => {
     updateStock,
     refreshStock: fetchFuelStock,
     getStockForFuelType,
-    checkStockAvailability
+    checkStockAvailability,
+    recalculateStock
   };
 };
