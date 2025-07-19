@@ -10,40 +10,13 @@ import { CustomerManagement } from '@/components/CustomerManagement';
 import { ReportsView } from '@/components/ReportsView';
 import { PaymentTracking } from '@/components/PaymentTracking';
 import { DashboardOverview } from '@/components/DashboardOverview';
-import { Fuel, Users, BarChart3, Calculator, ShoppingCart, Truck, Package, Clock } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { Package, Truck } from 'lucide-react';
 
 export const FuelStationDashboard = () => {
-  const { user, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-4">
-              <Fuel className="h-8 w-8 text-blue-600" />
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">PetroRev Premium</h1>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-600">
-                Hoşgeldiniz!
-                <span className="font-medium text-blue-600 ml-1">Premium Üye</span>
-              </div>
-              <button
-                onClick={signOut}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium"
-              >
-                Çıkış
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === 'overview' && <DashboardOverview />}
         {activeTab === 'fuel-sales' && <FuelSalesManagement />}
