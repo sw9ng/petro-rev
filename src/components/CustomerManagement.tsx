@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { useCustomers } from '@/hooks/useCustomers';
 import { useToast } from '@/hooks/use-toast';
 import { CustomerListView } from '@/components/CustomerListView';
 import { CustomerDetailView } from '@/components/CustomerDetailView';
+import { CustomerExcelUpload } from '@/components/CustomerExcelUpload';
 
 export const CustomerManagement = () => {
   const { toast } = useToast();
@@ -83,7 +83,8 @@ export const CustomerManagement = () => {
         <p className="text-sm lg:text-base text-gray-600">Müşterilerinizi ekleyin, yönetin ve detaylarını görüntüleyin</p>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end space-x-2">
+        <CustomerExcelUpload />
         <Dialog open={showAddDialog} onOpenChange={(open) => {
           setShowAddDialog(open);
           if (!open) resetForm();

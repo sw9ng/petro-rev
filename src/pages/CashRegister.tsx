@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,7 @@ import { useCompanies } from '@/hooks/useCompanies';
 import { CompanyCashManagement } from '@/components/CompanyCashManagement';
 import { CompanyAccountsList } from '@/components/CompanyAccountsList';
 import { CustomerDetailView } from '@/components/CustomerDetailView';
+import { CheckManagement } from '@/components/CheckManagement';
 import { Plus, Building2, ArrowLeft, ChevronRight, Users, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -21,7 +21,7 @@ const CashRegister = () => {
   const { getTotalOutstandingDebt } = useCustomerTransactions();
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'income' | 'expense' | 'accounts'>('income');
+  const [activeTab, setActiveTab] = useState<'income' | 'expense' | 'accounts' | 'checks'>('income');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newCompanyData, setNewCompanyData] = useState({
     name: '',
@@ -125,10 +125,11 @@ const CashRegister = () => {
         )}
 
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="income">Gelir Faturaları</TabsTrigger>
             <TabsTrigger value="expense">Gider Faturaları</TabsTrigger>
             <TabsTrigger value="accounts">Cari Listesi</TabsTrigger>
+            <TabsTrigger value="checks">Ödenecek Çekler</TabsTrigger>
           </TabsList>
 
           <TabsContent value="income" className="space-y-4">
@@ -141,6 +142,10 @@ const CashRegister = () => {
 
           <TabsContent value="accounts" className="space-y-4">
             <CompanyAccountsList companyId={selectedCompany} onCustomerSelect={handleCustomerSelect} />
+          </TabsContent>
+
+          <TabsContent value="checks" className="space-y-4">
+            <CheckManagement />
           </TabsContent>
         </Tabs>
       </div>
