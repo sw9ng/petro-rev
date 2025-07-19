@@ -28,7 +28,6 @@ export const FuelStationDashboard = () => {
             <div className="flex items-center space-x-4">
               <Fuel className="h-8 w-8 text-blue-600" />
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Akaryakıt İstasyonu Yönetimi</h1>
                 <p className="text-sm text-gray-500">Hoş geldiniz, {user?.email}</p>
               </div>
             </div>
@@ -53,6 +52,10 @@ export const FuelStationDashboard = () => {
               <Fuel className="h-4 w-4" />
               Yakıt Satışları
             </TabsTrigger>
+            <TabsTrigger value="customers" className="flex items-center gap-2">
+              <ShoppingCart className="h-4 w-4" />
+              Cari Satış
+            </TabsTrigger>
             <TabsTrigger value="stock" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
               Stok & Alım
@@ -64,10 +67,6 @@ export const FuelStationDashboard = () => {
             <TabsTrigger value="personnel" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Personel
-            </TabsTrigger>
-            <TabsTrigger value="customers" className="flex items-center gap-2">
-              <ShoppingCart className="h-4 w-4" />
-              Müşteriler
             </TabsTrigger>
             <TabsTrigger value="reports" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
