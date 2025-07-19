@@ -41,6 +41,7 @@ export const FuelSalesExcelUpload = () => {
 
       let successCount = 0;
       let errorCount = 0;
+      let skippedCount = 0; // Count of rows skipped due to amount > 50,000
 
       for (const row of rows) {
         // Skip empty rows
@@ -69,6 +70,13 @@ export const FuelSalesExcelUpload = () => {
           // Skip if essential data is missing
           if (!fuelTypeRaw || !excelDate || liters <= 0 || pricePerLiter <= 0 || totalAmount <= 0) {
             console.log(`Skipping row due to missing essential data: Date=${excelDate}, Fuel=${fuelTypeRaw}, Price=${pricePerLiter}, Liters=${liters}, Total=${totalAmount}`);
+            continue;
+          }
+
+          // Skip if total amount is above 50,000 TL
+          if (totalAmount > 50000) {
+            console.log(`Skipping row due to amount > 50,000: Total=${totalAmount}`);
+            skippedCount++;
             continue;
           }
 
@@ -147,7 +155,14 @@ export const FuelSalesExcelUpload = () => {
       }
 
       if (successCount > 0) {
-        toast.success(`${successCount} yakıt satışı başarıyla eklendi.${errorCount > 0 ? ` ${errorCount} kayıt eklenemedi.` : ''}`);
+        let message = `${successCount} yakıt satışı başarıyla eklendi.`;
+        if (skippedCount > 0) {
+          message += ` ${skippedCount} kayıt 50.000 TL üstü olduğu için atlandı.`;
+        }
+        if (errorCount > 0) {
+          message += ` ${errorCount} kayıt eklenemedi.`;
+        }
+        toast.success(message);
       } else {
         toast.error("Hiçbir kayıt eklenemedi. Lütfen dosya formatını kontrol edin.");
       }
@@ -186,6 +201,8 @@ export const FuelSalesExcelUpload = () => {
             • <strong>H Sütunu:</strong> Litre Miktarı
             <br />
             • <strong>I Sütunu:</strong> Toplam Tutar
+            <br /><br />
+            <strong>Not:</strong> 50.000 TL üstündeki satışlar yüklenmeyecektir.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
