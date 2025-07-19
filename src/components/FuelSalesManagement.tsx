@@ -7,9 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 import { FuelSalesEditDialog } from '@/components/FuelSalesEditDialog';
 import { FuelSalesExcelUpload } from '@/components/FuelSalesExcelUpload';
-import { Fuel, Plus, Edit, Trash2, Calendar as CalendarIcon, TrendingUp, BarChart3 } from 'lucide-react';
+import { Fuel, Plus, Edit, Trash2, Calendar as CalendarIcon, TrendingUp, BarChart3, Check, X } from 'lucide-react';
 import { useFuelSales } from '@/hooks/useFuelSales';
 import { formatCurrency } from '@/lib/numberUtils';
 import { toast } from 'sonner';
@@ -26,6 +27,8 @@ export const FuelSalesManagement = () => {
   const [customEndDate, setCustomEndDate] = useState<Date>();
   const [fuelTypeFilter, setFuelTypeFilter] = useState('all');
   const [shiftFilter, setShiftFilter] = useState('all');
+  const [selectedSales, setSelectedSales] = useState<string[]>([]);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [fuelSaleData, setFuelSaleData] = useState({
     fuel_type: '',
     liters: '',
@@ -109,7 +112,54 @@ export const FuelSalesManagement = () => {
     }
   };
 
-  // Date filtering logic
+  const handleSaleSelection = (saleId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedSales(prev => [...prev, saleId]);
+    } else {
+      setSelectedSales(prev => prev.filter(id => id !== saleId));
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedSales.length === filteredSales.length) {
+      setSelectedSales([]);
+    } else {
+      setSelectedSales(filteredSales.map(sale => sale.id));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedSales.length === 0) {
+      toast.error("Silinecek satış seçiniz.");
+      return;
+    }
+
+    const confirmDelete = window.confirm(`${selectedSales.length} adet yakıt satışını silmek istediğinizden emin misiniz?`);
+    if (!confirmDelete) return;
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const saleId of selectedSales) {
+      const { error } = await deleteFuelSale(saleId);
+      if (error) {
+        errorCount++;
+      } else {
+        successCount++;
+      }
+    }
+
+    if (successCount > 0) {
+      toast.success(`${successCount} adet yakıt satışı başarıyla silindi.`);
+    }
+    if (errorCount > 0) {
+      toast.error(`${errorCount} adet yakıt satışı silinirken hata oluştu.`);
+    }
+
+    setSelectedSales([]);
+    setIsSelectionMode(false);
+  };
+
   const getDateFilter = () => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -164,7 +214,6 @@ export const FuelSalesManagement = () => {
   const totalSalesAmount = filteredSales.reduce((sum, sale) => sum + sale.total_amount, 0);
   const totalLitersSold = filteredSales.reduce((sum, sale) => sum + sale.liters, 0);
 
-  // Calculate sales by fuel type
   const salesByType = filteredSales.reduce((acc, sale) => {
     if (!acc[sale.fuel_type]) {
       acc[sale.fuel_type] = { amount: 0, liters: 0 };
@@ -187,89 +236,118 @@ export const FuelSalesManagement = () => {
         </div>
         <div className="flex space-x-2">
           <FuelSalesExcelUpload />
-          <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-            <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="h-4 w-4 mr-2" />
-                Satış Ekle
+          {isSelectionMode ? (
+            <div className="flex space-x-2">
+              <Button variant="outline" onClick={() => {
+                setIsSelectionMode(false);
+                setSelectedSales([]);
+              }}>
+                <X className="h-4 w-4 mr-2" />
+                İptal
               </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Yeni Yakıt Satışı Ekle</DialogTitle>
-                <DialogDescription>
-                  Yakıt satış bilgilerini girin.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fuel_type">Yakıt Tipi</Label>
-                  <Select onValueChange={(value) => setFuelSaleData(prev => ({ ...prev, fuel_type: value }))}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Yakıt Tipi Seç" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="MOTORİN">Motorin</SelectItem>
-                      <SelectItem value="LPG">LPG</SelectItem>
-                      <SelectItem value="BENZİN">Benzin</SelectItem>
-                      <SelectItem value="MOTORİN(DİĞER)">Motorin (Diğer)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="liters">Litre</Label>
-                  <Input
-                    type="number"
-                    name="liters"
-                    value={fuelSaleData.liters}
-                    onChange={handleInputChange}
-                    placeholder="Litre"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="price_per_liter">Litre Fiyatı</Label>
-                  <Input
-                    type="number"
-                    name="price_per_liter"
-                    value={fuelSaleData.price_per_liter}
-                    onChange={handleInputChange}
-                    placeholder="Litre Fiyatı"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sale_time">Satış Zamanı</Label>
-                  <Input
-                    type="datetime-local"
-                    name="sale_time"
-                    value={fuelSaleData.sale_time}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="shift">Vardiya</Label>
-                  <Select onValueChange={(value) => setFuelSaleData(prev => ({ ...prev, shift: value }))}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Vardiya Seç" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="V1">V1</SelectItem>
-                      <SelectItem value="V2">V2</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setShowAddDialog(false)}>
-                  İptal
-                </Button>
-                <Button onClick={handleAddFuelSale}>Ekle</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              <Button 
+                variant="destructive" 
+                onClick={handleBulkDelete}
+                disabled={selectedSales.length === 0}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Seçilenleri Sil ({selectedSales.length})
+              </Button>
+            </div>
+          ) : (
+            <>
+              <Button 
+                variant="outline" 
+                onClick={() => setIsSelectionMode(true)}
+                disabled={filteredSales.length === 0}
+              >
+                <Check className="h-4 w-4 mr-2" />
+                Seçmeli Sil
+              </Button>
+              <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+                <DialogTrigger asChild>
+                  <Button className="bg-blue-600 hover:bg-blue-700">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Satış Ekle
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Yeni Yakıt Satışı Ekle</DialogTitle>
+                    <DialogDescription>
+                      Yakıt satış bilgilerini girin.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="fuel_type">Yakıt Tipi</Label>
+                      <Select onValueChange={(value) => setFuelSaleData(prev => ({ ...prev, fuel_type: value }))}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Yakıt Tipi Seç" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="MOTORİN">Motorin</SelectItem>
+                          <SelectItem value="LPG">LPG</SelectItem>
+                          <SelectItem value="BENZİN">Benzin</SelectItem>
+                          <SelectItem value="MOTORİN(DİĞER)">Motorin (Diğer)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="liters">Litre</Label>
+                      <Input
+                        type="number"
+                        name="liters"
+                        value={fuelSaleData.liters}
+                        onChange={handleInputChange}
+                        placeholder="Litre"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="price_per_liter">Litre Fiyatı</Label>
+                      <Input
+                        type="number"
+                        name="price_per_liter"
+                        value={fuelSaleData.price_per_liter}
+                        onChange={handleInputChange}
+                        placeholder="Litre Fiyatı"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="sale_time">Satış Zamanı</Label>
+                      <Input
+                        type="datetime-local"
+                        name="sale_time"
+                        value={fuelSaleData.sale_time}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="shift">Vardiya</Label>
+                      <Select onValueChange={(value) => setFuelSaleData(prev => ({ ...prev, shift: value }))}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Vardiya Seç" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="V1">V1</SelectItem>
+                          <SelectItem value="V2">V2</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+                      İptal
+                    </Button>
+                    <Button onClick={handleAddFuelSale}>Ekle</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Filters */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -383,7 +461,6 @@ export const FuelSalesManagement = () => {
         </CardContent>
       </Card>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
@@ -414,10 +491,20 @@ export const FuelSalesManagement = () => {
         ))}
       </div>
 
-      {/* Sales List */}
       <Card>
         <CardHeader>
-          <CardTitle>Satış Listesi ({filteredSales.length} kayıt)</CardTitle>
+          <CardTitle className="flex items-center justify-between">
+            <span>Satış Listesi ({filteredSales.length} kayıt)</span>
+            {isSelectionMode && filteredSales.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSelectAll}
+              >
+                {selectedSales.length === filteredSales.length ? 'Tümünü Kaldır' : 'Tümünü Seç'}
+              </Button>
+            )}
+          </CardTitle>
           <CardDescription>
             Seçilen kriterlere göre yakıt satışları - Toplam: {formatCurrency(totalSalesAmount)} / {totalLitersSold.toFixed(2)} Litre
           </CardDescription>
@@ -427,6 +514,14 @@ export const FuelSalesManagement = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead>
                 <tr>
+                  {isSelectionMode && (
+                    <th className="px-4 py-3 bg-gray-50">
+                      <Checkbox
+                        checked={selectedSales.length === filteredSales.length && filteredSales.length > 0}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </th>
+                  )}
                   <th className="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">
                     Yakıt Tipi
                   </th>
@@ -445,12 +540,22 @@ export const FuelSalesManagement = () => {
                   <th className="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">
                     Vardiya
                   </th>
-                  <th className="px-4 py-3 bg-gray-50"></th>
+                  {!isSelectionMode && (
+                    <th className="px-4 py-3 bg-gray-50"></th>
+                  )}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredSales.map((sale) => (
                   <tr key={sale.id} className="hover:bg-gray-50">
+                    {isSelectionMode && (
+                      <td className="px-4 py-3">
+                        <Checkbox
+                          checked={selectedSales.includes(sale.id)}
+                          onCheckedChange={(checked) => handleSaleSelection(sale.id, checked as boolean)}
+                        />
+                      </td>
+                    )}
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                         {sale.fuel_type}
@@ -469,21 +574,23 @@ export const FuelSalesManagement = () => {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex space-x-2">
-                        <Button size="sm" variant="outline" onClick={() => handleEditFuelSale(sale)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="text-red-600 hover:text-red-700" 
-                          onClick={() => handleDeleteFuelSale(sale.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
+                    {!isSelectionMode && (
+                      <td className="px-4 py-3">
+                        <div className="flex space-x-2">
+                          <Button size="sm" variant="outline" onClick={() => handleEditFuelSale(sale)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="text-red-600 hover:text-red-700" 
+                            onClick={() => handleDeleteFuelSale(sale.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
