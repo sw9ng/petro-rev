@@ -95,11 +95,7 @@ export const FuelPurchaseManagement = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Yakıt Alımları</h2>
-          <p className="text-gray-600">İstasyonunuzun yakıt alımlarını kaydedin</p>
-        </div>
+      <div className="flex items-center justify-end">
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogTrigger asChild>
             <Button className="bg-green-600 hover:bg-green-700">
