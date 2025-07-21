@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,21 +9,25 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FuelSalesEditDialog } from '@/components/FuelSalesEditDialog';
 import { FuelSalesExcelUpload } from '@/components/FuelSalesExcelUpload';
-import { Fuel, Plus, Edit, Trash2, Calendar as CalendarIcon, TrendingUp, BarChart3, Check, X, AlertTriangle, Package } from 'lucide-react';
+import { Fuel, Plus, Edit, Trash2, Calendar as CalendarIcon, TrendingUp, BarChart3, Check, X } from 'lucide-react';
 import { useFuelSales } from '@/hooks/useFuelSales';
-import { useFuelStock } from '@/hooks/useFuelStock';
 import { formatCurrency } from '@/lib/numberUtils';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
+interface FuelSaleEntry {
+  fuel_type: string;
+  liters: string;
+  total_amount: string;
+  price_per_liter?: number;
+}
+
 export const FuelSalesManagement = () => {
   const { fuelSales, loading, addFuelSale, deleteFuelSale, updateFuelSale } = useFuelSales();
-  const { fuelStock, getStockForFuelType, checkStockAvailability } = useFuelStock();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingSale, setEditingSale] = useState<any>(null);
   const [dateRange, setDateRange] = useState('today');
@@ -32,66 +37,93 @@ export const FuelSalesManagement = () => {
   const [shiftFilter, setShiftFilter] = useState('all');
   const [selectedSales, setSelectedSales] = useState<string[]>([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [fuelSaleData, setFuelSaleData] = useState({
-    fuel_type: '',
-    liters: '',
-    price_per_liter: '',
-    sale_time: new Date().toISOString().slice(0, 16),
-    shift: 'V1'
-  });
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFuelSaleData(prev => ({ ...prev, [name]: value }));
+  const [fuelEntries, setFuelEntries] = useState<FuelSaleEntry[]>([
+    { fuel_type: 'MOTORİN', liters: '', total_amount: '' },
+    { fuel_type: 'LPG', liters: '', total_amount: '' },
+    { fuel_type: 'BENZİN', liters: '', total_amount: '' },
+    { fuel_type: 'MOTORİN(DİĞER)', liters: '', total_amount: '' },
+  ]);
+
+  const [saleDateTime, setSaleDateTime] = useState(new Date().toISOString().slice(0, 16));
+  const [shift, setShift] = useState('V1');
+
+  const calculatePricePerLiter = (liters: string, totalAmount: string): number => {
+    const litersNum = parseFloat(liters) || 0;
+    const totalNum = parseFloat(totalAmount) || 0;
+    return litersNum > 0 ? totalNum / litersNum : 0;
   };
 
-  const handleAddFuelSale = async () => {
-    if (!fuelSaleData.fuel_type || !fuelSaleData.liters || !fuelSaleData.price_per_liter) {
-      toast.error("Lütfen tüm alanları doldurun.");
+  const handleEntryChange = (index: number, field: 'liters' | 'total_amount', value: string) => {
+    const newEntries = [...fuelEntries];
+    newEntries[index][field] = value;
+    
+    // Otomatik hesaplama
+    if (field === 'liters' || field === 'total_amount') {
+      const liters = newEntries[index].liters;
+      const totalAmount = newEntries[index].total_amount;
+      newEntries[index].price_per_liter = calculatePricePerLiter(liters, totalAmount);
+    }
+    
+    setFuelEntries(newEntries);
+  };
+
+  const handleBulkAddSales = async () => {
+    const validEntries = fuelEntries.filter(entry => 
+      parseFloat(entry.liters) > 0 && parseFloat(entry.total_amount) > 0
+    );
+
+    if (validEntries.length === 0) {
+      toast.error("En az bir yakıt türü için litre ve tutar giriniz.");
       return;
     }
 
-    const liters = parseFloat(fuelSaleData.liters);
-    const pricePerLiter = parseFloat(fuelSaleData.price_per_liter);
+    let successCount = 0;
+    let errorCount = 0;
 
-    if (liters <= 0 || pricePerLiter <= 0) {
-      toast.error("Litre ve fiyat değerleri pozitif olmalıdır.");
-      return;
+    for (const entry of validEntries) {
+      const liters = parseFloat(entry.liters);
+      const totalAmount = parseFloat(entry.total_amount);
+      const pricePerLiter = calculatePricePerLiter(entry.liters, entry.total_amount);
+
+      const newFuelSale = {
+        fuel_type: entry.fuel_type,
+        liters: liters,
+        price_per_liter: pricePerLiter,
+        total_amount: totalAmount,
+        amount: totalAmount,
+        sale_time: new Date(saleDateTime).toISOString(),
+        shift: shift
+      };
+
+      const { error } = await addFuelSale(newFuelSale);
+
+      if (error) {
+        errorCount++;
+        console.error(`${entry.fuel_type} satışı eklenirken hata:`, error);
+      } else {
+        successCount++;
+      }
     }
 
-    // Stok kontrolü
-    if (!checkStockAvailability(fuelSaleData.fuel_type, liters)) {
-      const currentStock = getStockForFuelType(fuelSaleData.fuel_type);
-      toast.error(`Yetersiz stok! Mevcut stok: ${currentStock.toFixed(2)} Lt, İstenen: ${liters.toFixed(2)} Lt`);
-      return;
+    if (successCount > 0) {
+      toast.success(`${successCount} yakıt satışı başarıyla eklendi.`);
+    }
+    if (errorCount > 0) {
+      toast.error(`${errorCount} yakıt satışı eklenirken hata oluştu.`);
     }
 
-    const saleTime = new Date(fuelSaleData.sale_time).toISOString();
-
-    const newFuelSale = {
-      fuel_type: fuelSaleData.fuel_type,
-      liters: liters,
-      price_per_liter: pricePerLiter,
-      total_amount: liters * pricePerLiter,
-      amount: liters * pricePerLiter,
-      sale_time: saleTime,
-      shift: fuelSaleData.shift
-    };
-
-    const { error } = await addFuelSale(newFuelSale);
-
-    if (error) {
-      toast.error("Yakıt satışı eklenirken bir hata oluştu.");
-    } else {
-      toast.success("Yakıt satışı başarıyla eklendi ve stok güncellendi.");
+    if (successCount > 0) {
       setShowAddDialog(false);
-      setFuelSaleData({
-        fuel_type: '',
-        liters: '',
-        price_per_liter: '',
-        sale_time: new Date().toISOString().slice(0, 16),
-        shift: 'V1'
-      });
+      // Formu temizle
+      setFuelEntries([
+        { fuel_type: 'MOTORİN', liters: '', total_amount: '' },
+        { fuel_type: 'LPG', liters: '', total_amount: '' },
+        { fuel_type: 'BENZİN', liters: '', total_amount: '' },
+        { fuel_type: 'MOTORİN(DİĞER)', liters: '', total_amount: '' },
+      ]);
+      setSaleDateTime(new Date().toISOString().slice(0, 16));
+      setShift('V1');
     }
   };
 
@@ -110,7 +142,7 @@ export const FuelSalesManagement = () => {
   };
 
   const handleDeleteFuelSale = async (saleId: string) => {
-    const confirmDelete = window.confirm("Bu yakıt satışını silmek istediğinizden emin misiniz? Stok da güncellenecektir.");
+    const confirmDelete = window.confirm("Bu yakıt satışını silmek istediğinizden emin misiniz?");
     if (!confirmDelete) return;
 
     const { error } = await deleteFuelSale(saleId);
@@ -118,7 +150,7 @@ export const FuelSalesManagement = () => {
     if (error) {
       toast.error("Yakıt satışı silinirken bir hata oluştu.");
     } else {
-      toast.success("Yakıt satışı başarıyla silindi ve stok güncellendi.");
+      toast.success("Yakıt satışı başarıyla silindi.");
     }
   };
 
@@ -233,42 +265,23 @@ export const FuelSalesManagement = () => {
     return acc;
   }, {} as Record<string, { amount: number; liters: number }>);
 
-  const getCurrentStock = (fuelType: string) => {
-    return getStockForFuelType(fuelType);
-  };
-
-  const getStockWarning = (fuelType: string, requestedLiters: number) => {
-    if (!fuelType || !requestedLiters) return null;
-    
-    const currentStock = getCurrentStock(fuelType);
-    const isAvailable = checkStockAvailability(fuelType, requestedLiters);
-
-    if (!isAvailable) {
-      return {
-        type: 'error',
-        message: `Yetersiz stok! Mevcut: ${currentStock.toFixed(2)} Lt`
-      };
-    }
-
-    if (currentStock - requestedLiters <= 100) {
-      return {
-        type: 'warning',
-        message: `Uyarı: Satış sonrası kalan stok düşük olacak (${(currentStock - requestedLiters).toFixed(2)} Lt)`
-      };
-    }
-
-    return null;
+  const getTotalForEntry = () => {
+    return fuelEntries.reduce((sum, entry) => sum + (parseFloat(entry.total_amount) || 0), 0);
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center h-64">Yükleniyor...</div>;
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Yakıt Satışları</h2>
+          <h2 className="text-3xl font-bold text-gray-900">Yakıt Satışları</h2>
           <p className="text-gray-600">Yakıt satışlarınızı kaydedin ve takip edin</p>
         </div>
         <div className="flex space-x-2">
@@ -303,125 +316,100 @@ export const FuelSalesManagement = () => {
               </Button>
               <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
                 <DialogTrigger asChild>
-                  <Button className="bg-blue-600 hover:bg-blue-700">
+                  <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800">
                     <Plus className="h-4 w-4 mr-2" />
-                    Satış Ekle
+                    Yakıt Satışı Ekle
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="max-w-2xl">
                   <DialogHeader>
-                    <DialogTitle>Yeni Yakıt Satışı Ekle</DialogTitle>
+                    <DialogTitle>Yakıt Satışları Ekle</DialogTitle>
                     <DialogDescription>
-                      Yakıt satış bilgilerini girin. Stok otomatik olarak güncellenecektir.
+                      Tüm yakıt türleri için satış bilgilerini girin. Litre ve tutar girdiğinizde litre fiyatı otomatik hesaplanacak.
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="fuel_type">Yakıt Tipi</Label>
-                      <Select onValueChange={(value) => setFuelSaleData(prev => ({ ...prev, fuel_type: value }))}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Yakıt Tipi Seç" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="MOTORİN">
-                            <div className="flex items-center justify-between w-full">
-                              <span>Motorin</span>
-                              <span className="text-xs text-gray-500 ml-2">
-                                Stok: {getCurrentStock('MOTORİN').toFixed(2)} Lt
-                              </span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="LPG">
-                            <div className="flex items-center justify-between w-full">
-                              <span>LPG</span>
-                              <span className="text-xs text-gray-500 ml-2">
-                                Stok: {getCurrentStock('LPG').toFixed(2)} Lt
-                              </span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="BENZİN">
-                            <div className="flex items-center justify-between w-full">
-                              <span>Benzin</span>
-                              <span className="text-xs text-gray-500 ml-2">
-                                Stok: {getCurrentStock('BENZİN').toFixed(2)} Lt
-                              </span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="MOTORİN(DİĞER)">
-                            <div className="flex items-center justify-between w-full">
-                              <span>Motorin (Diğer)</span>
-                              <span className="text-xs text-gray-500 ml-2">
-                                Stok: {getCurrentStock('MOTORİN(DİĞER)').toFixed(2)} Lt
-                              </span>
-                            </div>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="sale_time">Satış Zamanı</Label>
+                        <Input
+                          type="datetime-local"
+                          value={saleDateTime}
+                          onChange={(e) => setSaleDateTime(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="shift">Vardiya</Label>
+                        <Select value={shift} onValueChange={setShift}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="V1">V1</SelectItem>
+                            <SelectItem value="V2">V2</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="liters">Litre</Label>
-                      <Input
-                        type="number"
-                        name="liters"
-                        value={fuelSaleData.liters}
-                        onChange={handleInputChange}
-                        placeholder="Litre"
-                      />
-                    </div>
-                    
-                    {/* Stok uyarısı */}
-                    {fuelSaleData.fuel_type && fuelSaleData.liters && (
-                      (() => {
-                        const warning = getStockWarning(fuelSaleData.fuel_type, parseFloat(fuelSaleData.liters) || 0);
-                        if (warning) {
-                          return (
-                            <Alert variant={warning.type === 'error' ? 'destructive' : 'default'}>
-                              <AlertTriangle className="h-4 w-4" />
-                              <AlertDescription>{warning.message}</AlertDescription>
-                            </Alert>
-                          );
-                        }
-                        return null;
-                      })()
-                    )}
 
-                    <div className="space-y-2">
-                      <Label htmlFor="price_per_liter">Litre Fiyatı</Label>
-                      <Input
-                        type="number"
-                        name="price_per_liter"
-                        value={fuelSaleData.price_per_liter}
-                        onChange={handleInputChange}
-                        placeholder="Litre Fiyatı"
-                      />
+                    <div className="space-y-4">
+                      <div className="text-lg font-semibold">Yakıt Satışları</div>
+                      <div className="grid gap-4">
+                        {fuelEntries.map((entry, index) => (
+                          <Card key={entry.fuel_type} className="p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center space-x-2">
+                                <Fuel className="h-5 w-5 text-blue-600" />
+                                <span className="font-medium">{entry.fuel_type}</span>
+                              </div>
+                              {entry.price_per_liter && entry.price_per_liter > 0 && (
+                                <span className="text-sm text-gray-500">
+                                  {entry.price_per_liter.toFixed(2)} ₺/Lt
+                                </span>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-2">
+                                <Label className="text-sm">Litre</Label>
+                                <Input
+                                  type="number"
+                                  placeholder="0"
+                                  value={entry.liters}
+                                  onChange={(e) => handleEntryChange(index, 'liters', e.target.value)}
+                                  className="text-right"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-sm">Tutar (₺)</Label>
+                                <Input
+                                  type="number"
+                                  placeholder="0"
+                                  value={entry.total_amount}
+                                  onChange={(e) => handleEntryChange(index, 'total_amount', e.target.value)}
+                                  className="text-right"
+                                />
+                              </div>
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="sale_time">Satış Zamanı</Label>
-                      <Input
-                        type="datetime-local"
-                        name="sale_time"
-                        value={fuelSaleData.sale_time}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="shift">Vardiya</Label>
-                      <Select onValueChange={(value) => setFuelSaleData(prev => ({ ...prev, shift: value }))}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Vardiya Seç" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="V1">V1</SelectItem>
-                          <SelectItem value="V2">V2</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+
+                    {getTotalForEntry() > 0 && (
+                      <div className="bg-green-50 p-4 rounded-lg">
+                        <div className="text-lg font-semibold text-green-800">
+                          Toplam Tutar: {formatCurrency(getTotalForEntry())}
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setShowAddDialog(false)}>
                       İptal
                     </Button>
-                    <Button onClick={handleAddFuelSale}>Ekle</Button>
+                    <Button onClick={handleBulkAddSales} className="bg-green-600 hover:bg-green-700">
+                      Satışları Ekle
+                    </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
@@ -429,47 +417,6 @@ export const FuelSalesManagement = () => {
           )}
         </div>
       </div>
-
-      {/* Stok durumu kartı */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Mevcut Stok Durumu
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {['MOTORİN', 'LPG', 'BENZİN', 'MOTORİN(DİĞER)'].map(fuelType => {
-              const stock = getCurrentStock(fuelType);
-              const isLow = stock <= 500;
-              const isCritical = stock <= 100;
-              
-              return (
-                <div key={fuelType} className={`p-3 rounded-lg border ${
-                  isCritical ? 'bg-red-50 border-red-200' : 
-                  isLow ? 'bg-yellow-50 border-yellow-200' : 
-                  'bg-green-50 border-green-200'
-                }`}>
-                  <div className="text-sm font-medium">{fuelType}</div>
-                  <div className={`text-lg font-bold ${
-                    isCritical ? 'text-red-600' : 
-                    isLow ? 'text-yellow-600' : 
-                    'text-green-600'
-                  }`}>
-                    {stock.toFixed(2)} Lt
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {isCritical ? 'Kritik Seviye' : 
-                     isLow ? 'Düşük Stok' : 
-                     'Normal'}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader>
@@ -549,7 +496,6 @@ export const FuelSalesManagement = () => {
                         selected={customStartDate}
                         onSelect={setCustomStartDate}
                         initialFocus
-                        className="pointer-events-auto"
                       />
                     </PopoverContent>
                   </Popover>
@@ -573,7 +519,6 @@ export const FuelSalesManagement = () => {
                         selected={customEndDate}
                         onSelect={setCustomEndDate}
                         initialFocus
-                        className="pointer-events-auto"
                       />
                     </PopoverContent>
                   </Popover>
@@ -585,7 +530,7 @@ export const FuelSalesManagement = () => {
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
+        <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
@@ -593,13 +538,13 @@ export const FuelSalesManagement = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{formatCurrency(totalSalesAmount)}</div>
-            <p className="text-xs text-gray-500">{totalLitersSold.toFixed(2)} Litre</p>
+            <div className="text-2xl font-bold">{formatCurrency(totalSalesAmount)}</div>
+            <p className="text-xs text-green-100">{totalLitersSold.toFixed(2)} Litre</p>
           </CardContent>
         </Card>
 
         {Object.entries(salesByType).map(([fuelType, data]) => (
-          <Card key={fuelType}>
+          <Card key={fuelType} className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <Fuel className="h-4 w-4" />
@@ -608,7 +553,7 @@ export const FuelSalesManagement = () => {
             </CardHeader>
             <CardContent>
               <div className="text-xl font-bold">{formatCurrency(data.amount)}</div>
-              <p className="text-xs text-gray-500">{data.liters.toFixed(2)} Litre</p>
+              <p className="text-xs text-blue-100">{data.liters.toFixed(2)} Litre</p>
             </CardContent>
           </Card>
         ))}
@@ -636,35 +581,35 @@ export const FuelSalesManagement = () => {
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead>
-                <tr>
+                <tr className="bg-gray-50">
                   {isSelectionMode && (
-                    <th className="px-4 py-3 bg-gray-50">
+                    <th className="px-4 py-3">
                       <Checkbox
                         checked={selectedSales.length === filteredSales.length && filteredSales.length > 0}
                         onCheckedChange={handleSelectAll}
                       />
                     </th>
                   )}
-                  <th className="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Yakıt Tipi
                   </th>
-                  <th className="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Litre
                   </th>
-                  <th className="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Birim Fiyat
                   </th>
-                  <th className="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Toplam
                   </th>
-                  <th className="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Tarih/Saat
                   </th>
-                  <th className="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Vardiya
                   </th>
                   {!isSelectionMode && (
-                    <th className="px-4 py-3 bg-gray-50"></th>
+                    <th className="px-4 py-3"></th>
                   )}
                 </tr>
               </thead>

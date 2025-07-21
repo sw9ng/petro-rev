@@ -7,10 +7,9 @@ import { ShiftManagement } from '@/components/ShiftManagement';
 import { PersonnelManagement } from '@/components/PersonnelManagement';
 import { CustomerManagement } from '@/components/CustomerManagement';
 import { FuelSalesManagement } from '@/components/FuelSalesManagement';
-import { FuelStockManagement } from '@/components/FuelStockManagement';
 import { ReportsView } from '@/components/ReportsView';
 import { SettingsDialog } from '@/components/SettingsDialog';
-import { BarChart3, Users, UserCheck, Store, Fuel, Package, FileText, Settings } from 'lucide-react';
+import { BarChart3, Users, UserCheck, Store, Fuel, FileText, Settings } from 'lucide-react';
 
 export const DashboardOverview = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -31,7 +30,7 @@ export const DashboardOverview = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7 mb-8">
+          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 mb-8">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Özet</span>
@@ -47,10 +46,6 @@ export const DashboardOverview = () => {
             <TabsTrigger value="customers" className="flex items-center gap-2">
               <Store className="h-4 w-4" />
               <span className="hidden sm:inline">Müşteriler</span>
-            </TabsTrigger>
-            <TabsTrigger value="stock" className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              <span className="hidden sm:inline">Stok & Alım</span>
             </TabsTrigger>
             <TabsTrigger value="fuel-sales" className="flex items-center gap-2">
               <Fuel className="h-4 w-4" />
@@ -76,10 +71,6 @@ export const DashboardOverview = () => {
 
           <TabsContent value="customers" className="space-y-6">
             <CustomerManagement />
-          </TabsContent>
-
-          <TabsContent value="stock" className="space-y-6">
-            <FuelStockManagement />
           </TabsContent>
 
           <TabsContent value="fuel-sales" className="space-y-6">

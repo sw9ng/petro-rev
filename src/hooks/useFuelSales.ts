@@ -11,8 +11,6 @@ export interface FuelSale {
   total_amount: number;
   liters: number;
   sale_time: string;
-  start_hour?: string;
-  end_hour?: string;
   shift?: string;
   personnel_id: string;
 }
@@ -35,7 +33,6 @@ export const useFuelSales = () => {
     if (error) {
       console.error('Error fetching fuel sales:', error);
     } else {
-      // Type cast the data to match our interface
       const typedData = (data || []).map(sale => ({
         ...sale,
         fuel_type: sale.fuel_type as 'MOTORİN' | 'LPG' | 'BENZİN' | 'MOTORİN(DİĞER)'
@@ -61,14 +58,13 @@ export const useFuelSales = () => {
           sale_time: fuelSaleData.sale_time,
           shift: fuelSaleData.shift,
           station_id: user.id,
-          personnel_id: user.id // Use station owner as default personnel
+          personnel_id: user.id
         }
       ])
       .select('*')
       .single();
 
     if (!error && data) {
-      // Type cast the new sale data
       const typedSale = {
         ...data,
         fuel_type: data.fuel_type as 'MOTORİN' | 'LPG' | 'BENZİN' | 'MOTORİN(DİĞER)'
@@ -100,7 +96,6 @@ export const useFuelSales = () => {
       .single();
 
     if (!error && data) {
-      // Type cast the updated sale data
       const typedSale = {
         ...data,
         fuel_type: data.fuel_type as 'MOTORİN' | 'LPG' | 'BENZİN' | 'MOTORİN(DİĞER)'
