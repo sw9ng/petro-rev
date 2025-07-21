@@ -1,16 +1,15 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { FuelSalesEditDialog } from '@/components/FuelSalesEditDialog';
 import { FuelSalesExcelUpload } from '@/components/FuelSalesExcelUpload';
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Fuel, Plus, Edit, Trash2, Calendar as CalendarIcon, TrendingUp, BarChart3, Check, X } from 'lucide-react';
 import { useFuelSales } from '@/hooks/useFuelSales';
 import { formatCurrency } from '@/lib/numberUtils';
@@ -28,7 +27,7 @@ interface FuelSaleEntry {
 
 export const FuelSalesManagement = () => {
   const { fuelSales, loading, addFuelSale, deleteFuelSale, updateFuelSale } = useFuelSales();
-  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showAddSheet, setShowAddSheet] = useState(false);
   const [editingSale, setEditingSale] = useState<any>(null);
   const [dateRange, setDateRange] = useState('today');
   const [customStartDate, setCustomStartDate] = useState<Date>();
@@ -114,7 +113,7 @@ export const FuelSalesManagement = () => {
     }
 
     if (successCount > 0) {
-      setShowAddDialog(false);
+      setShowAddSheet(false);
       // Formu temizle
       setFuelEntries([
         { fuel_type: 'MOTORİN', liters: '', total_amount: '' },
@@ -314,21 +313,21 @@ export const FuelSalesManagement = () => {
                 <Check className="h-4 w-4 mr-2" />
                 Seçmeli Sil
               </Button>
-              <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-                <DialogTrigger asChild>
+              <Sheet open={showAddSheet} onOpenChange={setShowAddSheet}>
+                <SheetTrigger asChild>
                   <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800">
                     <Plus className="h-4 w-4 mr-2" />
                     Yakıt Satışı Ekle
                   </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Yakıt Satışları Ekle</DialogTitle>
-                    <DialogDescription>
+                </SheetTrigger>
+                <SheetContent side="bottom" className="h-[90vh] overflow-y-auto">
+                  <SheetHeader className="mb-5">
+                    <SheetTitle>Yakıt Satışları Ekle</SheetTitle>
+                    <SheetDescription>
                       Tüm yakıt türleri için satış bilgilerini girin. Litre ve tutar girdiğinizde litre fiyatı otomatik hesaplanacak.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-6">
+                    </SheetDescription>
+                  </SheetHeader>
+                  <div className="space-y-6 overflow-y-auto pb-16">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="sale_time">Satış Zamanı</Label>
@@ -403,16 +402,16 @@ export const FuelSalesManagement = () => {
                       </div>
                     )}
                   </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+                  <SheetFooter className="pt-4 sticky bottom-0 bg-white">
+                    <Button variant="outline" onClick={() => setShowAddSheet(false)}>
                       İptal
                     </Button>
                     <Button onClick={handleBulkAddSales} className="bg-green-600 hover:bg-green-700">
                       Satışları Ekle
                     </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+                  </SheetFooter>
+                </SheetContent>
+              </Sheet>
             </>
           )}
         </div>
