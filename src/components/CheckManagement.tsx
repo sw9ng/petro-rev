@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileCheck, Plus, Upload, Trash2, Eye, Calendar, ArrowUpCircle, ArrowDownCircle, Edit, Info } from 'lucide-react';
+import { FileCheck, Plus, Upload, Trash2, Eye, Calendar, ArrowUpCircle, ArrowDownCircle, Edit, Info, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/numberUtils';
 import { useChecks } from '@/hooks/useChecks';
@@ -94,12 +94,31 @@ export const CheckManagement = ({ companyId }: CheckManagementProps) => {
     }
   };
 
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.amount || !formData.due_date || !formData.check_number) {
       toast.error("Tutar, çek numarası ve vade tarihi zorunludur.");
       return;
+    }
+
+    let imageUrl = undefined;
+    if (formData.image) {
+      try {
+        imageUrl = await convertFileToBase64(formData.image);
+      } catch (error) {
+        toast.error("Resim yüklenirken hata oluştu.");
+        return;
+      }
     }
 
     const checkData = {
@@ -113,7 +132,7 @@ export const CheckManagement = ({ companyId }: CheckManagementProps) => {
       check_number: formData.check_number,
       drawer_name: formData.drawer_name || undefined,
       given_company: formData.given_company || undefined,
-      image_url: formData.image ? URL.createObjectURL(formData.image) : undefined
+      image_url: imageUrl
     };
 
     const { error } = await addCheck(checkData);
@@ -132,6 +151,16 @@ export const CheckManagement = ({ companyId }: CheckManagementProps) => {
       return;
     }
 
+    let imageUrl = selectedCheck.image_url;
+    if (formData.image) {
+      try {
+        imageUrl = await convertFileToBase64(formData.image);
+      } catch (error) {
+        toast.error("Resim yüklenirken hata oluştu.");
+        return;
+      }
+    }
+
     const updateData = {
       check_type: formData.check_type,
       amount: parseFloat(formData.amount),
@@ -142,7 +171,7 @@ export const CheckManagement = ({ companyId }: CheckManagementProps) => {
       check_number: formData.check_number,
       drawer_name: formData.drawer_name || undefined,
       given_company: formData.given_company || undefined,
-      image_url: formData.image ? URL.createObjectURL(formData.image) : selectedCheck.image_url
+      image_url: imageUrl
     };
 
     const { error } = await updateCheck(selectedCheck.id, updateData);
@@ -173,69 +202,72 @@ export const CheckManagement = ({ companyId }: CheckManagementProps) => {
     setIsDetailDialogOpen(true);
   };
 
-  const renderCheckList = (checks: any[], title: string, icon: React.ReactNode, emptyMessage: string) => (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          {icon}
-          <span>{title}</span>
-        </CardTitle>
-        <CardDescription>
-          {checks.filter(c => c.status === 'pending').length} adet bekleyen çek
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {checks.length > 0 ? (
-          <div className="space-y-3">
-            {checks.map((check) => (
-              <div key={check.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3">
-                    <div className="flex-1">
+  const renderCheckList = (checks: any[], title: string, icon: React.ReactNode, emptyMessage: string, showPaidSection = false) => {
+    const pendingChecks = checks.filter(c => c.status === 'pending');
+    const paidChecks = checks.filter(c => c.status === 'paid');
+
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            {icon}
+            <span>{title}</span>
+          </CardTitle>
+          <CardDescription>
+            {pendingChecks.length} adet bekleyen çek
+            {paidChecks.length > 0 && `, ${paidChecks.length} adet ödenen çek`}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* Bekleyen Çekler */}
+          {pendingChecks.length > 0 && (
+            <div className="space-y-3 mb-6">
+              <h4 className="font-medium text-gray-700">Bekleyen Çekler</h4>
+              {pendingChecks.map((check) => (
+                <div key={check.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium">{formatCurrency(check.amount)}</span>
+                          <Badge variant="destructive">
+                            Bekliyor
+                          </Badge>
+                        </div>
+                        <div className="flex items-center space-x-2 text-sm text-gray-600 mt-1">
+                          <Calendar className="h-3 w-3" />
+                          <span>Vade: {new Date(check.due_date).toLocaleDateString('tr-TR')}</span>
+                        </div>
+                        {check.check_number && (
+                          <p className="text-sm text-gray-500 mt-1">Çek No: {check.check_number}</p>
+                        )}
+                      </div>
                       <div className="flex items-center space-x-2">
-                        <span className="font-medium">{formatCurrency(check.amount)}</span>
-                        <Badge 
-                          variant={check.status === 'paid' ? 'default' : 'destructive'}
-                          className={check.status === 'paid' ? 'bg-green-100 text-green-800' : ''}
-                        >
-                          {check.status === 'paid' ? 'Ödendi' : check.status === 'cancelled' ? 'İptal' : 'Bekliyor'}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center space-x-2 text-sm text-gray-600 mt-1">
-                        <Calendar className="h-3 w-3" />
-                        <span>Vade: {new Date(check.due_date).toLocaleDateString('tr-TR')}</span>
-                      </div>
-                      {check.check_number && (
-                        <p className="text-sm text-gray-500 mt-1">Çek No: {check.check_number}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openDetailDialog(check)}
-                        className="text-blue-600 hover:text-blue-700"
-                      >
-                        <Info className="h-4 w-4" />
-                      </Button>
-                      {check.image_url && (
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setSelectedImage(check.image_url)}
+                          onClick={() => openDetailDialog(check)}
+                          className="text-blue-600 hover:text-blue-700"
                         >
-                          <Eye className="h-4 w-4" />
+                          <Info className="h-4 w-4" />
                         </Button>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openEditDialog(check)}
-                        className="text-orange-600 hover:text-orange-700"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      {check.status === 'pending' && (
+                        {check.image_url && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedImage(check.image_url)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openEditDialog(check)}
+                          className="text-orange-600 hover:text-orange-700"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
@@ -244,30 +276,100 @@ export const CheckManagement = ({ companyId }: CheckManagementProps) => {
                         >
                           Ödendi
                         </Button>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteCheck(check.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteCheck(check.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <FileCheck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">{emptyMessage}</h3>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
+              ))}
+            </div>
+          )}
+
+          {/* Ödenen Çekler */}
+          {paidChecks.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="font-medium text-green-700 flex items-center space-x-2">
+                <CheckCircle className="h-4 w-4" />
+                <span>Ödenen Çekler</span>
+              </h4>
+              {paidChecks.map((check) => (
+                <div key={check.id} className="flex items-center justify-between p-4 border rounded-lg bg-green-50 hover:bg-green-100">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium">{formatCurrency(check.amount)}</span>
+                          <Badge className="bg-green-100 text-green-800">
+                            Ödendi
+                          </Badge>
+                        </div>
+                        <div className="flex items-center space-x-2 text-sm text-gray-600 mt-1">
+                          <Calendar className="h-3 w-3" />
+                          <span>Vade: {new Date(check.due_date).toLocaleDateString('tr-TR')}</span>
+                        </div>
+                        {check.check_number && (
+                          <p className="text-sm text-gray-500 mt-1">Çek No: {check.check_number}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openDetailDialog(check)}
+                          className="text-blue-600 hover:text-blue-700"
+                        >
+                          <Info className="h-4 w-4" />
+                        </Button>
+                        {check.image_url && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedImage(check.image_url)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openEditDialog(check)}
+                          className="text-orange-600 hover:text-orange-700"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteCheck(check.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {checks.length === 0 && (
+            <div className="text-center py-8">
+              <FileCheck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">{emptyMessage}</h3>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
 
   if (loading) {
     return (
@@ -472,7 +574,8 @@ export const CheckManagement = ({ companyId }: CheckManagementProps) => {
             payableChecks, 
             "Ödenecek Çekler", 
             <ArrowUpCircle className="h-5 w-5 text-red-500" />,
-            "Henüz ödenecek çek yok"
+            "Henüz ödenecek çek yok",
+            true
           )}
         </TabsContent>
 
@@ -481,7 +584,8 @@ export const CheckManagement = ({ companyId }: CheckManagementProps) => {
             receivableChecks, 
             "Alacak Çekler", 
             <ArrowDownCircle className="h-5 w-5 text-green-500" />,
-            "Henüz alacak çek yok"
+            "Henüz alacak çek yok",
+            true
           )}
         </TabsContent>
       </Tabs>
