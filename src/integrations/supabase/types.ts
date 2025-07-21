@@ -169,8 +169,10 @@ export type Database = {
           description: string | null
           drawer_name: string | null
           due_date: string
+          given_company: string | null
           id: string
           image_url: string | null
+          issue_date: string | null
           status: string
           updated_at: string
         }
@@ -185,8 +187,10 @@ export type Database = {
           description?: string | null
           drawer_name?: string | null
           due_date: string
+          given_company?: string | null
           id?: string
           image_url?: string | null
+          issue_date?: string | null
           status?: string
           updated_at?: string
         }
@@ -201,8 +205,10 @@ export type Database = {
           description?: string | null
           drawer_name?: string | null
           due_date?: string
+          given_company?: string | null
           id?: string
           image_url?: string | null
+          issue_date?: string | null
           status?: string
           updated_at?: string
         }
