@@ -35,10 +35,12 @@ export const CheckManagement = ({ companyId }: CheckManagementProps) => {
     check_type: 'payable' as 'payable' | 'receivable',
     amount: '',
     due_date: '',
+    issue_date: '',
     description: '',
     bank_name: '',
     check_number: '',
     drawer_name: '',
+    given_company: '',
     image: null as File | null
   });
 
@@ -62,8 +64,8 @@ export const CheckManagement = ({ companyId }: CheckManagementProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.amount || !formData.due_date) {
-      toast.error("Tutar ve vade tarihi zorunludur.");
+    if (!formData.amount || !formData.due_date || !formData.check_number) {
+      toast.error("Tutar, çek numarası ve vade tarihi zorunludur.");
       return;
     }
 
@@ -72,10 +74,12 @@ export const CheckManagement = ({ companyId }: CheckManagementProps) => {
       check_type: formData.check_type,
       amount: parseFloat(formData.amount),
       due_date: formData.due_date,
+      issue_date: formData.issue_date || undefined,
       description: formData.description || undefined,
       bank_name: formData.bank_name || undefined,
-      check_number: formData.check_number || undefined,
+      check_number: formData.check_number,
       drawer_name: formData.drawer_name || undefined,
+      given_company: formData.given_company || undefined,
       image_url: formData.image ? URL.createObjectURL(formData.image) : undefined
     };
 
@@ -86,10 +90,12 @@ export const CheckManagement = ({ companyId }: CheckManagementProps) => {
         check_type: 'payable',
         amount: '',
         due_date: '',
+        issue_date: '',
         description: '',
         bank_name: '',
         check_number: '',
         drawer_name: '',
+        given_company: '',
         image: null
       });
       setIsDialogOpen(false);
@@ -136,14 +142,22 @@ export const CheckManagement = ({ companyId }: CheckManagementProps) => {
                         <Calendar className="h-3 w-3" />
                         <span>Vade: {new Date(check.due_date).toLocaleDateString('tr-TR')}</span>
                       </div>
+                      {check.issue_date && (
+                        <div className="flex items-center space-x-2 text-sm text-gray-600 mt-1">
+                          <span>Verildiği Tarih: {new Date(check.issue_date).toLocaleDateString('tr-TR')}</span>
+                        </div>
+                      )}
+                      {check.check_number && (
+                        <p className="text-sm text-gray-500 mt-1">Çek No: {check.check_number}</p>
+                      )}
+                      {check.given_company && (
+                        <p className="text-sm text-gray-500 mt-1">Verilen Şirket: {check.given_company}</p>
+                      )}
                       {check.description && (
                         <p className="text-sm text-gray-600 mt-1">{check.description}</p>
                       )}
                       {check.bank_name && (
                         <p className="text-sm text-gray-500 mt-1">Banka: {check.bank_name}</p>
-                      )}
-                      {check.check_number && (
-                        <p className="text-sm text-gray-500 mt-1">Çek No: {check.check_number}</p>
                       )}
                     </div>
                     <div className="flex items-center space-x-2">
@@ -242,6 +256,16 @@ export const CheckManagement = ({ companyId }: CheckManagementProps) => {
                 </Select>
               </div>
               <div className="space-y-2">
+                <Label htmlFor="check_number">Çek Numarası *</Label>
+                <Input
+                  id="check_number"
+                  value={formData.check_number}
+                  onChange={(e) => setFormData(prev => ({ ...prev, check_number: e.target.value }))}
+                  placeholder="Çek numarası"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="amount">Tutar *</Label>
                 <Input
                   id="amount"
@@ -251,6 +275,15 @@ export const CheckManagement = ({ companyId }: CheckManagementProps) => {
                   onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
                   placeholder="0.00"
                   required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="issue_date">Verildiği Tarih</Label>
+                <Input
+                  id="issue_date"
+                  type="date"
+                  value={formData.issue_date}
+                  onChange={(e) => setFormData(prev => ({ ...prev, issue_date: e.target.value }))}
                 />
               </div>
               <div className="space-y-2">
@@ -264,21 +297,21 @@ export const CheckManagement = ({ companyId }: CheckManagementProps) => {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="given_company">Verilen Şirket</Label>
+                <Input
+                  id="given_company"
+                  value={formData.given_company}
+                  onChange={(e) => setFormData(prev => ({ ...prev, given_company: e.target.value }))}
+                  placeholder="Şirket adı"
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="bank_name">Banka Adı</Label>
                 <Input
                   id="bank_name"
                   value={formData.bank_name}
                   onChange={(e) => setFormData(prev => ({ ...prev, bank_name: e.target.value }))}
                   placeholder="Banka adı"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="check_number">Çek Numarası</Label>
-                <Input
-                  id="check_number"
-                  value={formData.check_number}
-                  onChange={(e) => setFormData(prev => ({ ...prev, check_number: e.target.value }))}
-                  placeholder="Çek numarası"
                 />
               </div>
               <div className="space-y-2">

@@ -18,6 +18,8 @@ export interface Check {
   created_by: string;
   created_at: string;
   updated_at: string;
+  issue_date?: string;
+  given_company?: string;
 }
 
 export interface CreateCheckData {
@@ -30,6 +32,8 @@ export interface CreateCheckData {
   bank_name?: string;
   check_number?: string;
   drawer_name?: string;
+  issue_date?: string;
+  given_company?: string;
 }
 
 export const useChecks = (companyId?: string) => {
@@ -58,7 +62,14 @@ export const useChecks = (companyId?: string) => {
         return;
       }
 
-      setChecks(data || []);
+      // Type assertion ile doğru tipleri garanti ediyoruz
+      const typedChecks = (data || []).map(check => ({
+        ...check,
+        check_type: check.check_type as 'payable' | 'receivable',
+        status: check.status as 'pending' | 'paid' | 'cancelled'
+      }));
+
+      setChecks(typedChecks);
       setError(null);
     } catch (err) {
       console.error('Error fetching checks:', err);
@@ -93,7 +104,14 @@ export const useChecks = (companyId?: string) => {
         return { error: error.message };
       }
 
-      setChecks(prev => [...prev, data]);
+      // Type assertion ile doğru tipleri garanti ediyoruz
+      const typedCheck = {
+        ...data,
+        check_type: data.check_type as 'payable' | 'receivable',
+        status: data.status as 'pending' | 'paid' | 'cancelled'
+      };
+
+      setChecks(prev => [...prev, typedCheck]);
       toast.success('Çek başarıyla eklendi.');
       return { error: null };
     } catch (err) {
