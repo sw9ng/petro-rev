@@ -230,129 +230,131 @@ export const CheckManagement = ({ companyId }: CheckManagementProps) => {
               <span>Çek Ekle</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Yeni Çek Ekle</DialogTitle>
               <DialogDescription>
                 Çek bilgilerini ve fotoğrafını ekleyin
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="check_type">Çek Türü *</Label>
-                <Select 
-                  value={formData.check_type} 
-                  onValueChange={(value: 'payable' | 'receivable') => 
-                    setFormData(prev => ({ ...prev, check_type: value }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Çek türü seçin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="payable">Ödenecek Çek</SelectItem>
-                    <SelectItem value="receivable">Alacak Çek</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="check_number">Çek Numarası *</Label>
-                <Input
-                  id="check_number"
-                  value={formData.check_number}
-                  onChange={(e) => setFormData(prev => ({ ...prev, check_number: e.target.value }))}
-                  placeholder="Çek numarası"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="amount">Tutar *</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  value={formData.amount}
-                  onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
-                  placeholder="0.00"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="issue_date">Verildiği Tarih</Label>
-                <Input
-                  id="issue_date"
-                  type="date"
-                  value={formData.issue_date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, issue_date: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="due_date">Vade Tarihi *</Label>
-                <Input
-                  id="due_date"
-                  type="date"
-                  value={formData.due_date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="given_company">Verilen Şirket</Label>
-                <Input
-                  id="given_company"
-                  value={formData.given_company}
-                  onChange={(e) => setFormData(prev => ({ ...prev, given_company: e.target.value }))}
-                  placeholder="Şirket adı"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="bank_name">Banka Adı</Label>
-                <Input
-                  id="bank_name"
-                  value={formData.bank_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, bank_name: e.target.value }))}
-                  placeholder="Banka adı"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="drawer_name">Çek Sahibi</Label>
-                <Input
-                  id="drawer_name"
-                  value={formData.drawer_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, drawer_name: e.target.value }))}
-                  placeholder="Çek sahibinin adı"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Açıklama</Label>
-                <Input
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Çek açıklaması"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="image">Çek Fotoğrafı</Label>
-                <Input
-                  id="image"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                />
-                {formData.image && (
-                  <p className="text-sm text-green-600">
-                    Dosya seçildi: {formData.image.name}
-                  </p>
-                )}
-              </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  İptal
-                </Button>
-                <Button type="submit">Ekle</Button>
-              </DialogFooter>
-            </form>
+            <div className="max-h-[60vh] overflow-y-auto px-1">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="check_type">Çek Türü *</Label>
+                  <Select 
+                    value={formData.check_type} 
+                    onValueChange={(value: 'payable' | 'receivable') => 
+                      setFormData(prev => ({ ...prev, check_type: value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Çek türü seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="payable">Ödenecek Çek</SelectItem>
+                      <SelectItem value="receivable">Alacak Çek</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="check_number">Çek Numarası *</Label>
+                  <Input
+                    id="check_number"
+                    value={formData.check_number}
+                    onChange={(e) => setFormData(prev => ({ ...prev, check_number: e.target.value }))}
+                    placeholder="Çek numarası"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Tutar *</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    value={formData.amount}
+                    onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                    placeholder="0.00"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="issue_date">Verildiği Tarih</Label>
+                  <Input
+                    id="issue_date"
+                    type="date"
+                    value={formData.issue_date}
+                    onChange={(e) => setFormData(prev => ({ ...prev, issue_date: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="due_date">Vade Tarihi *</Label>
+                  <Input
+                    id="due_date"
+                    type="date"
+                    value={formData.due_date}
+                    onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="given_company">Verilen Şirket</Label>
+                  <Input
+                    id="given_company"
+                    value={formData.given_company}
+                    onChange={(e) => setFormData(prev => ({ ...prev, given_company: e.target.value }))}
+                    placeholder="Şirket adı"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bank_name">Banka Adı</Label>
+                  <Input
+                    id="bank_name"
+                    value={formData.bank_name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, bank_name: e.target.value }))}
+                    placeholder="Banka adı"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="drawer_name">Çek Sahibi</Label>
+                  <Input
+                    id="drawer_name"
+                    value={formData.drawer_name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, drawer_name: e.target.value }))}
+                    placeholder="Çek sahibinin adı"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Açıklama</Label>
+                  <Input
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Çek açıklaması"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="image">Çek Fotoğrafı</Label>
+                  <Input
+                    id="image"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                  />
+                  {formData.image && (
+                    <p className="text-sm text-green-600">
+                      Dosya seçildi: {formData.image.name}
+                    </p>
+                  )}
+                </div>
+                <DialogFooter className="mt-6">
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    İptal
+                  </Button>
+                  <Button type="submit">Ekle</Button>
+                </DialogFooter>
+              </form>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
@@ -394,7 +396,6 @@ export const CheckManagement = ({ companyId }: CheckManagementProps) => {
         </Card>
       </div>
 
-      {/* Çek Listeleri */}
       <Tabs defaultValue="payable" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="payable">Ödenecek Çekler</TabsTrigger>
@@ -420,7 +421,6 @@ export const CheckManagement = ({ companyId }: CheckManagementProps) => {
         </TabsContent>
       </Tabs>
 
-      {/* Resim Görüntüleme Dialog */}
       {selectedImage && (
         <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
           <DialogContent className="sm:max-w-[600px]">
