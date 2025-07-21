@@ -36,6 +36,19 @@ export interface CreateCheckData {
   given_company?: string;
 }
 
+export interface UpdateCheckData {
+  check_type?: 'payable' | 'receivable';
+  amount?: number;
+  due_date?: string;
+  description?: string;
+  image_url?: string;
+  bank_name?: string;
+  check_number?: string;
+  drawer_name?: string;
+  issue_date?: string;
+  given_company?: string;
+}
+
 export const useChecks = (companyId?: string) => {
   const [checks, setChecks] = useState<Check[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,6 +134,44 @@ export const useChecks = (companyId?: string) => {
     }
   };
 
+  const updateCheck = async (checkId: string, updateData: UpdateCheckData) => {
+    try {
+      const { data, error } = await supabase
+        .from('checks')
+        .update({ 
+          ...updateData,
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', checkId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating check:', error);
+        toast.error('Çek güncellenirken hata oluştu.');
+        return { error: error.message };
+      }
+
+      // Type assertion ile doğru tipleri garanti ediyoruz
+      const typedCheck = {
+        ...data,
+        check_type: data.check_type as 'payable' | 'receivable',
+        status: data.status as 'pending' | 'paid' | 'cancelled'
+      };
+
+      setChecks(prev => prev.map(check => 
+        check.id === checkId ? typedCheck : check
+      ));
+      
+      toast.success('Çek başarıyla güncellendi.');
+      return { error: null };
+    } catch (err) {
+      console.error('Error updating check:', err);
+      toast.error('Çek güncellenirken beklenmeyen hata oluştu.');
+      return { error: 'Unexpected error' };
+    }
+  };
+
   const updateCheckStatus = async (checkId: string, status: 'pending' | 'paid' | 'cancelled') => {
     try {
       const { error } = await supabase
@@ -195,6 +246,7 @@ export const useChecks = (companyId?: string) => {
     loading,
     error,
     addCheck,
+    updateCheck,
     updateCheckStatus,
     deleteCheck,
     refetch: fetchChecks

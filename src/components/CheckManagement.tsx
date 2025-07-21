@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileCheck, Plus, Upload, Trash2, Eye, Calendar, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
+import { FileCheck, Plus, Upload, Trash2, Eye, Calendar, ArrowUpCircle, ArrowDownCircle, Edit, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/numberUtils';
 import { useChecks } from '@/hooks/useChecks';
@@ -25,12 +24,16 @@ export const CheckManagement = ({ companyId }: CheckManagementProps) => {
     totalReceivableAmount,
     loading, 
     addCheck, 
+    updateCheck,
     updateCheckStatus, 
     deleteCheck 
   } = useChecks(companyId);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedCheck, setSelectedCheck] = useState<any>(null);
   const [formData, setFormData] = useState({
     check_type: 'payable' as 'payable' | 'receivable',
     amount: '',
@@ -43,6 +46,36 @@ export const CheckManagement = ({ companyId }: CheckManagementProps) => {
     given_company: '',
     image: null as File | null
   });
+
+  const resetForm = () => {
+    setFormData({
+      check_type: 'payable',
+      amount: '',
+      due_date: '',
+      issue_date: '',
+      description: '',
+      bank_name: '',
+      check_number: '',
+      drawer_name: '',
+      given_company: '',
+      image: null
+    });
+  };
+
+  const fillFormWithCheck = (check: any) => {
+    setFormData({
+      check_type: check.check_type,
+      amount: check.amount.toString(),
+      due_date: check.due_date,
+      issue_date: check.issue_date || '',
+      description: check.description || '',
+      bank_name: check.bank_name || '',
+      check_number: check.check_number || '',
+      drawer_name: check.drawer_name || '',
+      given_company: check.given_company || '',
+      image: null
+    });
+  };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -86,19 +119,38 @@ export const CheckManagement = ({ companyId }: CheckManagementProps) => {
     const { error } = await addCheck(checkData);
     
     if (!error) {
-      setFormData({
-        check_type: 'payable',
-        amount: '',
-        due_date: '',
-        issue_date: '',
-        description: '',
-        bank_name: '',
-        check_number: '',
-        drawer_name: '',
-        given_company: '',
-        image: null
-      });
+      resetForm();
       setIsDialogOpen(false);
+    }
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedCheck || !formData.amount || !formData.due_date || !formData.check_number) {
+      toast.error("Tutar, çek numarası ve vade tarihi zorunludur.");
+      return;
+    }
+
+    const updateData = {
+      check_type: formData.check_type,
+      amount: parseFloat(formData.amount),
+      due_date: formData.due_date,
+      issue_date: formData.issue_date || undefined,
+      description: formData.description || undefined,
+      bank_name: formData.bank_name || undefined,
+      check_number: formData.check_number,
+      drawer_name: formData.drawer_name || undefined,
+      given_company: formData.given_company || undefined,
+      image_url: formData.image ? URL.createObjectURL(formData.image) : selectedCheck.image_url
+    };
+
+    const { error } = await updateCheck(selectedCheck.id, updateData);
+    
+    if (!error) {
+      resetForm();
+      setIsEditDialogOpen(false);
+      setSelectedCheck(null);
     }
   };
 
@@ -108,6 +160,17 @@ export const CheckManagement = ({ companyId }: CheckManagementProps) => {
 
   const handleMarkAsPaid = async (checkId: string) => {
     await updateCheckStatus(checkId, 'paid');
+  };
+
+  const openEditDialog = (check: any) => {
+    setSelectedCheck(check);
+    fillFormWithCheck(check);
+    setIsEditDialogOpen(true);
+  };
+
+  const openDetailDialog = (check: any) => {
+    setSelectedCheck(check);
+    setIsDetailDialogOpen(true);
   };
 
   const renderCheckList = (checks: any[], title: string, icon: React.ReactNode, emptyMessage: string) => (
@@ -142,25 +205,19 @@ export const CheckManagement = ({ companyId }: CheckManagementProps) => {
                         <Calendar className="h-3 w-3" />
                         <span>Vade: {new Date(check.due_date).toLocaleDateString('tr-TR')}</span>
                       </div>
-                      {check.issue_date && (
-                        <div className="flex items-center space-x-2 text-sm text-gray-600 mt-1">
-                          <span>Verildiği Tarih: {new Date(check.issue_date).toLocaleDateString('tr-TR')}</span>
-                        </div>
-                      )}
                       {check.check_number && (
                         <p className="text-sm text-gray-500 mt-1">Çek No: {check.check_number}</p>
                       )}
-                      {check.given_company && (
-                        <p className="text-sm text-gray-500 mt-1">Verilen Şirket: {check.given_company}</p>
-                      )}
-                      {check.description && (
-                        <p className="text-sm text-gray-600 mt-1">{check.description}</p>
-                      )}
-                      {check.bank_name && (
-                        <p className="text-sm text-gray-500 mt-1">Banka: {check.bank_name}</p>
-                      )}
                     </div>
                     <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openDetailDialog(check)}
+                        className="text-blue-600 hover:text-blue-700"
+                      >
+                        <Info className="h-4 w-4" />
+                      </Button>
                       {check.image_url && (
                         <Button
                           variant="outline"
@@ -170,6 +227,14 @@ export const CheckManagement = ({ companyId }: CheckManagementProps) => {
                           <Eye className="h-4 w-4" />
                         </Button>
                       )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openEditDialog(check)}
+                        className="text-orange-600 hover:text-orange-700"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
                       {check.status === 'pending' && (
                         <Button
                           variant="outline"
@@ -420,6 +485,246 @@ export const CheckManagement = ({ companyId }: CheckManagementProps) => {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Çek Düzenleme Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Çek Düzenle</DialogTitle>
+            <DialogDescription>
+              Çek bilgilerini güncelleyin
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto px-1">
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit_check_type">Çek Türü *</Label>
+                <Select 
+                  value={formData.check_type} 
+                  onValueChange={(value: 'payable' | 'receivable') => 
+                    setFormData(prev => ({ ...prev, check_type: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Çek türü seçin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="payable">Ödenecek Çek</SelectItem>
+                    <SelectItem value="receivable">Alacak Çek</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_check_number">Çek Numarası *</Label>
+                <Input
+                  id="edit_check_number"
+                  value={formData.check_number}
+                  onChange={(e) => setFormData(prev => ({ ...prev, check_number: e.target.value }))}
+                  placeholder="Çek numarası"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_amount">Tutar *</Label>
+                <Input
+                  id="edit_amount"
+                  type="number"
+                  step="0.01"
+                  value={formData.amount}
+                  onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                  placeholder="0.00"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_issue_date">Verildiği Tarih</Label>
+                <Input
+                  id="edit_issue_date"
+                  type="date"
+                  value={formData.issue_date}
+                  onChange={(e) => setFormData(prev => ({ ...prev, issue_date: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_due_date">Vade Tarihi *</Label>
+                <Input
+                  id="edit_due_date"
+                  type="date"
+                  value={formData.due_date}
+                  onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_given_company">Verilen Şirket</Label>
+                <Input
+                  id="edit_given_company"
+                  value={formData.given_company}
+                  onChange={(e) => setFormData(prev => ({ ...prev, given_company: e.target.value }))}
+                  placeholder="Şirket adı"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_bank_name">Banka Adı</Label>
+                <Input
+                  id="edit_bank_name"
+                  value={formData.bank_name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, bank_name: e.target.value }))}
+                  placeholder="Banka adı"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_drawer_name">Çek Sahibi</Label>
+                <Input
+                  id="edit_drawer_name"
+                  value={formData.drawer_name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, drawer_name: e.target.value }))}
+                  placeholder="Çek sahibinin adı"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_description">Açıklama</Label>
+                <Input
+                  id="edit_description"
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Çek açıklaması"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_image">Çek Fotoğrafı</Label>
+                <Input
+                  id="edit_image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                />
+                {formData.image && (
+                  <p className="text-sm text-green-600">
+                    Yeni dosya seçildi: {formData.image.name}
+                  </p>
+                )}
+                {selectedCheck?.image_url && !formData.image && (
+                  <p className="text-sm text-blue-600">
+                    Mevcut fotoğraf var
+                  </p>
+                )}
+              </div>
+              <DialogFooter className="mt-6">
+                <Button type="button" variant="outline" onClick={() => {
+                  setIsEditDialogOpen(false);
+                  resetForm();
+                  setSelectedCheck(null);
+                }}>
+                  İptal
+                </Button>
+                <Button type="submit">Güncelle</Button>
+              </DialogFooter>
+            </form>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Çek Detay Dialog */}
+      <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Çek Detayları</DialogTitle>
+          </DialogHeader>
+          {selectedCheck && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Çek Türü</Label>
+                  <p className="text-sm">
+                    {selectedCheck.check_type === 'payable' ? 'Ödenecek Çek' : 'Alacak Çek'}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Durum</Label>
+                  <Badge 
+                    variant={selectedCheck.status === 'paid' ? 'default' : 'destructive'}
+                    className={selectedCheck.status === 'paid' ? 'bg-green-100 text-green-800' : ''}
+                  >
+                    {selectedCheck.status === 'paid' ? 'Ödendi' : selectedCheck.status === 'cancelled' ? 'İptal' : 'Bekliyor'}
+                  </Badge>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Tutar</Label>
+                  <p className="text-lg font-medium">{formatCurrency(selectedCheck.amount)}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Çek Numarası</Label>
+                  <p className="text-sm">{selectedCheck.check_number || 'Belirtilmemiş'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Vade Tarihi</Label>
+                  <p className="text-sm">{new Date(selectedCheck.due_date).toLocaleDateString('tr-TR')}</p>
+                </div>
+                {selectedCheck.issue_date && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600">Verildiği Tarih</Label>
+                    <p className="text-sm">{new Date(selectedCheck.issue_date).toLocaleDateString('tr-TR')}</p>
+                  </div>
+                )}
+                {selectedCheck.given_company && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600">Verilen Şirket</Label>
+                    <p className="text-sm">{selectedCheck.given_company}</p>
+                  </div>
+                )}
+                {selectedCheck.bank_name && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600">Banka</Label>
+                    <p className="text-sm">{selectedCheck.bank_name}</p>
+                  </div>
+                )}
+                {selectedCheck.drawer_name && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600">Çek Sahibi</Label>
+                    <p className="text-sm">{selectedCheck.drawer_name}</p>
+                  </div>
+                )}
+              </div>
+              
+              {selectedCheck.description && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Açıklama</Label>
+                  <p className="text-sm p-3 bg-gray-50 rounded">{selectedCheck.description}</p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4 text-xs text-gray-500">
+                <div>
+                  <Label className="text-xs font-medium text-gray-500">Oluşturulma</Label>
+                  <p>{new Date(selectedCheck.created_at).toLocaleString('tr-TR')}</p>
+                </div>
+                <div>
+                  <Label className="text-xs font-medium text-gray-500">Son Güncelleme</Label>
+                  <p>{new Date(selectedCheck.updated_at).toLocaleString('tr-TR')}</p>
+                </div>
+              </div>
+
+              {selectedCheck.image_url && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Çek Fotoğrafı</Label>
+                  <div className="mt-2">
+                    <img 
+                      src={selectedCheck.image_url} 
+                      alt="Çek fotoğrafı" 
+                      className="max-w-full h-48 object-contain rounded-lg border cursor-pointer"
+                      onClick={() => setSelectedImage(selectedCheck.image_url)}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setIsDetailDialogOpen(false)}>Kapat</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {selectedImage && (
         <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
