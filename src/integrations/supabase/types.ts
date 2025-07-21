@@ -157,6 +157,57 @@ export type Database = {
           },
         ]
       }
+      checks: {
+        Row: {
+          amount: number
+          bank_name: string | null
+          check_number: string | null
+          check_type: string
+          company_id: string
+          created_at: string
+          created_by: string
+          description: string | null
+          drawer_name: string | null
+          due_date: string
+          id: string
+          image_url: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          bank_name?: string | null
+          check_number?: string | null
+          check_type: string
+          company_id: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          drawer_name?: string | null
+          due_date: string
+          id?: string
+          image_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          bank_name?: string | null
+          check_number?: string | null
+          check_type?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          drawer_name?: string | null
+          due_date?: string
+          id?: string
+          image_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           created_at: string

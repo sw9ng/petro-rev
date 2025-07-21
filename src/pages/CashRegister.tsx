@@ -129,7 +129,7 @@ const CashRegister = () => {
             <TabsTrigger value="income">Gelir Faturaları</TabsTrigger>
             <TabsTrigger value="expense">Gider Faturaları</TabsTrigger>
             <TabsTrigger value="accounts">Cari Listesi</TabsTrigger>
-            <TabsTrigger value="checks">Ödenecek Çekler</TabsTrigger>
+            <TabsTrigger value="checks">Çek Yönetimi</TabsTrigger>
           </TabsList>
 
           <TabsContent value="income" className="space-y-4">
@@ -145,7 +145,7 @@ const CashRegister = () => {
           </TabsContent>
 
           <TabsContent value="checks" className="space-y-4">
-            <CheckManagement />
+            <CheckManagement companyId={selectedCompany} />
           </TabsContent>
         </Tabs>
       </div>
