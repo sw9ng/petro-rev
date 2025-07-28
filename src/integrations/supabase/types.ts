@@ -346,30 +346,42 @@ export type Database = {
         Row: {
           address: string | null
           created_at: string
+          customer_type: string | null
+          debt_amount: number | null
           id: string
           name: string
           notes: string | null
+          payable_amount: number | null
           phone: string | null
+          receivable_amount: number | null
           station_id: string
           updated_at: string
         }
         Insert: {
           address?: string | null
           created_at?: string
+          customer_type?: string | null
+          debt_amount?: number | null
           id?: string
           name: string
           notes?: string | null
+          payable_amount?: number | null
           phone?: string | null
+          receivable_amount?: number | null
           station_id: string
           updated_at?: string
         }
         Update: {
           address?: string | null
           created_at?: string
+          customer_type?: string | null
+          debt_amount?: number | null
           id?: string
           name?: string
           notes?: string | null
+          payable_amount?: number | null
           phone?: string | null
+          receivable_amount?: number | null
           station_id?: string
           updated_at?: string
         }
