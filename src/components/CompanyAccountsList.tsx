@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Users, Search, Eye, Phone, MapPin, Edit, Plus, User } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,7 +29,11 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
     name: '',
     phone: '',
     address: '',
-    notes: ''
+    notes: '',
+    customer_type: 'müşteri',
+    debt_amount: 0,
+    payable_amount: 0,
+    receivable_amount: 0
   });
 
   // Company accounts'u getir
@@ -115,7 +120,11 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
         name: formData.name,
         phone: formData.phone || undefined,
         address: formData.address || undefined,
-        notes: formData.notes || undefined
+        notes: formData.notes || undefined,
+        customer_type: formData.customer_type,
+        debt_amount: formData.debt_amount,
+        payable_amount: formData.payable_amount,
+        receivable_amount: formData.receivable_amount
       }]);
 
     if (error) {
@@ -125,7 +134,16 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
 
     toast.success("Cari başarıyla eklendi.");
     setIsCreateDialogOpen(false);
-    setFormData({ name: '', phone: '', address: '', notes: '' });
+    setFormData({ 
+      name: '', 
+      phone: '', 
+      address: '', 
+      notes: '',
+      customer_type: 'müşteri',
+      debt_amount: 0,
+      payable_amount: 0,
+      receivable_amount: 0
+    });
     refetch();
   };
 
@@ -135,7 +153,11 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
       name: account.name,
       phone: account.phone || '',
       address: account.address || '',
-      notes: account.notes || ''
+      notes: account.notes || '',
+      customer_type: account.customer_type || 'müşteri',
+      debt_amount: account.debt_amount || 0,
+      payable_amount: account.payable_amount || 0,
+      receivable_amount: account.receivable_amount || 0
     });
   };
 
@@ -151,7 +173,11 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
         name: formData.name,
         phone: formData.phone || undefined,
         address: formData.address || undefined,
-        notes: formData.notes || undefined
+        notes: formData.notes || undefined,
+        customer_type: formData.customer_type,
+        debt_amount: formData.debt_amount,
+        payable_amount: formData.payable_amount,
+        receivable_amount: formData.receivable_amount
       })
       .eq('id', editingAccount);
 
@@ -162,7 +188,16 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
 
     toast.success("Cari başarıyla güncellendi.");
     setEditingAccount(null);
-    setFormData({ name: '', phone: '', address: '', notes: '' });
+    setFormData({ 
+      name: '', 
+      phone: '', 
+      address: '', 
+      notes: '',
+      customer_type: 'müşteri',
+      debt_amount: 0,
+      payable_amount: 0,
+      receivable_amount: 0
+    });
     refetch();
   };
 
@@ -212,6 +247,23 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="space-y-2">
+                  <Label htmlFor="customer-type">Cari Tipi *</Label>
+                  <Select
+                    value={formData.customer_type}
+                    onValueChange={(value) => setFormData({...formData, customer_type: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Cari tipi seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="çalışan">Çalışan</SelectItem>
+                      <SelectItem value="şirket">Şirket</SelectItem>
+                      <SelectItem value="müşteri">Müşteri</SelectItem>
+                      <SelectItem value="ev müşterisi">Ev Müşterisi</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="name">Cari Adı *</Label>
                   <Input 
                     id="name" 
@@ -247,6 +299,45 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
                     placeholder="Ek notlar..."
                   />
                 </div>
+
+                {/* Ev Müşterisi için özel alanlar */}
+                {formData.customer_type === 'ev müşterisi' && (
+                  <div className="space-y-4 p-4 bg-yellow-50 rounded-lg border">
+                    <h4 className="font-medium text-gray-900">Ev Müşterisi Borç Takibi</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>Borç Miktarı (TL)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={formData.debt_amount}
+                          onChange={(e) => setFormData({...formData, debt_amount: parseFloat(e.target.value) || 0})}
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Ödenecek Miktar (TL)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={formData.payable_amount}
+                          onChange={(e) => setFormData({...formData, payable_amount: parseFloat(e.target.value) || 0})}
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Tahsil Edilecek (TL)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={formData.receivable_amount}
+                          onChange={(e) => setFormData({...formData, receivable_amount: parseFloat(e.target.value) || 0})}
+                          placeholder="0.00"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>İptal</Button>
