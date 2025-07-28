@@ -12,10 +12,6 @@ export interface Customer {
   created_at: string;
   updated_at: string;
   station_id?: string;
-  customer_type?: string;
-  debt_amount?: number;
-  payable_amount?: number;
-  receivable_amount?: number;
 }
 
 export const useCustomers = () => {
@@ -46,10 +42,6 @@ export const useCustomers = () => {
     phone?: string;
     address?: string;
     notes?: string;
-    customer_type?: string;
-    debt_amount?: number;
-    payable_amount?: number;
-    receivable_amount?: number;
   }) => {
     if (!user) return { error: 'Kullanıcı doğrulanmadı' };
 

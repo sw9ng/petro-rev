@@ -246,30 +246,42 @@ export type Database = {
           address: string | null
           company_id: string
           created_at: string
+          customer_type: string | null
+          debt_amount: number | null
           id: string
           name: string
           notes: string | null
+          payable_amount: number | null
           phone: string | null
+          receivable_amount: number | null
           updated_at: string
         }
         Insert: {
           address?: string | null
           company_id: string
           created_at?: string
+          customer_type?: string | null
+          debt_amount?: number | null
           id?: string
           name: string
           notes?: string | null
+          payable_amount?: number | null
           phone?: string | null
+          receivable_amount?: number | null
           updated_at?: string
         }
         Update: {
           address?: string | null
           company_id?: string
           created_at?: string
+          customer_type?: string | null
+          debt_amount?: number | null
           id?: string
           name?: string
           notes?: string | null
+          payable_amount?: number | null
           phone?: string | null
+          receivable_amount?: number | null
           updated_at?: string
         }
         Relationships: [

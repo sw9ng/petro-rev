@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Users, Plus } from 'lucide-react';
 import { useCustomers } from '@/hooks/useCustomers';
@@ -22,24 +21,11 @@ export const CustomerManagement = () => {
     name: '',
     phone: '',
     address: '',
-    notes: '',
-    customer_type: 'müşteri',
-    debt_amount: 0,
-    payable_amount: 0,
-    receivable_amount: 0
+    notes: ''
   });
 
   const resetForm = () => {
-    setCustomerData({ 
-      name: '', 
-      phone: '', 
-      address: '', 
-      notes: '',
-      customer_type: 'müşteri',
-      debt_amount: 0,
-      payable_amount: 0,
-      receivable_amount: 0
-    });
+    setCustomerData({ name: '', phone: '', address: '', notes: '' });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -118,23 +104,6 @@ export const CustomerManagement = () => {
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label>Cari Tipi *</Label>
-                <Select
-                  value={customerData.customer_type}
-                  onValueChange={(value) => setCustomerData(prev => ({ ...prev, customer_type: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Cari tipi seçin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="çalışan">Çalışan</SelectItem>
-                    <SelectItem value="şirket">Şirket</SelectItem>
-                    <SelectItem value="müşteri">Müşteri</SelectItem>
-                    <SelectItem value="ev müşterisi">Ev Müşterisi</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
                 <Label>Müşteri Adı *</Label>
                 <Input
                   value={customerData.name}
@@ -168,45 +137,6 @@ export const CustomerManagement = () => {
                   rows={3}
                 />
               </div>
-
-              {/* Ev Müşterisi için özel alanlar */}
-              {customerData.customer_type === 'ev müşterisi' && (
-                <div className="space-y-4 p-4 bg-yellow-50 rounded-lg border">
-                  <h4 className="font-medium text-gray-900">Ev Müşterisi Borç Takibi</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label>Borç Miktarı (TL)</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={customerData.debt_amount}
-                        onChange={(e) => setCustomerData(prev => ({ ...prev, debt_amount: parseFloat(e.target.value) || 0 }))}
-                        placeholder="0.00"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Ödenecek Miktar (TL)</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={customerData.payable_amount}
-                        onChange={(e) => setCustomerData(prev => ({ ...prev, payable_amount: parseFloat(e.target.value) || 0 }))}
-                        placeholder="0.00"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Tahsil Edilecek (TL)</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={customerData.receivable_amount}
-                        onChange={(e) => setCustomerData(prev => ({ ...prev, receivable_amount: parseFloat(e.target.value) || 0 }))}
-                        placeholder="0.00"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
               <div className="flex justify-end space-x-2">
                 <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)}>
                   İptal
