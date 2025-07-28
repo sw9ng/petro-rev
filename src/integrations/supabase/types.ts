@@ -247,11 +247,9 @@ export type Database = {
           company_id: string
           created_at: string
           customer_type: string | null
-          debt_amount: number | null
           id: string
           name: string
           notes: string | null
-          payable_amount: number | null
           phone: string | null
           receivable_amount: number | null
           updated_at: string
@@ -261,11 +259,9 @@ export type Database = {
           company_id: string
           created_at?: string
           customer_type?: string | null
-          debt_amount?: number | null
           id?: string
           name: string
           notes?: string | null
-          payable_amount?: number | null
           phone?: string | null
           receivable_amount?: number | null
           updated_at?: string
@@ -275,11 +271,9 @@ export type Database = {
           company_id?: string
           created_at?: string
           customer_type?: string | null
-          debt_amount?: number | null
           id?: string
           name?: string
           notes?: string | null
-          payable_amount?: number | null
           phone?: string | null
           receivable_amount?: number | null
           updated_at?: string
