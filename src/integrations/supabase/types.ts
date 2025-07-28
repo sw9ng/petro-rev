@@ -764,6 +764,7 @@ export type Database = {
           e_invoice_status: string | null
           e_invoice_uuid: string | null
           gib_status: string | null
+          home_collection_amount: number | null
           id: string
           invoice_date: string
           invoice_number: string | null
@@ -786,6 +787,7 @@ export type Database = {
           e_invoice_status?: string | null
           e_invoice_uuid?: string | null
           gib_status?: string | null
+          home_collection_amount?: number | null
           id?: string
           invoice_date?: string
           invoice_number?: string | null
@@ -808,6 +810,7 @@ export type Database = {
           e_invoice_status?: string | null
           e_invoice_uuid?: string | null
           gib_status?: string | null
+          home_collection_amount?: number | null
           id?: string
           invoice_date?: string
           invoice_number?: string | null
