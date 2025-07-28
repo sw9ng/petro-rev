@@ -31,8 +31,6 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
     address: '',
     notes: '',
     customer_type: 'müşteri',
-    debt_amount: 0,
-    payable_amount: 0,
     receivable_amount: 0
   });
 
@@ -122,8 +120,6 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
         address: formData.address || undefined,
         notes: formData.notes || undefined,
         customer_type: formData.customer_type,
-        debt_amount: formData.debt_amount,
-        payable_amount: formData.payable_amount,
         receivable_amount: formData.receivable_amount
       }]);
 
@@ -140,8 +136,6 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
       address: '', 
       notes: '',
       customer_type: 'müşteri',
-      debt_amount: 0,
-      payable_amount: 0,
       receivable_amount: 0
     });
     refetch();
@@ -155,8 +149,6 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
       address: account.address || '',
       notes: account.notes || '',
       customer_type: account.customer_type || 'müşteri',
-      debt_amount: account.debt_amount || 0,
-      payable_amount: account.payable_amount || 0,
       receivable_amount: account.receivable_amount || 0
     });
   };
@@ -175,8 +167,6 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
         address: formData.address || undefined,
         notes: formData.notes || undefined,
         customer_type: formData.customer_type,
-        debt_amount: formData.debt_amount,
-        payable_amount: formData.payable_amount,
         receivable_amount: formData.receivable_amount
       })
       .eq('id', editingAccount);
@@ -194,8 +184,6 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
       address: '', 
       notes: '',
       customer_type: 'müşteri',
-      debt_amount: 0,
-      payable_amount: 0,
       receivable_amount: 0
     });
     refetch();
@@ -302,31 +290,11 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
 
                 {/* Ev Müşterisi için özel alanlar */}
                 {formData.customer_type === 'ev müşterisi' && (
-                  <div className="space-y-4 p-4 bg-yellow-50 rounded-lg border">
+                  <div className="space-y-4 p-4 bg-yellow-50 rounded-lg border max-h-40 overflow-y-auto">
                     <h4 className="font-medium text-gray-900">Ev Müşterisi Borç Takibi</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label>Borç Miktarı (TL)</Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={formData.debt_amount}
-                          onChange={(e) => setFormData({...formData, debt_amount: parseFloat(e.target.value) || 0})}
-                          placeholder="0.00"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Ödenecek Miktar (TL)</Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={formData.payable_amount}
-                          onChange={(e) => setFormData({...formData, payable_amount: parseFloat(e.target.value) || 0})}
-                          placeholder="0.00"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Tahsil Edilecek (TL)</Label>
+                        <Label>Tahsil Edilecek Toplam Miktar (TL)</Label>
                         <Input
                           type="number"
                           step="0.01"
@@ -334,6 +302,9 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
                           onChange={(e) => setFormData({...formData, receivable_amount: parseFloat(e.target.value) || 0})}
                           placeholder="0.00"
                         />
+                        <p className="text-xs text-gray-600">
+                          Bu miktar sabit kalacak, ödemeler yapıldıkça mevcut borç azalacak
+                        </p>
                       </div>
                     </div>
                   </div>
