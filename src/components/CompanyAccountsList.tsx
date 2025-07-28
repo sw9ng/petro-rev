@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -364,6 +363,16 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
                         >
                           {getBalanceText(balance)}
                         </Badge>
+                        
+                        {/* Ev müşterisi için tahsil edilecek miktar göster */}
+                        {account.customer_type === 'ev müşterisi' && account.receivable_amount > 0 && (
+                          <Badge 
+                            variant="outline" 
+                            className="bg-blue-100 text-blue-800 border-blue-200 font-medium"
+                          >
+                            Tahsil: {formatCurrency(account.receivable_amount)}
+                          </Badge>
+                        )}
                         
                         <Dialog>
                           <DialogTrigger asChild>

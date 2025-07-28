@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, CreditCard, User, Phone, MapPin, Calendar as CalendarIcon, FileText, Trash2, Download, Filter } from 'lucide-react';
+import { ArrowLeft, CreditCard, User, Phone, MapPin, Calendar as CalendarIcon, FileText, Trash2, Download, Filter, Receipt } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/numberUtils';
@@ -165,6 +164,9 @@ export const CompanyAccountDetailView = ({ accountId, companyId, onBack }: Compa
           <CardTitle className="flex items-center space-x-2">
             <User className="h-5 w-5 text-blue-500" />
             <span>{account.name}</span>
+            <Badge variant="outline" className="ml-2">
+              {account.customer_type}
+            </Badge>
           </CardTitle>
           <CardDescription>Cari bilgileri ve bakiye durumu</CardDescription>
         </CardHeader>
@@ -189,6 +191,16 @@ export const CompanyAccountDetailView = ({ accountId, companyId, onBack }: Compa
                 <div className="flex items-start space-x-3">
                   <FileText className="h-4 w-4 text-gray-400 mt-1" />
                   <span className="text-gray-900">{account.notes}</span>
+                </div>
+              )}
+              
+              {/* Ev müşterisi için tahsil edilecek miktar göster */}
+              {account.customer_type === 'ev müşterisi' && account.receivable_amount > 0 && (
+                <div className="flex items-center space-x-3">
+                  <Receipt className="h-4 w-4 text-blue-500" />
+                  <span className="text-gray-900">
+                    Tahsil Edilecek: <span className="font-semibold text-blue-600">{formatCurrency(account.receivable_amount)}</span>
+                  </span>
                 </div>
               )}
             </div>
