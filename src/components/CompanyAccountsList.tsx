@@ -226,14 +226,14 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
                 <span>Yeni Cari</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Yeni Cari Ekle</DialogTitle>
                 <DialogDescription>
                   Yeni cari hesap bilgilerini girin
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
+              <div className="grid gap-4 py-4 max-h-[50vh] overflow-y-auto">
                 <div className="space-y-2">
                   <Label htmlFor="customer-type">Cari Tipi *</Label>
                   <Select
@@ -290,7 +290,7 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
 
                 {/* Ev Müşterisi için özel alanlar */}
                 {formData.customer_type === 'ev müşterisi' && (
-                  <div className="space-y-4 p-4 bg-yellow-50 rounded-lg border max-h-40 overflow-y-auto">
+                  <div className="space-y-4 p-4 bg-yellow-50 rounded-lg border">
                     <h4 className="font-medium text-gray-900">Ev Müşterisi Borç Takibi</h4>
                     <div className="space-y-4">
                       <div className="space-y-2">
@@ -377,51 +377,90 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
                               <span>Düzenle</span>
                             </Button>
                           </DialogTrigger>
-                          <DialogContent className="sm:max-w-[425px]">
-                            <DialogHeader>
-                              <DialogTitle>Cari Düzenle</DialogTitle>
-                              <DialogDescription>
-                                Cari bilgilerini güncelleyin
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                              <div className="space-y-2">
-                                <Label htmlFor="edit-name">Cari Adı *</Label>
-                                <Input 
-                                  id="edit-name" 
-                                  value={formData.name}
-                                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                                  placeholder="Cari adı"
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="edit-phone">Telefon</Label>
-                                <Input 
-                                  id="edit-phone" 
-                                  value={formData.phone}
-                                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                                  placeholder="0555 123 45 67"
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="edit-address">Adres</Label>
-                                <Input 
-                                  id="edit-address" 
-                                  value={formData.address}
-                                  onChange={(e) => setFormData({...formData, address: e.target.value})}
-                                  placeholder="Adres bilgisi"
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="edit-notes">Notlar</Label>
-                                <Textarea 
-                                  id="edit-notes" 
-                                  value={formData.notes}
-                                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                                  placeholder="Ek notlar..."
-                                />
-                              </div>
-                            </div>
+          <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Cari Düzenle</DialogTitle>
+              <DialogDescription>
+                Cari bilgilerini güncelleyin
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4 max-h-[50vh] overflow-y-auto">
+              <div className="space-y-2">
+                <Label htmlFor="edit-customer-type">Cari Tipi *</Label>
+                <Select
+                  value={formData.customer_type}
+                  onValueChange={(value) => setFormData({...formData, customer_type: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Cari tipi seçin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="çalışan">Çalışan</SelectItem>
+                    <SelectItem value="şirket">Şirket</SelectItem>
+                    <SelectItem value="müşteri">Müşteri</SelectItem>
+                    <SelectItem value="ev müşterisi">Ev Müşterisi</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Cari Adı *</Label>
+                <Input 
+                  id="edit-name" 
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  placeholder="Cari adı"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-phone">Telefon</Label>
+                <Input 
+                  id="edit-phone" 
+                  value={formData.phone}
+                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                  placeholder="0555 123 45 67"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-address">Adres</Label>
+                <Input 
+                  id="edit-address" 
+                  value={formData.address}
+                  onChange={(e) => setFormData({...formData, address: e.target.value})}
+                  placeholder="Adres bilgisi"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-notes">Notlar</Label>
+                <Textarea 
+                  id="edit-notes" 
+                  value={formData.notes}
+                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                  placeholder="Ek notlar..."
+                />
+              </div>
+              
+              {/* Ev Müşterisi için özel alanlar */}
+              {formData.customer_type === 'ev müşterisi' && (
+                <div className="space-y-4 p-4 bg-yellow-50 rounded-lg border">
+                  <h4 className="font-medium text-gray-900">Ev Müşterisi Borç Takibi</h4>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Tahsil Edilecek Toplam Miktar (TL)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={formData.receivable_amount}
+                        onChange={(e) => setFormData({...formData, receivable_amount: parseFloat(e.target.value) || 0})}
+                        placeholder="0.00"
+                      />
+                      <p className="text-xs text-gray-600">
+                        Bu miktar sabit kalacak, ödemeler yapıldıkça mevcut borç azalacak
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
                             <DialogFooter>
                               <Button variant="outline" onClick={() => setEditingAccount(null)}>İptal</Button>
                               <Button onClick={handleUpdateAccount}>Güncelle</Button>
