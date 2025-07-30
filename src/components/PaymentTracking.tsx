@@ -350,7 +350,6 @@ export const PaymentTracking = () => {
                           <div className={`text-2xl font-bold ${
                             group.balance > 0 ? 'text-red-600' : 'text-green-600'
                           }`}>
-                            {group.balance > 0 ? '+' : ''}
                             {formatCurrency(Math.abs(group.balance))}
                           </div>
                           <p className="text-sm text-gray-600">
