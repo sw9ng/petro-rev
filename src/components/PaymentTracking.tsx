@@ -354,7 +354,7 @@ export const PaymentTracking = () => {
                             {formatCurrency(Math.abs(group.balance))}
                           </div>
                           <p className="text-sm text-gray-600">
-                            {group.balance > 0 ? 'Borç' : group.balance < 0 ? 'Avans' : 'Denge'}
+                            {group.balance > 0 ? 'Borç' : 'Denge'}
                           </p>
                         </div>
                         <Button
