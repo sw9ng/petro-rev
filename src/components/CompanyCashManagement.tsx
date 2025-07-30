@@ -31,8 +31,7 @@ export const CompanyCashManagement = ({ companyId, type = 'income' }: CompanyCas
     payment_status: 'unpaid' as 'unpaid' | 'paid',
     tax_number: '',
     company_title: '',
-    account_id: '',
-    home_collection_amount: ''
+    account_id: ''
   });
 
   // Company accounts'u getir
@@ -61,17 +60,6 @@ export const CompanyCashManagement = ({ companyId, type = 'income' }: CompanyCas
       return;
     }
 
-    // Ev müşterisi için tahsilat kontrolü
-    const selectedAccount = companyAccounts.find(acc => acc.id === newInvoice.account_id);
-    const homeCollectionAmount = parseFloat(newInvoice.home_collection_amount) || 0;
-    
-    if (selectedAccount?.customer_type === 'ev müşterisi' && homeCollectionAmount > 0) {
-      if (homeCollectionAmount > (selectedAccount.receivable_amount || 0)) {
-        toast.error('Ev tahsilat tutarı alacak tutarından fazla olamaz');
-        return;
-      }
-    }
-
     try {
       await createInvoice.mutateAsync({
         description: newInvoice.description,
@@ -81,18 +69,7 @@ export const CompanyCashManagement = ({ companyId, type = 'income' }: CompanyCas
         tax_number: newInvoice.tax_number || undefined,
         company_title: newInvoice.company_title || undefined,
         account_id: newInvoice.account_id,
-        home_collection_amount: homeCollectionAmount,
       });
-
-      // Ev tahsilat varsa account'tan düş
-      if (selectedAccount?.customer_type === 'ev müşterisi' && homeCollectionAmount > 0) {
-        await supabase
-          .from('company_accounts')
-          .update({
-            receivable_amount: Math.max(0, (selectedAccount.receivable_amount || 0) - homeCollectionAmount)
-          })
-          .eq('id', newInvoice.account_id);
-      }
       
       setNewInvoice({
         description: '',
@@ -102,8 +79,7 @@ export const CompanyCashManagement = ({ companyId, type = 'income' }: CompanyCas
         payment_status: 'unpaid',
         tax_number: '',
         company_title: '',
-        account_id: '',
-        home_collection_amount: ''
+        account_id: ''
       });
       setIsDialogOpen(false);
       toast.success(`${type === 'income' ? 'Gelir' : 'Gider'} faturası oluşturuldu`);
@@ -148,7 +124,7 @@ export const CompanyCashManagement = ({ companyId, type = 'income' }: CompanyCas
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center space-x-2 text-blue-800">
               <CreditCard className="h-4 w-4" />
-              <span>{type === 'income' ? 'Alınan' : 'Tahsil Edilen'}</span>
+              <span>Tahsil Edilen</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -284,27 +260,6 @@ export const CompanyCashManagement = ({ companyId, type = 'income' }: CompanyCas
                   </Select>
                 </div>
               </div>
-              {/* Ev müşterisi seçildiğinde ev tahsilat alanını göster */}
-              {(() => {
-                const selectedAccount = companyAccounts.find(acc => acc.id === newInvoice.account_id);
-                return selectedAccount?.customer_type === 'ev müşterisi' && type === 'income' && (
-                  <div className="space-y-2">
-                    <Label htmlFor="home_collection_amount">Ev Tahsilat (₺)</Label>
-                    <Input
-                      id="home_collection_amount"
-                      type="number"
-                      step="0.01"
-                      value={newInvoice.home_collection_amount}
-                      onChange={(e) => setNewInvoice({...newInvoice, home_collection_amount: e.target.value})}
-                      placeholder="0,00"
-                    />
-                    <p className="text-xs text-gray-500">
-                      Mevcut alacak: {formatCurrency(selectedAccount.receivable_amount || 0)}
-                    </p>
-                  </div>
-                );
-              })()}
-              
               <div className="space-y-2">
                 <Label htmlFor="company_title">Şirket Ünvanı (Opsiyonel)</Label>
                 <Input

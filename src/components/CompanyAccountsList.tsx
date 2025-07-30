@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Users, Search, Eye, Phone, MapPin, Edit, Plus, User } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,9 +28,7 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
     name: '',
     phone: '',
     address: '',
-    notes: '',
-    customer_type: 'müşteri',
-    receivable_amount: 0
+    notes: ''
   });
 
   // Company accounts'u getir
@@ -117,9 +115,7 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
         name: formData.name,
         phone: formData.phone || undefined,
         address: formData.address || undefined,
-        notes: formData.notes || undefined,
-        customer_type: formData.customer_type,
-        receivable_amount: formData.receivable_amount
+        notes: formData.notes || undefined
       }]);
 
     if (error) {
@@ -129,14 +125,7 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
 
     toast.success("Cari başarıyla eklendi.");
     setIsCreateDialogOpen(false);
-    setFormData({ 
-      name: '', 
-      phone: '', 
-      address: '', 
-      notes: '',
-      customer_type: 'müşteri',
-      receivable_amount: 0
-    });
+    setFormData({ name: '', phone: '', address: '', notes: '' });
     refetch();
   };
 
@@ -146,9 +135,7 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
       name: account.name,
       phone: account.phone || '',
       address: account.address || '',
-      notes: account.notes || '',
-      customer_type: account.customer_type || 'müşteri',
-      receivable_amount: account.receivable_amount || 0
+      notes: account.notes || ''
     });
   };
 
@@ -164,9 +151,7 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
         name: formData.name,
         phone: formData.phone || undefined,
         address: formData.address || undefined,
-        notes: formData.notes || undefined,
-        customer_type: formData.customer_type,
-        receivable_amount: formData.receivable_amount
+        notes: formData.notes || undefined
       })
       .eq('id', editingAccount);
 
@@ -177,14 +162,7 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
 
     toast.success("Cari başarıyla güncellendi.");
     setEditingAccount(null);
-    setFormData({ 
-      name: '', 
-      phone: '', 
-      address: '', 
-      notes: '',
-      customer_type: 'müşteri',
-      receivable_amount: 0
-    });
+    setFormData({ name: '', phone: '', address: '', notes: '' });
     refetch();
   };
 
@@ -225,31 +203,14 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
                 <span>Yeni Cari</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>Yeni Cari Ekle</DialogTitle>
                 <DialogDescription>
                   Yeni cari hesap bilgilerini girin
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4 max-h-[50vh] overflow-y-auto">
-                <div className="space-y-2">
-                  <Label htmlFor="customer-type">Cari Tipi *</Label>
-                  <Select
-                    value={formData.customer_type}
-                    onValueChange={(value) => setFormData({...formData, customer_type: value})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Cari tipi seçin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="çalışan">Çalışan</SelectItem>
-                      <SelectItem value="şirket">Şirket</SelectItem>
-                      <SelectItem value="müşteri">Müşteri</SelectItem>
-                      <SelectItem value="ev müşterisi">Ev Müşterisi</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="grid gap-4 py-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Cari Adı *</Label>
                   <Input 
@@ -286,28 +247,6 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
                     placeholder="Ek notlar..."
                   />
                 </div>
-
-                {/* Ev Müşterisi için özel alanlar */}
-                {formData.customer_type === 'ev müşterisi' && (
-                  <div className="space-y-4 p-4 bg-yellow-50 rounded-lg border">
-                    <h4 className="font-medium text-gray-900">Ev Müşterisi Borç Takibi</h4>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label>Tahsil Edilecek Toplam Miktar (TL)</Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={formData.receivable_amount}
-                          onChange={(e) => setFormData({...formData, receivable_amount: parseFloat(e.target.value) || 0})}
-                          placeholder="0.00"
-                        />
-                        <p className="text-xs text-gray-600">
-                          Bu miktar sabit kalacak, ödemeler yapıldıkça mevcut borç azalacak
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>İptal</Button>
@@ -364,16 +303,6 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
                           {getBalanceText(balance)}
                         </Badge>
                         
-                        {/* Ev müşterisi için tahsil edilecek miktar göster */}
-                        {account.customer_type === 'ev müşterisi' && account.receivable_amount > 0 && (
-                          <Badge 
-                            variant="outline" 
-                            className="bg-blue-100 text-blue-800 border-blue-200 font-medium"
-                          >
-                            Tahsil: {formatCurrency(account.receivable_amount)}
-                          </Badge>
-                        )}
-                        
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button
@@ -386,90 +315,51 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
                               <span>Düzenle</span>
                             </Button>
                           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Cari Düzenle</DialogTitle>
-              <DialogDescription>
-                Cari bilgilerini güncelleyin
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4 max-h-[50vh] overflow-y-auto">
-              <div className="space-y-2">
-                <Label htmlFor="edit-customer-type">Cari Tipi *</Label>
-                <Select
-                  value={formData.customer_type}
-                  onValueChange={(value) => setFormData({...formData, customer_type: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Cari tipi seçin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="çalışan">Çalışan</SelectItem>
-                    <SelectItem value="şirket">Şirket</SelectItem>
-                    <SelectItem value="müşteri">Müşteri</SelectItem>
-                    <SelectItem value="ev müşterisi">Ev Müşterisi</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-name">Cari Adı *</Label>
-                <Input 
-                  id="edit-name" 
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  placeholder="Cari adı"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-phone">Telefon</Label>
-                <Input 
-                  id="edit-phone" 
-                  value={formData.phone}
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  placeholder="0555 123 45 67"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-address">Adres</Label>
-                <Input 
-                  id="edit-address" 
-                  value={formData.address}
-                  onChange={(e) => setFormData({...formData, address: e.target.value})}
-                  placeholder="Adres bilgisi"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-notes">Notlar</Label>
-                <Textarea 
-                  id="edit-notes" 
-                  value={formData.notes}
-                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                  placeholder="Ek notlar..."
-                />
-              </div>
-              
-              {/* Ev Müşterisi için özel alanlar */}
-              {formData.customer_type === 'ev müşterisi' && (
-                <div className="space-y-4 p-4 bg-yellow-50 rounded-lg border">
-                  <h4 className="font-medium text-gray-900">Ev Müşterisi Borç Takibi</h4>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Tahsil Edilecek Toplam Miktar (TL)</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={formData.receivable_amount}
-                        onChange={(e) => setFormData({...formData, receivable_amount: parseFloat(e.target.value) || 0})}
-                        placeholder="0.00"
-                      />
-                      <p className="text-xs text-gray-600">
-                        Bu miktar sabit kalacak, ödemeler yapıldıkça mevcut borç azalacak
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+                          <DialogContent className="sm:max-w-[425px]">
+                            <DialogHeader>
+                              <DialogTitle>Cari Düzenle</DialogTitle>
+                              <DialogDescription>
+                                Cari bilgilerini güncelleyin
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="edit-name">Cari Adı *</Label>
+                                <Input 
+                                  id="edit-name" 
+                                  value={formData.name}
+                                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                  placeholder="Cari adı"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="edit-phone">Telefon</Label>
+                                <Input 
+                                  id="edit-phone" 
+                                  value={formData.phone}
+                                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                                  placeholder="0555 123 45 67"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="edit-address">Adres</Label>
+                                <Input 
+                                  id="edit-address" 
+                                  value={formData.address}
+                                  onChange={(e) => setFormData({...formData, address: e.target.value})}
+                                  placeholder="Adres bilgisi"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="edit-notes">Notlar</Label>
+                                <Textarea 
+                                  id="edit-notes" 
+                                  value={formData.notes}
+                                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                                  placeholder="Ek notlar..."
+                                />
+                              </div>
+                            </div>
                             <DialogFooter>
                               <Button variant="outline" onClick={() => setEditingAccount(null)}>İptal</Button>
                               <Button onClick={handleUpdateAccount}>Güncelle</Button>

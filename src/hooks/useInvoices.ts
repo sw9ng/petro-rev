@@ -33,7 +33,7 @@ export const useInvoices = (companyId: string, type: "income" | "expense" = "inc
   });
 
   const createInvoice = useMutation({
-    mutationFn: async (invoice: any) => {
+    mutationFn: async (invoice: Omit<IncomeInvoiceInsert | ExpenseInvoiceInsert, "created_by" | "company_id">) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
