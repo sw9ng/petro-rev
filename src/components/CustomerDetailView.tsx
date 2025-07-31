@@ -410,12 +410,22 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
           <CardTitle className="flex items-center space-x-2 text-xl">
             <CreditCard className="h-6 w-6 text-green-500" />
             <span>İşlem Geçmişi</span>
-            <Badge variant="outline" className="ml-auto">
-              {filteredTransactions.length} İşlem
-            </Badge>
+            <div className="ml-auto flex gap-2">
+              {customerTransactions.length !== filteredTransactions.length && (
+                <Badge variant="secondary">
+                  Toplam: {customerTransactions.length} İşlem
+                </Badge>
+              )}
+              <Badge variant="outline">
+                {filteredTransactions.length} İşlem
+              </Badge>
+            </div>
           </CardTitle>
           <CardDescription>
-            Filtrelenmiş işlemler
+            {customerTransactions.length !== filteredTransactions.length 
+              ? `Filtrelenmiş işlemler (${customerTransactions.length} toplam işlemden ${filteredTransactions.length} tanesi gösteriliyor)`
+              : 'Tüm işlemler'
+            }
           </CardDescription>
         </CardHeader>
         <CardContent>
