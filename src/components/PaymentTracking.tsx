@@ -145,7 +145,9 @@ export const PaymentTracking = () => {
     });
 
     if (result.error) {
-      toast.error('Veresiye kaydedilirken hata oluştu');
+      const errorMessage = typeof result.error === 'string' ? result.error : result.error.message || 'Bilinmeyen hata';
+      toast.error('Veresiye kaydedilirken hata oluştu: ' + errorMessage);
+      console.error('Debt transaction error:', result.error);
     } else {
       toast.success('Veresiye başarıyla kaydedildi');
       setSelectedCustomer('');
@@ -154,6 +156,9 @@ export const PaymentTracking = () => {
       setDescription('');
       setTransactionDate(new Date().toISOString().split('T')[0]);
       setTransactionTime(new Date().toTimeString().split(' ')[0].slice(0, 5));
+      
+      // Force refresh the view to show the new transaction immediately
+      window.location.reload();
     }
   };
 

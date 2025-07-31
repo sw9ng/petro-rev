@@ -109,6 +109,10 @@ export const useCustomerTransactions = () => {
     if (!error) {
       // Refresh all transactions to ensure data consistency
       await fetchTransactions();
+      // Force a small delay to ensure UI updates
+      setTimeout(() => {
+        fetchTransactions();
+      }, 100);
     }
 
     return { data, error };
@@ -148,6 +152,10 @@ export const useCustomerTransactions = () => {
     if (!error) {
       // Refresh all transactions to ensure data consistency
       await fetchTransactions();
+      // Force a small delay to ensure UI updates
+      setTimeout(() => {
+        fetchTransactions();
+      }, 100);
     }
 
     return { data, error };
