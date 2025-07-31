@@ -38,8 +38,7 @@ export const useCustomerTransactions = () => {
         )
       `)
       .eq('station_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(10000); // Increase limit to ensure all transactions are fetched
+      .order('created_at', { ascending: false }); // No limit - fetch all transactions
 
     if (error) {
       console.error('Error fetching customer transactions:', error);
