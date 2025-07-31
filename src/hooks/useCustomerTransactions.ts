@@ -107,29 +107,9 @@ export const useCustomerTransactions = () => {
       `)
       .single();
 
-    if (!error && data) {
-      // Fetch personnel data
-      const { data: personnelData } = await supabase
-        .from('personnel')
-        .select('name')
-        .eq('id', data.personnel_id)
-        .single();
-
-      const mappedTransaction = {
-        id: data.id,
-        customer_id: data.customer_id,
-        personnel_id: data.personnel_id,
-        amount: data.amount,
-        transaction_date: data.transaction_date,
-        transaction_type: data.transaction_type as 'debt' | 'payment',
-        status: data.status as 'pending' | 'completed',
-        payment_method: data.payment_method,
-        description: data.description,
-        customer: data.customer,
-        personnel: personnelData ? { name: personnelData.name } : { name: 'Bilinmeyen Personel' }
-      };
-      
-      setTransactions(prev => [mappedTransaction, ...prev]);
+    if (!error) {
+      // Refresh all transactions to ensure data consistency
+      await fetchTransactions();
     }
 
     return { data, error };
@@ -166,29 +146,9 @@ export const useCustomerTransactions = () => {
       `)
       .single();
 
-    if (!error && data) {
-      // Fetch personnel data
-      const { data: personnelData } = await supabase
-        .from('personnel')
-        .select('name')
-        .eq('id', data.personnel_id)
-        .single();
-
-      const mappedTransaction = {
-        id: data.id,
-        customer_id: data.customer_id,
-        personnel_id: data.personnel_id,
-        amount: data.amount,
-        transaction_date: data.transaction_date,
-        transaction_type: data.transaction_type === 'veresiye' ? 'debt' as const : data.transaction_type as 'debt' | 'payment',
-        status: data.status as 'pending' | 'completed',
-        payment_method: data.payment_method,
-        description: data.description,
-        customer: data.customer,
-        personnel: personnelData ? { name: personnelData.name } : { name: 'Bilinmeyen Personel' }
-      };
-      
-      setTransactions(prev => [mappedTransaction, ...prev]);
+    if (!error) {
+      // Refresh all transactions to ensure data consistency
+      await fetchTransactions();
     }
 
     return { data, error };
@@ -215,31 +175,9 @@ export const useCustomerTransactions = () => {
       `)
       .single();
 
-    if (!error && data) {
-      // Fetch personnel data
-      const { data: personnelData } = await supabase
-        .from('personnel')
-        .select('name')
-        .eq('id', data.personnel_id)
-        .single();
-
-      const mappedTransaction = {
-        id: data.id,
-        customer_id: data.customer_id,
-        personnel_id: data.personnel_id,
-        amount: data.amount,
-        transaction_date: data.transaction_date,
-        transaction_type: data.transaction_type === 'veresiye' ? 'debt' as const : data.transaction_type as 'debt' | 'payment',
-        status: data.status as 'pending' | 'completed',
-        payment_method: data.payment_method,
-        description: data.description,
-        customer: data.customer,
-        personnel: personnelData ? { name: personnelData.name } : { name: 'Bilinmeyen Personel' }
-      };
-      
-      setTransactions(prev => prev.map(transaction => 
-        transaction.id === transactionId ? mappedTransaction : transaction
-      ));
+    if (!error) {
+      // Refresh all transactions to ensure data consistency
+      await fetchTransactions();
     }
 
     return { data, error };
@@ -255,7 +193,8 @@ export const useCustomerTransactions = () => {
       .eq('station_id', user.id);
 
     if (!error) {
-      setTransactions(prev => prev.filter(transaction => transaction.id !== transactionId));
+      // Refresh all transactions to ensure data consistency
+      await fetchTransactions();
     }
 
     return { error };
