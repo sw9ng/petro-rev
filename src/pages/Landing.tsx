@@ -99,38 +99,76 @@ export const Landing = () => {
                 2025 Yıllık Abonelik Sistemi
               </Badge>
             </div>
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+              <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
               Akaryakıt İstasyonunuz İçin 
-              <span className="text-blue-600 block">Tek Paket, Sınırsız Özellik</span>
+              <span className="text-blue-600 block">Freemium Çözüm</span>
             </h1>
             <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-              PetroRev ile akaryakıt istasyonunuzun tüm operasyonlarını dijitalleştirin. 
-              Tek pakette sınırsız personel, API entegrasyonu ve tüm premium özellikler.
+              PetroRev ile başlayın, büyüdükçe premium özelliklerle gelişin. 
+              Ücretsiz vardiya takibi ile başlayın, premium ile sınırsız özelliklere erişin.
             </p>
-            <div className="bg-white rounded-2xl p-8 mb-8 shadow-lg border border-blue-100">
-              <div className="text-center">
-                <div className="text-red-500 line-through text-2xl mb-2">
-                  Aylık ₺2.000/ay × 12 = ₺24.000
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              {/* Ücretsiz Plan */}
+              <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-200">
+                <div className="text-center">
+                  <Badge className="bg-green-100 text-green-800 border-green-200 mb-4">
+                    Ücretsiz Plan
+                  </Badge>
+                  <div className="text-3xl font-bold text-gray-900 mb-2">
+                    ₺0
+                  </div>
+                  <div className="text-lg text-gray-600 mb-4">
+                    Sonsuza kadar ücretsiz
+                  </div>
+                  <ul className="text-sm text-left space-y-2 mb-4">
+                    <li>✓ 5 personel hesabı</li>
+                    <li>✓ 30 vardiya girişi</li>
+                    <li>✓ Temel vardiya takibi</li>
+                    <li>✓ Açık/fazla hesaplama</li>
+                  </ul>
                 </div>
-                <div className="text-5xl font-bold text-green-600 mb-2">
-                  Yıllık ₺18.000
+              </div>
+
+              {/* Premium Plan */}
+              <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-6 shadow-lg border-2 border-blue-500 relative">
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <Badge className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-1">
+                    En Popüler
+                  </Badge>
                 </div>
-                <div className="text-lg text-gray-600 mb-2">
-                  Sadece ₺1.500/ay
+                <div className="text-center">
+                  <Badge className="bg-blue-100 text-blue-800 border-blue-200 mb-4">
+                    Premium Plan
+                  </Badge>
+                  <div className="text-red-500 line-through text-lg mb-1">
+                    ₺24.000/yıl
+                  </div>
+                  <div className="text-3xl font-bold text-blue-600 mb-2">
+                    ₺18.000/yıl
+                  </div>
+                  <div className="text-lg text-gray-600 mb-4">
+                    Sadece ₺1.500/ay
+                  </div>
+                  <ul className="text-sm text-left space-y-2 mb-4">
+                    <li>✓ Sınırsız personel</li>
+                    <li>✓ Sınırsız vardiya</li>
+                    <li>✓ Cari hesap yönetimi</li>
+                    <li>✓ Detaylı raporlama</li>
+                    <li>✓ API entegrasyonu</li>
+                    <li>✓ E-fatura entegrasyonu</li>
+                    <li>✓ 7/24 premium destek</li>
+                  </ul>
                 </div>
-                <Badge className="bg-green-100 text-green-800 border-green-200 text-lg px-4 py-2">
-                  %25 İndirim - 6.000₺ Tasarruf
-                </Badge>
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button 
                 size="lg" 
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg px-8 py-4 shadow-lg"
+                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-lg px-8 py-4 shadow-lg"
                 onClick={() => navigate('/')}
               >
                 <Star className="mr-2 h-5 w-5" />
-                Premium Sisteme Giriş
+                Ücretsiz Başla
               </Button>
               <Button 
                 size="lg" 
@@ -139,7 +177,7 @@ export const Landing = () => {
                 onClick={handleWhatsAppContact}
               >
                 <MessageCircle className="mr-2 h-5 w-5" />
-                WhatsApp İletişim
+                Premium İçin İletişim
               </Button>
             </div>
           </div>

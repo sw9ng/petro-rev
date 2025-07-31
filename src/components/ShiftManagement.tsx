@@ -11,6 +11,7 @@ import { useCustomers } from '@/hooks/useCustomers';
 import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { BankSelectionDialog } from './BankSelectionDialog';
 import { useToast } from '@/hooks/use-toast';
+import { usePremiumStatus } from '@/hooks/usePremiumStatus';
 import { formatCurrency } from '@/lib/numberUtils';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -29,8 +30,9 @@ const getShiftDate = (startDateTime: string, endDateTime: string, shiftNumber: s
 
 export const ShiftManagement = () => {
   const { toast } = useToast();
-  const { addShift } = useShifts();
+  const { addShift, shifts } = useShifts();
   const { personnel } = usePersonnel();
+  const { isPremium } = usePremiumStatus();
   const { customers } = useCustomers();
   const { addVeresiye } = useCustomerTransactions();
   const [showBankDialog, setShowBankDialog] = useState(false);
@@ -87,6 +89,16 @@ export const ShiftManagement = () => {
       toast({
         title: "Hata",
         description: "Lütfen tüm zorunlu alanları doldurun (Vardiya numarası dahil).",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check freemium limits
+    if (!isPremium && shifts.length >= 30) {
+      toast({
+        title: "Limit Aşıldı",
+        description: "Ücretsiz plan ile maksimum 30 vardiya kaydedebilirsiniz. Premium'a yükseltin.",
         variant: "destructive"
       });
       return;

@@ -9,7 +9,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, CreditCard, User, Phone, MapPin, Calendar as CalendarIcon, FileText, Trash2, Download, CalendarCheck, Filter } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ArrowLeft, CreditCard, User, Phone, MapPin, Calendar as CalendarIcon, FileText, Trash2, Download, CalendarCheck, Filter, CheckSquare } from 'lucide-react';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { formatCurrency } from '@/lib/numberUtils';
@@ -34,6 +35,8 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
   const [amountFilter, setAmountFilter] = useState<string>('');
   const [transactionTypeFilter, setTransactionTypeFilter] = useState<string>('all');
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('all');
+  const [selectedTransactions, setSelectedTransactions] = useState<Set<string>>(new Set());
+  const [isSelectMode, setIsSelectMode] = useState(false);
   
   console.log('CustomerDetailView - customerId:', customerId);
   console.log('CustomerDetailView - customers:', customers);
@@ -121,6 +124,53 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
         description: "İşlem başarıyla silindi.",
       });
     }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedTransactions.size === 0) return;
+
+    const deletePromises = Array.from(selectedTransactions).map(transactionId => 
+      deleteTransaction(transactionId)
+    );
+
+    try {
+      await Promise.all(deletePromises);
+      setSelectedTransactions(new Set());
+      setIsSelectMode(false);
+      toast({
+        title: "Başarılı",
+        description: `${selectedTransactions.size} işlem başarıyla silindi.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Hata",
+        description: "Bazı işlemler silinirken hata oluştu.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSelectTransaction = (transactionId: string, checked: boolean) => {
+    const newSelected = new Set(selectedTransactions);
+    if (checked) {
+      newSelected.add(transactionId);
+    } else {
+      newSelected.delete(transactionId);
+    }
+    setSelectedTransactions(newSelected);
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedTransactions(new Set(filteredTransactions.map(t => t.id)));
+    } else {
+      setSelectedTransactions(new Set());
+    }
+  };
+
+  const toggleSelectMode = () => {
+    setIsSelectMode(!isSelectMode);
+    setSelectedTransactions(new Set());
   };
 
   const exportToPDF = () => {
@@ -411,6 +461,26 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
             <CreditCard className="h-6 w-6 text-green-500" />
             <span>İşlem Geçmişi</span>
             <div className="ml-auto flex gap-2">
+              <Button
+                variant={isSelectMode ? "default" : "outline"}
+                size="sm"
+                onClick={toggleSelectMode}
+                className="flex items-center gap-2"
+              >
+                <CheckSquare className="h-4 w-4" />
+                {isSelectMode ? 'Seçimi İptal Et' : 'Toplu Seç'}
+              </Button>
+              {isSelectMode && selectedTransactions.size > 0 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleBulkDelete}
+                  className="flex items-center gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Seçilenleri Sil ({selectedTransactions.size})
+                </Button>
+              )}
               {customerTransactions.length !== filteredTransactions.length && (
                 <Badge variant="secondary">
                   Toplam: {customerTransactions.length} İşlem
@@ -434,6 +504,14 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
               <Table>
                 <TableHeader>
                   <TableRow>
+                    {isSelectMode && (
+                      <TableHead className="w-12">
+                        <Checkbox
+                          checked={selectedTransactions.size === filteredTransactions.length && filteredTransactions.length > 0}
+                          onCheckedChange={handleSelectAll}
+                        />
+                      </TableHead>
+                    )}
                     <TableHead>Tarih</TableHead>
                     <TableHead>Personel</TableHead>
                     <TableHead>İşlem Türü</TableHead>
@@ -446,6 +524,14 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
                 <TableBody>
                   {filteredTransactions.map((transaction) => (
                     <TableRow key={transaction.id}>
+                      {isSelectMode && (
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedTransactions.has(transaction.id)}
+                            onCheckedChange={(checked) => handleSelectTransaction(transaction.id, checked as boolean)}
+                          />
+                        </TableCell>
+                      )}
                       <TableCell className="text-sm">
                         {format(new Date(transaction.transaction_date), 'dd/MM/yyyy')}
                         <br />

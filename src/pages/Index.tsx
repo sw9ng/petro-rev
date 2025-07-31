@@ -29,6 +29,8 @@ import { FuelSalesManagement } from "@/components/FuelSalesManagement";
 import { CustomerManagement } from "@/components/CustomerManagement";
 import { PaymentTracking } from "@/components/PaymentTracking";
 import { AdminPanel } from "@/components/AdminPanel";
+import { FreemiumGate } from "@/components/FreemiumGate";
+import { FreemiumLimits } from "@/components/FreemiumLimits";
 import CashRegister from "@/pages/CashRegister";
 import Accounting from "@/pages/Accounting";
 
@@ -197,6 +199,7 @@ const Index = () => {
           </div>
 
           <TabsContent value="dashboard" className="space-y-4 sm:space-y-6">
+            <FreemiumLimits />
             <FuelStationDashboard />
           </TabsContent>
 
@@ -213,27 +216,39 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="customers" className="space-y-4 sm:space-y-6">
-            <CustomerManagement />
+            <FreemiumGate feature="Müşteri Yönetimi" description="Cari hesap ve müşteri takibi premium özelliklerdir.">
+              <CustomerManagement />
+            </FreemiumGate>
           </TabsContent>
 
           <TabsContent value="payments" className="space-y-4 sm:space-y-6">
-            <PaymentTracking />
+            <FreemiumGate feature="Cari Satış Takibi" description="Müşteri borç takibi ve ödeme yönetimi premium özelliklerdir.">
+              <PaymentTracking />
+            </FreemiumGate>
           </TabsContent>
 
           <TabsContent value="cash-register" className="space-y-4 sm:space-y-6">
-            {user && <CashRegister />}
+            <FreemiumGate feature="Kasa Yönetimi" description="Gelişmiş kasa takibi ve raporlama premium özelliklerdir.">
+              {user && <CashRegister />}
+            </FreemiumGate>
           </TabsContent>
 
           <TabsContent value="accounting" className="space-y-4 sm:space-y-6">
-            <Accounting />
+            <FreemiumGate feature="Muhasebe Entegrasyonu" description="E-fatura, e-arşiv ve muhasebe entegrasyonları premium özelliklerdir.">
+              <Accounting />
+            </FreemiumGate>
           </TabsContent>
 
           <TabsContent value="fuel" className="space-y-4 sm:space-y-6">
-            <FuelSalesManagement />
+            <FreemiumGate feature="Yakıt Satış Yönetimi" description="Detaylı yakıt takibi ve kar analizi premium özelliklerdir.">
+              <FuelSalesManagement />
+            </FreemiumGate>
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-4 sm:space-y-6">
-            <ReportsView />
+            <FreemiumGate feature="Detaylı Raporlama" description="Gelişmiş analiz ve raporlama araçları premium özelliklerdir.">
+              <ReportsView />
+            </FreemiumGate>
           </TabsContent>
 
           {isAdmin && (

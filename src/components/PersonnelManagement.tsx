@@ -12,11 +12,13 @@ import { Plus, Trash2, Edit2, Users, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { usePersonnel, Personnel } from '@/hooks/usePersonnel';
 import { PersonnelEditDialog } from './PersonnelEditDialog';
+import { usePremiumStatus } from '@/hooks/usePremiumStatus';
 import { supabase } from '@/integrations/supabase/client';
 
 export const PersonnelManagement = () => {
   const { toast } = useToast();
   const { personnel, loading, addPersonnel, updatePersonnel, deletePersonnel } = usePersonnel();
+  const { isPremium } = usePremiumStatus();
   const [newPersonnelOpen, setNewPersonnelOpen] = useState(false);
   const [editPersonnelOpen, setEditPersonnelOpen] = useState(false);
   const [selectedPersonnel, setSelectedPersonnel] = useState<Personnel | null>(null);
@@ -37,6 +39,16 @@ export const PersonnelManagement = () => {
       toast({
         title: "Hata",
         description: "Ad ve rol alanları zorunludur.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check freemium limits
+    if (!isPremium && personnel.length >= 5) {
+      toast({
+        title: "Limit Aşıldı",
+        description: "Ücretsiz plan ile maksimum 5 personel ekleyebilirsiniz. Premium'a yükseltin.",
         variant: "destructive"
       });
       return;
