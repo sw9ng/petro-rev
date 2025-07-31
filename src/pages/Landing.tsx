@@ -165,19 +165,18 @@ export const Landing = () => {
               <Button 
                 size="lg" 
                 className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-lg px-8 py-4 shadow-lg"
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/auth')}
               >
                 <Star className="mr-2 h-5 w-5" />
-                Ücretsiz Başla
+                Hesap Oluştur - Ücretsiz Başla
               </Button>
               <Button 
                 size="lg" 
                 variant="outline" 
                 className="text-lg px-8 py-4 border-gray-300 hover:bg-gray-50"
-                onClick={handleWhatsAppContact}
+                onClick={() => navigate('/')}
               >
-                <MessageCircle className="mr-2 h-5 w-5" />
-                Premium İçin İletişim
+                Sisteme Giriş Yap
               </Button>
             </div>
           </div>
@@ -315,10 +314,10 @@ export const Landing = () => {
 
                 <Button 
                   className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg py-6 shadow-lg mt-4"
-                  onClick={() => navigate('/')}
+                  onClick={() => navigate('/auth')}
                 >
                   <Star className="mr-2 h-5 w-5" />
-                  Premium Sisteme Giriş
+                  Kayıt Ol ve Premium Al
                 </Button>
               </CardContent>
             </Card>

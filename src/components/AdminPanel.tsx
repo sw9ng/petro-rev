@@ -120,10 +120,53 @@ export const AdminPanel = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">Admin Panel</h2>
-          <p className="text-gray-600">Mevcut kullanıcıları yönetin</p>
+          <h2 className="text-3xl font-bold text-gray-900">Admin Panel</h2>
+          <p className="text-gray-600">Kullanıcı yönetimi ve premium abonelik kontrolleri</p>
         </div>
-        <CreateUserDialog onUserCreated={fetchProfiles} />
+        <div className="flex space-x-3">
+          <CreateUserDialog onUserCreated={fetchProfiles} />
+        </div>
+      </div>
+
+      {/* İstatistik Kartları */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Toplam Kullanıcı</p>
+                <p className="text-3xl font-bold text-gray-900">{profiles.length}</p>
+              </div>
+              <Users className="h-12 w-12 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Premium Kullanıcılar</p>
+                <p className="text-3xl font-bold text-green-600">
+                  {profiles.filter(p => p.is_premium).length}
+                </p>
+              </div>
+              <Crown className="h-12 w-12 text-yellow-500" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Ücretsiz Kullanıcılar</p>
+                <p className="text-3xl font-bold text-gray-600">
+                  {profiles.filter(p => !p.is_premium).length}
+                </p>
+              </div>
+              <Users className="h-12 w-12 text-gray-400" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Premium Uzatma Dialogu */}
@@ -176,52 +219,86 @@ export const AdminPanel = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <Users className="h-5 w-5" />
-            <span>Kullanıcı Listesi</span>
+            <Users className="h-6 w-6" />
+            <span>Kullanıcı Yönetimi</span>
           </CardTitle>
           <CardDescription>
-            Toplam {profiles.length} kullanıcı
+            Kullanıcıları ve premium durumlarını yönetin
           </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-4">Yükleniyor...</div>
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="text-gray-500 mt-2">Kullanıcılar yükleniyor...</p>
+            </div>
+          ) : profiles.length === 0 ? (
+            <div className="text-center py-8">
+              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">Henüz kullanıcı bulunmuyor</p>
+            </div>
           ) : (
             <div className="space-y-4">
               {profiles.map((profile) => (
-                <div key={profile.id} className="border rounded-lg p-4 space-y-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold">{profile.full_name || 'İsimsiz'}</h3>
-                      <p className="text-sm text-gray-600">{profile.station_name || 'İstasyon adı yok'}</p>
-                      <p className="text-xs text-gray-500">ID: {profile.id}</p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {profile.is_premium ? (
-                        <Badge className="bg-green-100 text-green-800">
-                          <Crown className="mr-1 h-3 w-3" />
-                          Premium
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline">Free</Badge>
-                      )}
+                <div key={profile.id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          {profile.full_name || 'İsimsiz Kullanıcı'}
+                        </h3>
+                        {profile.is_premium ? (
+                          <Badge className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-white">
+                            <Crown className="mr-1 h-3 w-3" />
+                            Premium
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-gray-600">
+                            Ücretsiz Plan
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-gray-600 flex items-center">
+                          <span className="font-medium min-w-[100px]">İstasyon:</span>
+                          {profile.station_name || 'Belirtilmemiş'}
+                        </p>
+                        <p className="text-sm text-gray-500 flex items-center">
+                          <span className="font-medium min-w-[100px]">Kayıt:</span>
+                          {profile.created_at ? new Date(profile.created_at).toLocaleDateString('tr-TR') : 'Bilinmiyor'}
+                        </p>
+                        {profile.premium_expires_at && (
+                          <p className="text-sm text-gray-600 flex items-center">
+                            <Calendar className="mr-1 h-3 w-3" />
+                            <span className="font-medium min-w-[100px]">Premium Bitiş:</span>
+                            {new Date(profile.premium_expires_at).toLocaleDateString('tr-TR')}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                   
-                  {profile.premium_expires_at && (
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Calendar className="mr-1 h-3 w-3" />
-                      Bitiş: {new Date(profile.premium_expires_at).toLocaleDateString('tr-TR')}
-                    </div>
-                  )}
-                  
-                  <div className="flex space-x-2 pt-2">
+                  <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-100">
                     <Button
                       size="sm"
                       variant={profile.is_premium ? "outline" : "default"}
                       onClick={() => updatePremiumStatus(profile.id, !profile.is_premium, '2025-12-31')}
+                      className={profile.is_premium ? 
+                        "text-red-600 border-red-200 hover:bg-red-50" : 
+                        "bg-green-600 hover:bg-green-700"
+                      }
                     >
-                      {profile.is_premium ? 'Premium İptal' : 'Premium Yap'}
+                      {profile.is_premium ? (
+                        <>
+                          <Users className="mr-1 h-3 w-3" />
+                          Ücretsiz Plana Geçir
+                        </>
+                      ) : (
+                        <>
+                          <Crown className="mr-1 h-3 w-3" />
+                          Premium Yap
+                        </>
+                      )}
                     </Button>
                     {profile.is_premium && (
                       <Button
@@ -231,11 +308,23 @@ export const AdminPanel = () => {
                           setSelectedUser(profile);
                           setExtendPremiumOpen(true);
                         }}
+                        className="bg-blue-50 text-blue-600 hover:bg-blue-100"
                       >
                         <Clock className="mr-1 h-3 w-3" />
                         Premium Uzat
                       </Button>
                     )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-gray-600 hover:bg-gray-50"
+                      onClick={() => {
+                        navigator.clipboard.writeText(profile.id);
+                        toast({ title: "Kullanıcı ID kopyalandı" });
+                      }}
+                    >
+                      ID Kopyala
+                    </Button>
                   </div>
                 </div>
               ))}
