@@ -70,6 +70,7 @@ export const useCustomerTransactions = () => {
         personnel: personnelMap[item.personnel_id] ? { name: personnelMap[item.personnel_id].name } : { name: 'Bilinmeyen Personel' }
       }));
       setTransactions(mappedData);
+      console.log(`[DEBUG] Fetched ${mappedData.length} transactions from database`);
     }
     setLoading(false);
   };

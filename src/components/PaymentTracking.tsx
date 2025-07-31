@@ -285,6 +285,7 @@ export const PaymentTracking = () => {
                 <div>
                   <p className="text-sm font-medium text-gray-600">Toplam İşlem</p>
                   <p className="text-2xl font-bold">{transactions.length}</p>
+                  <p className="text-xs text-gray-400">Debug: {transactions.length} işlem yüklendi</p>
                 </div>
               </div>
             </CardContent>
