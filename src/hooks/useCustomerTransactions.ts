@@ -38,8 +38,7 @@ export const useCustomerTransactions = () => {
         )
       `)
       .eq('station_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(10000); // Çok büyük bir limit koyarak tüm verileri garantileyelim
+      .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching customer transactions:', error);
@@ -62,7 +61,7 @@ export const useCustomerTransactions = () => {
         personnel_id: item.personnel_id,
         amount: item.amount,
         transaction_date: item.transaction_date,
-        transaction_type: item.transaction_type === 'veresiye' ? 'debt' as const : item.transaction_type as 'debt' | 'payment',
+        transaction_type: item.transaction_type as 'debt' | 'payment',
         status: item.status as 'pending' | 'completed',
         payment_method: item.payment_method,
         description: item.description,
