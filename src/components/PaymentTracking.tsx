@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useCustomers } from '@/hooks/useCustomers';
@@ -15,7 +16,7 @@ import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { usePersonnel } from '@/hooks/usePersonnel';
 import { formatCurrency } from '@/lib/numberUtils';
 import { generateTahsilatMakbuzu, numberToWords } from '@/lib/pdfUtils';
-import { Plus, Search, CreditCard, ArrowUpDown, Calendar, Users, TrendingUp, TrendingDown, Edit, Trash2, FileText } from 'lucide-react';
+import { Plus, Search, CreditCard, ArrowUpDown, Calendar, Users, TrendingUp, TrendingDown, Edit, Trash2, FileText, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const PaymentTracking = () => {
@@ -50,6 +51,10 @@ export const PaymentTracking = () => {
   const [editAmount, setEditAmount] = useState<string>('');
   const [editPaymentMethod, setEditPaymentMethod] = useState<string>('');
   const [editDescription, setEditDescription] = useState<string>('');
+
+  // Bulk selection state for debt transactions
+  const [selectedDebtTransactions, setSelectedDebtTransactions] = useState<Set<string>>(new Set());
+  const [debtSelectMode, setDebtSelectMode] = useState(false);
 
   const navigate = useNavigate();
 
@@ -229,6 +234,47 @@ export const PaymentTracking = () => {
     pdf.save(`tahsilat-makbuzu-${makbuzData.makbuzNo}.pdf`);
     
     toast.success('Tahsilat makbuzu PDF olarak indirildi');
+  };
+
+  // Debt bulk operations
+  const handleSelectDebtTransaction = (transactionId: string, checked: boolean) => {
+    const newSelected = new Set(selectedDebtTransactions);
+    if (checked) {
+      newSelected.add(transactionId);
+    } else {
+      newSelected.delete(transactionId);
+    }
+    setSelectedDebtTransactions(newSelected);
+  };
+
+  const handleSelectAllDebtTransactions = (checked: boolean) => {
+    if (checked) {
+      setSelectedDebtTransactions(new Set(debtTransactions.map(t => t.id)));
+    } else {
+      setSelectedDebtTransactions(new Set());
+    }
+  };
+
+  const toggleDebtSelectMode = () => {
+    setDebtSelectMode(!debtSelectMode);
+    if (debtSelectMode) {
+      setSelectedDebtTransactions(new Set());
+    }
+  };
+
+  const handleBulkDeleteDebt = async () => {
+    if (selectedDebtTransactions.size === 0) {
+      toast.error('Lütfen silinecek işlemleri seçin');
+      return;
+    }
+
+    for (const transactionId of selectedDebtTransactions) {
+      await deleteTransaction(transactionId);
+    }
+
+    toast.success(`${selectedDebtTransactions.size} borç işlemi silindi`);
+    setSelectedDebtTransactions(new Set());
+    setDebtSelectMode(false);
   };
 
   // Separate transactions by type for history
@@ -689,16 +735,68 @@ export const PaymentTracking = () => {
           <TabsContent value="debt-history" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Calendar className="h-5 w-5 text-red-600" />
-                  <span>Borç Geçmişi</span>
-                </CardTitle>
-                <CardDescription>Tüm borç kayıtları</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Calendar className="h-5 w-5 text-red-600" />
+                      <span>Borç Geçmişi</span>
+                    </CardTitle>
+                    <CardDescription>Tüm borç kayıtları</CardDescription>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {debtSelectMode && selectedDebtTransactions.size > 0 && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm">
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Seçilileri Sil ({selectedDebtTransactions.size})
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Seçili İşlemleri Sil</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {selectedDebtTransactions.size} adet borç işlemini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>İptal</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleBulkDeleteDebt}>
+                              Sil
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={toggleDebtSelectMode}
+                    >
+                      {debtSelectMode ? (
+                        <>
+                          <Check className="h-4 w-4 mr-2" />
+                          Seçimi Bitir
+                        </>
+                      ) : (
+                        'Toplu Seç'
+                      )}
+                    </Button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      {debtSelectMode && (
+                        <TableHead className="w-12">
+                          <Checkbox
+                            checked={selectedDebtTransactions.size === debtTransactions.length && debtTransactions.length > 0}
+                            onCheckedChange={handleSelectAllDebtTransactions}
+                          />
+                        </TableHead>
+                      )}
                       <TableHead>Tarih</TableHead>
                       <TableHead>Müşteri</TableHead>
                       <TableHead>Personel</TableHead>
@@ -711,6 +809,14 @@ export const PaymentTracking = () => {
                   <TableBody>
                     {debtTransactions.map((transaction) => (
                       <TableRow key={transaction.id}>
+                        {debtSelectMode && (
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedDebtTransactions.has(transaction.id)}
+                              onCheckedChange={(checked) => handleSelectDebtTransaction(transaction.id, checked as boolean)}
+                            />
+                          </TableCell>
+                        )}
                         <TableCell>
                           <div className="flex flex-col">
                             <span>{new Date(transaction.transaction_date).toLocaleDateString('tr-TR')}</span>
