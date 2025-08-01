@@ -56,6 +56,10 @@ export const PaymentTracking = () => {
   const [selectedDebtTransactions, setSelectedDebtTransactions] = useState<Set<string>>(new Set());
   const [debtSelectMode, setDebtSelectMode] = useState(false);
 
+  // Bulk selection state for payment transactions
+  const [selectedPaymentTransactions, setSelectedPaymentTransactions] = useState<Set<string>>(new Set());
+  const [paymentSelectMode, setPaymentSelectMode] = useState(false);
+
   const navigate = useNavigate();
 
   const handleCustomerClick = (customerId: string) => {
@@ -275,6 +279,47 @@ export const PaymentTracking = () => {
     toast.success(`${selectedDebtTransactions.size} borç işlemi silindi`);
     setSelectedDebtTransactions(new Set());
     setDebtSelectMode(false);
+  };
+
+  // Payment bulk operations
+  const handleSelectPaymentTransaction = (transactionId: string, checked: boolean) => {
+    const newSelected = new Set(selectedPaymentTransactions);
+    if (checked) {
+      newSelected.add(transactionId);
+    } else {
+      newSelected.delete(transactionId);
+    }
+    setSelectedPaymentTransactions(newSelected);
+  };
+
+  const handleSelectAllPaymentTransactions = (checked: boolean) => {
+    if (checked) {
+      setSelectedPaymentTransactions(new Set(paymentTransactions.map(t => t.id)));
+    } else {
+      setSelectedPaymentTransactions(new Set());
+    }
+  };
+
+  const togglePaymentSelectMode = () => {
+    setPaymentSelectMode(!paymentSelectMode);
+    if (paymentSelectMode) {
+      setSelectedPaymentTransactions(new Set());
+    }
+  };
+
+  const handleBulkDeletePayment = async () => {
+    if (selectedPaymentTransactions.size === 0) {
+      toast.error('Lütfen silinecek işlemleri seçin');
+      return;
+    }
+
+    for (const transactionId of selectedPaymentTransactions) {
+      await deleteTransaction(transactionId);
+    }
+
+    toast.success(`${selectedPaymentTransactions.size} ödeme işlemi silindi`);
+    setSelectedPaymentTransactions(new Set());
+    setPaymentSelectMode(false);
   };
 
   // Separate transactions by type for history
@@ -630,16 +675,68 @@ export const PaymentTracking = () => {
           <TabsContent value="payment-history" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <CreditCard className="h-5 w-5 text-green-600" />
-                  <span>Ödeme Geçmişi</span>
-                </CardTitle>
-                <CardDescription>Tüm ödeme işlemleri</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center space-x-2">
+                      <CreditCard className="h-5 w-5 text-green-600" />
+                      <span>Ödeme Geçmişi</span>
+                    </CardTitle>
+                    <CardDescription>Tüm ödeme işlemleri</CardDescription>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {paymentSelectMode && selectedPaymentTransactions.size > 0 && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm">
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Seçilileri Sil ({selectedPaymentTransactions.size})
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Seçili İşlemleri Sil</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {selectedPaymentTransactions.size} adet ödeme işlemini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>İptal</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleBulkDeletePayment}>
+                              Sil
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={togglePaymentSelectMode}
+                    >
+                      {paymentSelectMode ? (
+                        <>
+                          <Check className="h-4 w-4 mr-2" />
+                          Seçimi Bitir
+                        </>
+                      ) : (
+                        'Toplu Seç'
+                      )}
+                    </Button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      {paymentSelectMode && (
+                        <TableHead className="w-12">
+                          <Checkbox
+                            checked={selectedPaymentTransactions.size === paymentTransactions.length && paymentTransactions.length > 0}
+                            onCheckedChange={handleSelectAllPaymentTransactions}
+                          />
+                        </TableHead>
+                      )}
                       <TableHead>Tarih</TableHead>
                       <TableHead>Müşteri</TableHead>
                       <TableHead>Personel</TableHead>
@@ -652,6 +749,14 @@ export const PaymentTracking = () => {
                   <TableBody>
                     {paymentTransactions.map((transaction) => (
                       <TableRow key={transaction.id}>
+                        {paymentSelectMode && (
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedPaymentTransactions.has(transaction.id)}
+                              onCheckedChange={(checked) => handleSelectPaymentTransaction(transaction.id, checked as boolean)}
+                            />
+                          </TableCell>
+                        )}
                         <TableCell>
                           <div className="flex flex-col">
                             <span>{new Date(transaction.transaction_date).toLocaleDateString('tr-TR')}</span>
