@@ -8,7 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, Receipt, CreditCard, FileText, Calendar, Banknote, User } from 'lucide-react';
+import { PlusCircle, Receipt, CreditCard, FileText, Calendar, Banknote, User, Edit2, Trash2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useInvoices } from '@/hooks/useInvoices';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,8 +22,10 @@ interface CompanyCashManagementProps {
 }
 
 export const CompanyCashManagement = ({ companyId, type = 'income' }: CompanyCashManagementProps) => {
-  const { invoices, isLoading, createInvoice } = useInvoices(companyId, type);
+  const { invoices, isLoading, createInvoice, updateInvoice, deleteInvoice } = useInvoices(companyId, type);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingInvoice, setEditingInvoice] = useState<any>(null);
   const [newInvoice, setNewInvoice] = useState({
     description: '',
     amount: '',
@@ -85,6 +88,55 @@ export const CompanyCashManagement = ({ companyId, type = 'income' }: CompanyCas
       toast.success(`${type === 'income' ? 'Gelir' : 'Gider'} faturası oluşturuldu`);
     } catch (error) {
       toast.error('Fatura oluşturulurken hata oluştu');
+    }
+  };
+
+  const handleEditInvoice = (invoice: any) => {
+    setEditingInvoice({
+      ...invoice,
+      amount: invoice.amount.toString(),
+      invoice_date: invoice.invoice_date,
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateInvoice = async () => {
+    if (!editingInvoice.description || !editingInvoice.amount) {
+      toast.error('Açıklama ve tutar zorunludur');
+      return;
+    }
+
+    if (!editingInvoice.account_id) {
+      toast.error('Cari seçimi zorunludur');
+      return;
+    }
+
+    try {
+      await updateInvoice.mutateAsync({
+        id: editingInvoice.id,
+        description: editingInvoice.description,
+        amount: parseFloat(editingInvoice.amount),
+        invoice_date: editingInvoice.invoice_date,
+        payment_status: editingInvoice.payment_status,
+        tax_number: editingInvoice.tax_number || undefined,
+        company_title: editingInvoice.company_title || undefined,
+        account_id: editingInvoice.account_id,
+      });
+      
+      setIsEditDialogOpen(false);
+      setEditingInvoice(null);
+      toast.success(`${type === 'income' ? 'Gelir' : 'Gider'} faturası güncellendi`);
+    } catch (error) {
+      toast.error('Fatura güncellenirken hata oluştu');
+    }
+  };
+
+  const handleDeleteInvoice = async (invoiceId: string) => {
+    try {
+      await deleteInvoice.mutateAsync(invoiceId);
+      toast.success(`${type === 'income' ? 'Gelir' : 'Gider'} faturası silindi`);
+    } catch (error) {
+      toast.error('Fatura silinirken hata oluştu');
     }
   };
 
@@ -282,6 +334,119 @@ export const CompanyCashManagement = ({ companyId, type = 'income' }: CompanyCas
         </Dialog>
       </div>
 
+      {/* Edit Invoice Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>
+              {type === 'income' ? 'Gelir' : 'Gider'} Faturasını Düzenle
+            </DialogTitle>
+            <DialogDescription>
+              {type === 'income' ? 'Gelir' : 'Gider'} faturası bilgilerini güncelleyin
+            </DialogDescription>
+          </DialogHeader>
+          {editingInvoice && (
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-account_id">Cari Seçimi *</Label>
+                <Select
+                  value={editingInvoice.account_id}
+                  onValueChange={(value) => setEditingInvoice({...editingInvoice, account_id: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Cari seçin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companyAccounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4" />
+                          {account.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-description">Açıklama</Label>
+                <Textarea
+                  id="edit-description"
+                  value={editingInvoice.description}
+                  onChange={(e) => setEditingInvoice({...editingInvoice, description: e.target.value})}
+                  placeholder="Fatura açıklaması"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-amount">Tutar (₺)</Label>
+                <Input
+                  id="edit-amount"
+                  type="number"
+                  step="0.01"
+                  value={editingInvoice.amount}
+                  onChange={(e) => setEditingInvoice({...editingInvoice, amount: e.target.value})}
+                  placeholder="0,00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-invoice_date">Fatura Tarihi</Label>
+                <Input
+                  id="edit-invoice_date"
+                  type="date"
+                  value={editingInvoice.invoice_date}
+                  onChange={(e) => setEditingInvoice({...editingInvoice, invoice_date: e.target.value})}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-tax_number">Vergi No (Opsiyonel)</Label>
+                  <Input
+                    id="edit-tax_number"
+                    value={editingInvoice.tax_number || ''}
+                    onChange={(e) => setEditingInvoice({...editingInvoice, tax_number: e.target.value})}
+                    placeholder="1234567890"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-payment_status">Ödeme Durumu</Label>
+                  <Select
+                    value={editingInvoice.payment_status}
+                    onValueChange={(value: 'paid' | 'unpaid') => 
+                      setEditingInvoice({...editingInvoice, payment_status: value})
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unpaid">Ödenmemiş</SelectItem>
+                      <SelectItem value="paid">Ödenmiş</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-company_title">Şirket Ünvanı (Opsiyonel)</Label>
+                <Input
+                  id="edit-company_title"
+                  value={editingInvoice.company_title || ''}
+                  onChange={(e) => setEditingInvoice({...editingInvoice, company_title: e.target.value})}
+                  placeholder="ABC Şirketi Ltd. Şti."
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              İptal
+            </Button>
+            <Button onClick={handleUpdateInvoice}>
+              Güncelle
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Invoice List */}
       <div className="space-y-4">
         {invoices.length === 0 ? (
@@ -332,11 +497,41 @@ export const CompanyCashManagement = ({ companyId, type = 'income' }: CompanyCas
                       )}
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className={`text-lg font-bold ${type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                      {formatCurrency(invoice.amount)}
-                    </div>
-                  </div>
+                   <div className="flex items-center gap-2">
+                     <div className={`text-lg font-bold ${type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                       {formatCurrency(invoice.amount)}
+                     </div>
+                     <div className="flex gap-2">
+                       <Button
+                         variant="outline"
+                         size="sm"
+                         onClick={() => handleEditInvoice(invoice)}
+                       >
+                         <Edit2 className="h-4 w-4" />
+                       </Button>
+                       <AlertDialog>
+                         <AlertDialogTrigger asChild>
+                           <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                             <Trash2 className="h-4 w-4" />
+                           </Button>
+                         </AlertDialogTrigger>
+                         <AlertDialogContent>
+                           <AlertDialogHeader>
+                             <AlertDialogTitle>Faturayı Sil</AlertDialogTitle>
+                             <AlertDialogDescription>
+                               Bu faturayı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+                             </AlertDialogDescription>
+                           </AlertDialogHeader>
+                           <AlertDialogFooter>
+                             <AlertDialogCancel>İptal</AlertDialogCancel>
+                             <AlertDialogAction onClick={() => handleDeleteInvoice(invoice.id)}>
+                               Sil
+                             </AlertDialogAction>
+                           </AlertDialogFooter>
+                         </AlertDialogContent>
+                       </AlertDialog>
+                     </div>
+                   </div>
                 </div>
               </CardContent>
             </Card>
