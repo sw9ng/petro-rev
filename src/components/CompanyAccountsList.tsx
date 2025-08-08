@@ -168,18 +168,24 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
   };
 
   const handleDeleteAccount = async (accountId: string) => {
-    const { error } = await supabase
-      .from('company_accounts')
-      .delete()
-      .eq('id', accountId);
+    try {
+      const { error } = await supabase
+        .from('company_accounts')
+        .delete()
+        .eq('id', accountId);
 
-    if (error) {
-      toast.error("Cari silinirken bir hata oluştu.");
-      return;
+      if (error) {
+        console.error('Delete error:', error);
+        toast.error("Cari silinirken bir hata oluştu: " + error.message);
+        return;
+      }
+
+      toast.success("Cari başarıyla silindi.");
+      refetch();
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      toast.error("Beklenmeyen bir hata oluştu.");
     }
-
-    toast.success("Cari başarıyla silindi.");
-    refetch();
   };
 
   const handleAccountDetail = (accountId: string) => {
