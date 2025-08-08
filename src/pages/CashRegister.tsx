@@ -7,6 +7,7 @@ import { CompanyAccountsList } from '@/components/CompanyAccountsList';
 import { CustomerDetailView } from '@/components/CustomerDetailView';
 import { CheckManagement } from '@/components/CheckManagement';
 import { Plus, Building2, ArrowLeft, ChevronRight, Users, AlertCircle } from 'lucide-react';
+import { usePremiumStatus } from '@/hooks/usePremiumStatus';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 const CashRegister = () => {
   const { companies, loading, addCompany, error } = useCompanies();
   const { getTotalOutstandingDebt } = useCustomerTransactions();
+  const { isPremium } = usePremiumStatus();
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'income' | 'expense' | 'accounts' | 'checks'>('income');
@@ -42,8 +44,8 @@ const CashRegister = () => {
     });
 
     if (error) {
-      if (error.message?.includes('Maksimum 2 şirket')) {
-        toast.error("Maksimum 2 şirket oluşturabilirsiniz.");
+      if (error.message?.includes('Maksimum 3 şirket')) {
+        toast.error("Maksimum 3 şirket oluşturabilirsiniz. Premium hesabınızla sınırsız şirket oluşturabilirsiniz.");
       } else {
         toast.error("Şirket oluşturulurken bir hata oluştu.");
       }
@@ -184,7 +186,7 @@ const CashRegister = () => {
           </Card>
         ))}
 
-        {companies.length < 2 && (
+        {(isPremium || companies.length < 3) && (
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Card className="border-dashed hover:shadow-md transition-shadow cursor-pointer flex items-center justify-center min-h-[180px]">
@@ -203,7 +205,8 @@ const CashRegister = () => {
               <DialogHeader>
                 <DialogTitle>Yeni Şirket Oluştur</DialogTitle>
                 <DialogDescription>
-                  Finansal işlemlerinizi takip etmek için bir şirket oluşturun. Maksimum 2 şirket oluşturabilirsiniz.
+                  Finansal işlemlerinizi takip etmek için bir şirket oluşturun. 
+                  {isPremium ? "Premium hesabınızla sınırsız şirket oluşturabilirsiniz." : "Maksimum 3 şirket oluşturabilirsiniz."}
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
@@ -234,11 +237,11 @@ const CashRegister = () => {
           </Dialog>
         )}
 
-        {companies.length === 2 && (
+        {!isPremium && companies.length >= 3 && (
           <Card className="bg-gray-50 border-gray-200">
             <CardContent className="flex flex-col items-center justify-center p-6">
               <p className="text-gray-500 text-center">
-                Maksimum şirket sayısına ulaştınız (2/2).
+                Maksimum şirket sayısına ulaştınız (3/3). Premium hesabınızla sınırsız şirket oluşturabilirsiniz.
               </p>
             </CardContent>
           </Card>
