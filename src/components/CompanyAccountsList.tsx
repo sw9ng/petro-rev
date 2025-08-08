@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Users, Search, Eye, Phone, MapPin, Edit, Plus, User } from 'lucide-react';
+import { Users, Search, Eye, Phone, MapPin, Edit, Plus, User, Trash2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/numberUtils';
@@ -163,6 +164,21 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
     toast.success("Cari başarıyla güncellendi.");
     setEditingAccount(null);
     setFormData({ name: '', phone: '', address: '', notes: '' });
+    refetch();
+  };
+
+  const handleDeleteAccount = async (accountId: string) => {
+    const { error } = await supabase
+      .from('company_accounts')
+      .delete()
+      .eq('id', accountId);
+
+    if (error) {
+      toast.error("Cari silinirken bir hata oluştu.");
+      return;
+    }
+
+    toast.success("Cari başarıyla silindi.");
     refetch();
   };
 
@@ -366,6 +382,33 @@ export const CompanyAccountsList = ({ companyId }: CompanyAccountsListProps) => 
                             </DialogFooter>
                           </DialogContent>
                         </Dialog>
+                        
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center space-x-1 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              <span>Sil</span>
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Cariyi Sil</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                "{account.name}" carisini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>İptal</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteAccount(account.id)}>
+                                Sil
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                         
                         <Button
                           variant="outline"
