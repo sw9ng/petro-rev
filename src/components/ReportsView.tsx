@@ -14,6 +14,7 @@ import { useShifts } from '@/hooks/useShifts';
 import { usePersonnel } from '@/hooks/usePersonnel';
 import { useFuelSales } from '@/hooks/useFuelSales';
 import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
+import { useCommissionRates } from '@/hooks/useCommissionRates';
 import { formatCurrency } from '@/lib/numberUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { FuelProfitCalculator } from './FuelProfitCalculator';
@@ -305,11 +306,11 @@ export const ReportsView = () => {
   const { personnel } = usePersonnel();
   const { fuelSales } = useFuelSales();
   const { transactions, getTotalOutstandingDebt } = useCustomerTransactions();
+  const { commissionRates, updateCommissionRate, getCommissionRate } = useCommissionRates();
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
   const [selectedShiftType, setSelectedShiftType] = useState<string>('all');
   const [selectedPersonnel, setSelectedPersonnel] = useState<string>('all');
-  const [commissionRates, setCommissionRates] = useState<Record<string, number>>({});
   const [bankDetails, setBankDetails] = useState<BankDetail[]>([]);
 
   // Set default date range to current month
@@ -319,14 +320,6 @@ export const ReportsView = () => {
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     setStartDate(startOfMonth);
     setEndDate(endOfMonth);
-  }, []);
-
-  // Load saved commission rates from localStorage
-  useEffect(() => {
-    const savedRates = localStorage.getItem('bankCommissionRates');
-    if (savedRates) {
-      setCommissionRates(JSON.parse(savedRates));
-    }
   }, []);
 
   // Memoize filtered data for better performance
@@ -482,7 +475,7 @@ export const ReportsView = () => {
   // Calculate bank-wise net sales
   const bankWiseNetSales = useMemo(() => {
     return bankDetails.map(bank => {
-      const commissionRate = commissionRates[bank.bank_name] || 0;
+      const commissionRate = getCommissionRate(bank.bank_name);
       const commission = bank.amount * (commissionRate / 100);
       const netAmount = bank.amount - commission;
       
@@ -494,19 +487,14 @@ export const ReportsView = () => {
         netAmount
       };
     });
-  }, [bankDetails, commissionRates]);
+  }, [bankDetails, commissionRates, getCommissionRate]);
 
   const totalNetCardSales = bankWiseNetSales.reduce((sum, bank) => sum + bank.netAmount, 0);
   const totalCommission = bankWiseNetSales.reduce((sum, bank) => sum + bank.commission, 0);
 
   const handleCommissionRateChange = (bankName: string, rate: string) => {
     const numericRate = parseFloat(rate) || 0;
-    const updatedRates = {
-      ...commissionRates,
-      [bankName]: numericRate
-    };
-    setCommissionRates(updatedRates);
-    localStorage.setItem('bankCommissionRates', JSON.stringify(updatedRates));
+    updateCommissionRate(bankName, numericRate);
   };
 
   const fuelTypeData = filteredFuelSales.reduce((acc, sale) => {
@@ -726,7 +714,7 @@ export const ReportsView = () => {
                     min="0"
                     max="10"
                     placeholder="0.00"
-                    value={commissionRates[bank.bank_name] || ''}
+                    value={getCommissionRate(bank.bank_name) || ''}
                     onChange={(e) => handleCommissionRateChange(bank.bank_name, e.target.value)}
                     className="text-sm"
                   />

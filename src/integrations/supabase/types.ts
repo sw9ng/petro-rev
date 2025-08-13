@@ -214,6 +214,33 @@ export type Database = {
         }
         Relationships: []
       }
+      commission_rates: {
+        Row: {
+          bank_name: string
+          commission_rate: number
+          created_at: string
+          id: string
+          station_id: string
+          updated_at: string
+        }
+        Insert: {
+          bank_name: string
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          station_id: string
+          updated_at?: string
+        }
+        Update: {
+          bank_name?: string
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          station_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           created_at: string
@@ -636,6 +663,78 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      fuel_profit_calculations: {
+        Row: {
+          calculation_details: Json
+          created_at: string
+          date_range_end: string
+          date_range_start: string
+          fuel_data: Json
+          id: string
+          profit_margin: number
+          purchase_prices: Json
+          station_id: string
+          total_profit: number
+          total_revenue: number
+          updated_at: string
+        }
+        Insert: {
+          calculation_details: Json
+          created_at?: string
+          date_range_end: string
+          date_range_start: string
+          fuel_data: Json
+          id?: string
+          profit_margin?: number
+          purchase_prices: Json
+          station_id: string
+          total_profit?: number
+          total_revenue?: number
+          updated_at?: string
+        }
+        Update: {
+          calculation_details?: Json
+          created_at?: string
+          date_range_end?: string
+          date_range_start?: string
+          fuel_data?: Json
+          id?: string
+          profit_margin?: number
+          purchase_prices?: Json
+          station_id?: string
+          total_profit?: number
+          total_revenue?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fuel_purchase_prices: {
+        Row: {
+          created_at: string
+          fuel_type: string
+          id: string
+          price: number
+          station_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fuel_type: string
+          id?: string
+          price?: number
+          station_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fuel_type?: string
+          id?: string
+          price?: number
+          station_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       fuel_purchases: {
         Row: {

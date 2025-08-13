@@ -129,7 +129,7 @@ export const FuelProfitCalculator = ({ fuelSalesData, dateRange }: FuelProfitCal
     return { totalProfit, totalRevenue, profitMargin };
   }, [profitData]);
 
-  const handleSaveCalculation = () => {
+  const handleSaveCalculation = async () => {
     if (!dateRange || profitData.length === 0) {
       toast({
         title: "Hata",
@@ -139,7 +139,7 @@ export const FuelProfitCalculator = ({ fuelSalesData, dateRange }: FuelProfitCal
       return;
     }
 
-    const savedCalc = saveCalculation({
+    const savedCalc = await saveCalculation({
       dateRange: {
         startDate: dateRange.startDate.toISOString(),
         endDate: dateRange.endDate.toISOString()
@@ -152,10 +152,12 @@ export const FuelProfitCalculator = ({ fuelSalesData, dateRange }: FuelProfitCal
       calculationDetails: profitData
     });
 
-    toast({
-      title: "Başarılı",
-      description: `Kârlılık hesaplaması kaydedildi: ${format(new Date(savedCalc.date), 'dd MMMM yyyy HH:mm', { locale: tr })}`,
-    });
+    if (savedCalc) {
+      toast({
+        title: "Başarılı",
+        description: `Kârlılık hesaplaması kaydedildi: ${format(new Date(savedCalc.date), 'dd MMMM yyyy HH:mm', { locale: tr })}`,
+      });
+    }
   };
 
   const loadSavedCalculation = (calculation: SavedProfitCalculation) => {
@@ -169,12 +171,8 @@ export const FuelProfitCalculator = ({ fuelSalesData, dateRange }: FuelProfitCal
     });
   };
 
-  const handleDeleteCalculation = (id: string) => {
-    deleteCalculation(id);
-    toast({
-      title: "Silindi",
-      description: "Kaydedilmiş hesaplama silindi.",
-    });
+  const handleDeleteCalculation = async (id: string) => {
+    await deleteCalculation(id);
   };
 
   return (
