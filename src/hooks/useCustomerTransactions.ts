@@ -30,25 +30,42 @@ export const useCustomerTransactions = () => {
     
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('customer_transactions')
-        .select(`
-          *,
-          customer:customer_id (
-            name
-          )
-        `)
-        .eq('station_id', user.id)
-        .order('created_at', { ascending: false });
+      // Fetch all transactions using pagination
+      let allTransactions: any[] = [];
+      let from = 0;
+      const limit = 1000;
+      let hasMore = true;
 
-      if (error) {
-        console.error('Error fetching customer transactions:', error);
-        setTransactions([]);
-        setLoading(false);
-        return;
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('customer_transactions')
+          .select(`
+            *,
+            customer:customer_id (
+              name
+            )
+          `)
+          .eq('station_id', user.id)
+          .order('created_at', { ascending: false })
+          .range(from, from + limit - 1);
+
+        if (error) {
+          console.error('Error fetching customer transactions:', error);
+          setTransactions([]);
+          setLoading(false);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          allTransactions = [...allTransactions, ...data];
+          from += limit;
+          hasMore = data.length === limit;
+        } else {
+          hasMore = false;
+        }
       }
       // Fetch personnel data separately
-      const personnelIds = [...new Set((data || []).map(item => item.personnel_id))];
+      const personnelIds = [...new Set(allTransactions.map(item => item.personnel_id))];
       const { data: personnelData } = await supabase
         .from('personnel')
         .select('id, name')
@@ -59,7 +76,7 @@ export const useCustomerTransactions = () => {
         return acc;
       }, {} as Record<string, { id: string; name: string }>);
 
-      const mappedData = (data || []).map(item => ({
+      const mappedData = allTransactions.map(item => ({
         id: item.id,
         customer_id: item.customer_id,
         personnel_id: item.personnel_id,
