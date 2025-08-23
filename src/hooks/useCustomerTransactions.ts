@@ -39,8 +39,7 @@ export const useCustomerTransactions = () => {
           )
         `)
         .eq('station_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(2000); // Set a reasonable limit to prevent performance issues
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching customer transactions:', error);
@@ -74,7 +73,7 @@ export const useCustomerTransactions = () => {
         personnel: personnelMap[item.personnel_id] ? { name: personnelMap[item.personnel_id].name } : { name: 'Bilinmeyen Personel' }
       }));
       setTransactions(mappedData);
-      console.log(`[DEBUG] Fetched ${mappedData.length} transactions from database`);
+      console.log(`[DEBUG] Fetched ${mappedData.length} transactions from database (unlimited)`);
     } catch (error) {
       console.error('Unexpected error fetching transactions:', error);
       setTransactions([]);
