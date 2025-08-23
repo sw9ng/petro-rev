@@ -60,6 +60,10 @@ export const PaymentTracking = () => {
   const [selectedPaymentTransactions, setSelectedPaymentTransactions] = useState<Set<string>>(new Set());
   const [paymentSelectMode, setPaymentSelectMode] = useState(false);
 
+  // Loading states
+  const [isAddingPayment, setIsAddingPayment] = useState(false);
+  const [isAddingDebt, setIsAddingDebt] = useState(false);
+
   const navigate = useNavigate();
 
   const handleCustomerClick = (customerId: string) => {
@@ -117,7 +121,14 @@ export const PaymentTracking = () => {
       return;
     }
 
-    const result = await addPayment({
+    if (isAddingPayment) {
+      toast.error('İşlem devam ediyor, lütfen bekleyin');
+      return;
+    }
+
+    setIsAddingPayment(true);
+    try {
+      const result = await addPayment({
       customer_id: selectedCustomer,
       personnel_id: selectedPersonnel,
       amount: parseFloat(amount),
@@ -143,6 +154,12 @@ export const PaymentTracking = () => {
       // Force refresh the transactions immediately
       await refreshTransactions();
     }
+    } catch (error) {
+      console.error('Unexpected error adding payment:', error);
+      toast.error('Beklenmeyen bir hata oluştu');
+    } finally {
+      setIsAddingPayment(false);
+    }
   };
 
   const handleAddVeresiye = async () => {
@@ -151,7 +168,14 @@ export const PaymentTracking = () => {
       return;
     }
 
-    const result = await addVeresiye({
+    if (isAddingDebt) {
+      toast.error('İşlem devam ediyor, lütfen bekleyin');
+      return;
+    }
+
+    setIsAddingDebt(true);
+    try {
+      const result = await addVeresiye({
       customer_id: selectedCustomer,
       personnel_id: selectedPersonnel,
       amount: parseFloat(amount),
@@ -174,6 +198,12 @@ export const PaymentTracking = () => {
       
       // Force refresh the transactions immediately
       await refreshTransactions();
+    }
+    } catch (error) {
+      console.error('Unexpected error adding debt:', error);
+      toast.error('Beklenmeyen bir hata oluştu');
+    } finally {
+      setIsAddingDebt(false);
     }
   };
 
@@ -577,9 +607,9 @@ export const PaymentTracking = () => {
                   </div>
                 </div>
 
-                <Button onClick={handleAddPayment} className="w-full">
+                <Button onClick={handleAddPayment} className="w-full" disabled={isAddingPayment}>
                   <CreditCard className="h-4 w-4 mr-2" />
-                  Ödeme Kaydet
+                  {isAddingPayment ? 'Kaydediliyor...' : 'Ödeme Kaydet'}
                 </Button>
               </CardContent>
             </Card>
@@ -664,9 +694,9 @@ export const PaymentTracking = () => {
                   </div>
                 </div>
 
-                <Button onClick={handleAddVeresiye} className="w-full">
+                <Button onClick={handleAddVeresiye} className="w-full" disabled={isAddingDebt}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Borç Kaydet
+                  {isAddingDebt ? 'Kaydediliyor...' : 'Borç Kaydet'}
                 </Button>
               </CardContent>
             </Card>

@@ -29,20 +29,25 @@ export const useCustomerTransactions = () => {
     if (!user) return;
     
     setLoading(true);
-    const { data, error } = await supabase
-      .from('customer_transactions')
-      .select(`
-        *,
-        customer:customer_id (
-          name
-        )
-      `)
-      .eq('station_id', user.id)
-      .order('created_at', { ascending: false }); // No limit - fetch all transactions
+    try {
+      const { data, error } = await supabase
+        .from('customer_transactions')
+        .select(`
+          *,
+          customer:customer_id (
+            name
+          )
+        `)
+        .eq('station_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(2000); // Set a reasonable limit to prevent performance issues
 
-    if (error) {
-      console.error('Error fetching customer transactions:', error);
-    } else {
+      if (error) {
+        console.error('Error fetching customer transactions:', error);
+        setTransactions([]);
+        setLoading(false);
+        return;
+      }
       // Fetch personnel data separately
       const personnelIds = [...new Set((data || []).map(item => item.personnel_id))];
       const { data: personnelData } = await supabase
@@ -70,6 +75,9 @@ export const useCustomerTransactions = () => {
       }));
       setTransactions(mappedData);
       console.log(`[DEBUG] Fetched ${mappedData.length} transactions from database`);
+    } catch (error) {
+      console.error('Unexpected error fetching transactions:', error);
+      setTransactions([]);
     }
     setLoading(false);
   };
