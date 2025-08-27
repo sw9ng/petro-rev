@@ -28,8 +28,8 @@ const App = () => {
             <div className="min-h-screen bg-background">
               <Routes>
                 <Route path="/auth" element={<Auth />} />
-                <Route path="/" element={<Landing />} />
-                <Route path="/dashboard" element={<Index />} />
+                <Route path="/landing" element={<Landing />} />
+                <Route path="/" element={<Index />} />
                 <Route path="/customer/:id" element={<CustomerDetail />} />
                 <Route path="/cash-register" element={<CashRegister />} />
                 <Route path="/accounting" element={<Accounting />} />
