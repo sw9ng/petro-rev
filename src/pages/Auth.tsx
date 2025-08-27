@@ -43,7 +43,7 @@ export default function Auth() {
 
   useEffect(() => {
     if (user) {
-      navigate('/');
+      navigate('/dashboard');
     } else if (attendant) {
       navigate('/attendant-dashboard');
     }
