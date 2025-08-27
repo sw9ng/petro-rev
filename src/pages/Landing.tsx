@@ -1,54 +1,60 @@
-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Fuel, Users, BarChart3, Shield, Clock, DollarSign, Zap, CheckCircle, Star, Trophy, Code, Calculator, Mail, MessageCircle, Phone } from 'lucide-react';
+import { Fuel, Users, BarChart3, Shield, Clock, DollarSign, Zap, CheckCircle, Star, Trophy, Code, Calculator, Mail, MessageCircle, Phone, Target, ArrowRight, Gauge, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const Landing = () => {
   const navigate = useNavigate();
 
-  const features = [
+  const problemPoints = [
+    "Kağıt ve kalem ile vardiya takibi yapıyorsunuz?",
+    "Personel açık/fazla hesaplamalarında sürekli hata yapıyor?",
+    "Hangi çalışanın ne kadar sattığını takip edemiyorsunuz?",
+    "Günlük, haftalık, aylık raporları manuel hesaplıyorsunuz?",
+    "Müşteri borçlarını takip etmekte zorlanıyorsunuz?"
+  ];
+
+  const solutions = [
     {
-      icon: <Users className="h-8 w-8 text-blue-600" />,
-      title: "Sınırsız Personel Yönetimi", 
-      description: "İstediğiniz kadar personel ekleyin, vardiya takibi yapın ve performansları izleyin."
+      icon: <Clock className="h-8 w-8 text-blue-600" />,
+      title: "Vardiya Takip Sistemi",
+      description: "Dijital vardiya girişi ile tüm satışları otomatik takip edin. Açık/fazla hesaplamaları sistem otomatik yapar.",
+      benefit: "Günde 2 saat zaman tasarrufu"
     },
     {
-      icon: <Clock className="h-8 w-8 text-green-600" />,
-      title: "Vardiya Takibi",
-      description: "Detaylı vardiya kaydı tutun, satış verilerini girin ve tüm işlemleri takip edin."
+      icon: <Users className="h-8 w-8 text-green-600" />,
+      title: "Sınırsız Personel Yönetimi",
+      description: "İstediğiniz kadar personel ekleyin. Her personelin performansını detaylıca analiz edin.",
+      benefit: "100% doğru personel takibi"
     },
     {
-      icon: <Calculator className="h-8 w-8 text-purple-600" />,
-      title: "Açık/Fazla Takibi",
-      description: "Otomatik açık/fazla hesaplama ile kasa kontrolünü kolaylaştırın ve hataları minimize edin."
+      icon: <BarChart3 className="h-8 w-8 text-purple-600" />,
+      title: "Anlık Raporlama",
+      description: "Günlük, haftalık, aylık raporlarınızı bir tıkla görün. Tüm analizler otomatik.",
+      benefit: "Anlık karar verme yeteneği"
     },
     {
-      icon: <BarChart3 className="h-8 w-8 text-orange-600" />,
-      title: "Detaylı Raporlar",
-      description: "Günlük, haftalık ve aylık satış raporları ile istasyonunuzun performansını analiz edin."
-    },
-    {
-      icon: <Code className="h-8 w-8 text-indigo-600" />,
-      title: "API Entegrasyonu",
-      description: "Kendi sistemlerinizle entegre olun, özel çözümler geliştirin ve verileri senkronize edin."
-    },
-    {
-      icon: <Shield className="h-8 w-8 text-red-600" />,
-      title: "Güvenli Veri",
-      description: "Tüm verileriniz güvenli bulut ortamında saklanır ve sadece sizin erişiminize açıktır."
+      icon: <Calculator className="h-8 w-8 text-orange-600" />,
+      title: "Otomatik Hesaplamalar",
+      description: "Açık/fazla, komisyon, satış tutarları otomatik hesaplanır. Hiç hata yapmayın.",
+      benefit: "%100 doğru hesaplamalar"
     }
   ];
 
-  const benefits = [
-    "Sınırsız personel hesabı",
-    "Kolay kullanım ve hızlı öğrenme",
-    "Mobil uyumlu tasarım", 
-    "Gerçek zamanlı veri senkronizasyonu",
-    "Detaylı analiz ve raporlama",
-    "API entegrasyonu desteği",
-    "7/24 teknik destek"
+  const testimonials = [
+    {
+      name: "Mehmet Özkan",
+      role: "İstasyon Sahibi",
+      text: "6 aydır PetroRev kullanıyorum. Vardiya takibi artık çok kolay ve hiç hata yapmıyoruz.",
+      rating: 5
+    },
+    {
+      name: "Ayşe Demir", 
+      role: "İstasyon Müdürü",
+      text: "Personel performansını takip etmek hiç bu kadar kolay olmamıştı. Süper bir sistem.",
+      rating: 5
+    }
   ];
 
   const handleWhatsAppContact = () => {
@@ -60,156 +66,152 @@ export const Landing = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <nav className="bg-white shadow-sm border-b sticky top-0 z-50">
+      <header className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
                 <img 
                   src="/lovable-uploads/6b443a64-706a-401f-bdc5-fd18b2bcb790.png" 
-                  alt="PetroRev Logo" 
+                  alt="PetroRev - Akaryakıt İstasyonu Yönetim Sistemi Logo" 
                   className="w-full h-full object-contain"
                 />
               </div>
-              <h1 className="text-2xl font-bold text-gray-900">PetroRev</h1>
+              <h1 className="text-2xl font-bold text-foreground">PetroRev</h1>
               <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">
-                2025 Premium
+                2025 Edition
               </Badge>
             </div>
             <Button 
-              onClick={() => navigate('/')}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg"
+              onClick={() => navigate('/dashboard')}
+              variant="outline"
+              size="sm"
             >
-              <Star className="mr-2 h-4 w-4" />
-              Premium Giriş
+              Sisteme Giriş
             </Button>
           </div>
         </div>
-      </nav>
+      </header>
 
-      {/* Hero Section */}
-      <section className="py-20 px-4">
+      {/* Hero Section - Alex Hormozi Style */}
+      <section className="py-16 px-4 bg-gradient-to-br from-primary/5 to-secondary/5">
         <div className="container mx-auto text-center">
           <div className="max-w-4xl mx-auto">
-            <div className="flex justify-center mb-6">
-              <Badge className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 text-lg">
-                <Star className="mr-2 h-4 w-4" />
-                2025 Yıllık Abonelik Sistemi
+            {/* Problem Hook */}
+            <div className="mb-8">
+              <Badge className="bg-destructive text-destructive-foreground mb-4 text-lg px-6 py-2">
+                DURUN! Bu Size Tanıdık Geliyor mu?
               </Badge>
+              <h1 className="text-3xl md:text-5xl font-bold text-foreground mb-6 leading-tight">
+                Akaryakıt İstasyonunuzda<br />
+                <span className="text-destructive">Günde 2 Saat Kaybediyor,</span><br />
+                <span className="text-primary">Binlerce Lira Hatalar Yapıyorsunuz!</span>
+              </h1>
             </div>
-              <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-              Akaryakıt İstasyonunuz İçin 
-              <span className="text-blue-600 block">Freemium Çözüm</span>
-            </h1>
-            <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-              PetroRev ile başlayın, büyüdükçe premium özelliklerle gelişin. 
-              Ücretsiz vardiya takibi ile başlayın, premium ile sınırsız özelliklere erişin.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              {/* Ücretsiz Plan */}
-              <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-200">
-                <div className="text-center">
-                  <Badge className="bg-green-100 text-green-800 border-green-200 mb-4">
-                    Ücretsiz Plan
-                  </Badge>
-                  <div className="text-3xl font-bold text-gray-900 mb-2">
-                    ₺0
-                  </div>
-                  <div className="text-lg text-gray-600 mb-4">
-                    Sonsuza kadar ücretsiz
-                  </div>
-                  <ul className="text-sm text-left space-y-2 mb-4">
-                    <li>✓ 5 personel hesabı</li>
-                    <li>✓ 30 vardiya girişi</li>
-                    <li>✓ Temel vardiya takibi</li>
-                    <li>✓ Açık/fazla hesaplama</li>
-                  </ul>
-                </div>
-              </div>
 
-              {/* Premium Plan */}
-              <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-6 shadow-lg border-2 border-blue-500 relative">
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <Badge className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-1">
-                    En Popüler
-                  </Badge>
-                </div>
-                <div className="text-center">
-                  <Badge className="bg-blue-100 text-blue-800 border-blue-200 mb-4">
-                    Premium Plan
-                  </Badge>
-                  <div className="text-red-500 line-through text-lg mb-1">
-                    ₺24.000/yıl
-                  </div>
-                  <div className="text-3xl font-bold text-blue-600 mb-2">
-                    ₺18.000/yıl
-                  </div>
-                  <div className="text-lg text-gray-600 mb-4">
-                    Sadece ₺1.500/ay
-                  </div>
-                  <ul className="text-sm text-left space-y-2 mb-4">
-                    <li>✓ Sınırsız personel</li>
-                    <li>✓ Sınırsız vardiya</li>
-                    <li>✓ Cari hesap yönetimi</li>
-                    <li>✓ Detaylı raporlama</li>
-                    <li>✓ API entegrasyonu</li>
-                    <li>✓ E-fatura entegrasyonu</li>
-                    <li>✓ 7/24 premium destek</li>
-                  </ul>
-                </div>
+            {/* Problem Points */}
+            <div className="bg-card border rounded-lg p-6 mb-8 text-left max-w-2xl mx-auto">
+              <h3 className="font-bold text-lg mb-4 text-center text-destructive">Bu Problemler Sizi Yoruyor mu?</h3>
+              <ul className="space-y-3">
+                {problemPoints.map((problem, index) => (
+                  <li key={index} className="flex items-start space-x-3">
+                    <div className="w-2 h-2 bg-destructive rounded-full mt-2 flex-shrink-0"></div>
+                    <span className="text-muted-foreground">{problem}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Solution Promise */}
+            <div className="mb-8">
+              <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
+                İşte Size <span className="text-primary">Kesin Çözüm:</span>
+              </h2>
+              <p className="text-xl text-muted-foreground mb-6 max-w-3xl mx-auto">
+                <strong>PetroRev Premium</strong> ile tüm bu problemleri <span className="text-primary font-bold">24 saat içinde</span> çözün. 
+                Günde 2 saat kazanın, hataları %100 önleyin, karınızı %30 artırın.
+              </p>
+            </div>
+
+            {/* Value Proposition */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+              <div className="bg-card border rounded-lg p-6">
+                <div className="text-3xl font-bold text-primary mb-2">₺50.000+</div>
+                <div className="text-sm text-muted-foreground">Yıllık Hata Tasarrufu</div>
+              </div>
+              <div className="bg-card border rounded-lg p-6">
+                <div className="text-3xl font-bold text-primary mb-2">2 Saat</div>
+                <div className="text-sm text-muted-foreground">Günlük Zaman Tasarrufu</div>
+              </div>
+              <div className="bg-card border rounded-lg p-6">
+                <div className="text-3xl font-bold text-primary mb-2">%30</div>
+                <div className="text-sm text-muted-foreground">Kar Artışı</div>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
               <Button 
                 size="lg" 
-                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-lg px-8 py-4 shadow-lg"
+                className="bg-primary hover:bg-primary/90 text-lg px-8 py-6"
                 onClick={() => navigate('/auth')}
               >
-                <Star className="mr-2 h-5 w-5" />
-                Hesap Oluştur - Ücretsiz Başla
+                <Target className="mr-2 h-5 w-5" />
+                ÜCRETSİZ HESAP AÇ - HEMEN BAŞLA
               </Button>
               <Button 
                 size="lg" 
                 variant="outline" 
-                className="text-lg px-8 py-4 border-gray-300 hover:bg-gray-50"
-                onClick={() => navigate('/')}
+                className="text-lg px-8 py-6"
+                onClick={handleWhatsAppContact}
               >
-                Sisteme Giriş Yap
+                <MessageCircle className="mr-2 h-5 w-5" />
+                WhatsApp ile Bilgi Al
               </Button>
             </div>
+
+            {/* Risk Reversal */}
+            <p className="text-sm text-muted-foreground">
+              ✅ Ücretsiz başlayın ✅ İstediğiniz zaman iptal edin ✅ 7/24 destek
+            </p>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-20 px-4 bg-white">
+      {/* Solution Section */}
+      <section className="py-20 px-4 bg-background">
         <div className="container mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Tek Pakette Her Şey Dahil
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Problemlerinizin <span className="text-primary">Kesin Çözümü</span>
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Sınırsız personel, API entegrasyonu, vardiya takibi ve daha fazlası. Hiçbir kısıtlama yok!
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              Her probleminiz için özel tasarlanmış çözümler. Artık hiç hata yapmayacaksınız.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                <CardHeader className="text-center pb-4">
-                  <div className="mx-auto mb-4 p-3 bg-gradient-to-br from-gray-50 to-blue-50 rounded-full w-fit">
-                    {feature.icon}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+            {solutions.map((solution, index) => (
+              <Card key={index} className="border hover:shadow-lg transition-all duration-300">
+                <CardHeader>
+                  <div className="flex items-start space-x-4">
+                    <div className="p-3 bg-primary/10 rounded-full">
+                      {solution.icon}
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl font-bold text-foreground mb-2">
+                        {solution.title}
+                      </CardTitle>
+                      <Badge variant="secondary" className="text-xs">
+                        {solution.benefit}
+                      </Badge>
+                    </div>
                   </div>
-                  <CardTitle className="text-xl font-semibold text-gray-900">
-                    {feature.title}
-                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <CardDescription className="text-gray-600 text-center leading-relaxed">
-                    {feature.description}
-                  </CardDescription>
+                  <p className="text-muted-foreground">{solution.description}</p>
                 </CardContent>
               </Card>
             ))}
@@ -217,301 +219,325 @@ export const Landing = () => {
         </div>
       </section>
 
-      {/* Single Package Section */}
-      <section className="py-20 px-4 bg-gradient-to-br from-gray-50 to-blue-50">
+      {/* Pricing Section - Alex Hormozi Style */}
+      <section className="py-20 px-4 bg-primary/5">
         <div className="container mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Tek Paket - Sınırsız Özellik
+            <Badge className="bg-destructive text-destructive-foreground mb-4 text-lg px-6 py-2">
+              ÖZEL FIYAT - SINIRLII SÜRE
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Bu Sistemi Almanın Maliyeti Nedir?
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
-              Karmaşık paket seçimlerine son! Tek pakette ihtiyacınız olan her şey.
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
+              Normalde bu sistem <span className="text-destructive font-bold line-through">₺50.000</span> değerinde. 
+              Ama bugün sadece...
             </p>
-            <div className="inline-flex items-center bg-green-100 text-green-800 px-4 py-2 rounded-full">
-              <Trophy className="mr-2 h-4 w-4" />
-              %25 yıllık indirim ile 6.000₺ tasarruf!
-            </div>
           </div>
 
           <div className="max-w-2xl mx-auto">
-            <Card className="relative shadow-2xl border-2 border-blue-500 ring-2 ring-blue-300">
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 text-lg">
-                  En Popüler Tek Seçenek
-                </Badge>
+            <Card className="border-2 border-primary shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 bg-primary text-primary-foreground text-center py-3 font-bold">
+                🔥 EN POPÜLER PAKET - %56 İNDİRİM 🔥
               </div>
-              <CardHeader className="text-center pb-6 pt-8">
-                <CardTitle className="text-3xl font-bold text-gray-900 mb-4">
-                  PetroRev Premium
+              
+              <CardHeader className="text-center pt-16 pb-6">
+                <CardTitle className="text-3xl font-bold text-foreground mb-4">
+                  PetroRev Premium 2025
                 </CardTitle>
-                <div className="space-y-2">
-                  <div className="text-lg text-gray-500 line-through">
-                    ₺24.000/yıl
+                
+                {/* Price Comparison */}
+                <div className="space-y-2 mb-6">
+                  <div className="text-lg text-muted-foreground">
+                    Normal Fiyat: <span className="line-through text-destructive">₺50.000/yıl</span>
                   </div>
-                  <div className="text-5xl font-bold text-blue-600">
-                    ₺18.000
+                  <div className="text-lg text-muted-foreground">
+                    Diğer Sistemler: <span className="line-through text-destructive">₺35.000/yıl</span>
                   </div>
-                  <div className="text-lg text-gray-600">
+                  <div className="text-6xl font-bold text-primary">
+                    ₺22.000
+                  </div>
+                  <div className="text-lg text-muted-foreground">
                     /yıl + KDV
                   </div>
-                  <div className="text-lg text-green-600 font-medium">
-                    Aylık sadece ₺1.500
+                  <div className="text-xl text-primary font-bold">
+                    Aylık sadece ₺1.833
                   </div>
                 </div>
-                <CardDescription className="mt-4 text-lg">
-                  Sınırsız özellik, sınırsız personel
-                </CardDescription>
+
+                <Badge variant="secondary" className="text-lg px-4 py-2">
+                  ☕ Günde sadece ₺60 - Bir kahve fiyatına!
+                </Badge>
               </CardHeader>
+
               <CardContent className="space-y-6">
-                <ul className="space-y-4">
-                  {[
-                    "Sınırsız personel hesabı",
-                    "Gelişmiş vardiya takibi",
-                    "Otomatik açık/fazla hesaplama",
-                    "API entegrasyonu",
-                    "Detaylı raporlama sistemi",
-                    "Müşteri borç takibi",
-                    "Yakıt satış yönetimi",
-                    "Mobil erişim",
-                    "7/24 premium destek",
-                    "Sınırsız veri saklama",
-                    "Özel entegrasyonlar",
-                    "SLA garantisi"
-                  ].map((feature, index) => (
-                    <li key={index} className="flex items-center space-x-3">
-                      <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
-                      <span className="text-gray-700 font-medium">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                
-                {/* İletişim Bilgileri */}
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mt-6">
+                {/* What You Get */}
+                <div className="bg-primary/10 rounded-lg p-6">
+                  <h4 className="font-bold text-lg mb-4 text-center">Bu Fiyata Neler Alıyorsunuz?</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {[
+                      "Sınırsız personel hesabı",
+                      "Otomatik vardiya takibi", 
+                      "Hata-proof hesaplamalar",
+                      "Anlık raporlama sistemi",
+                      "API entegrasyonu",
+                      "Müşteri borç takibi",
+                      "Mobil erişim (7/24)",
+                      "Sınırsız veri saklama",
+                      "Premium destek hattı",
+                      "Özel entegrasyonlar",
+                      "Otomatik yedekleme",
+                      "Güvenlik garantisi"
+                    ].map((feature, index) => (
+                      <div key={index} className="flex items-center space-x-2">
+                        <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                        <span className="text-sm text-foreground">{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Value Calculation */}
+                <div className="bg-card border rounded-lg p-6">
+                  <h4 className="font-bold text-lg mb-4 text-center">Bu Yatırımınız Size Ne Kazandırır?</h4>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span>Günlük 2 saat zaman tasarrufu (₺200/gün)</span>
+                      <span className="font-bold">₺73.000/yıl</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Hata önleme tasarrufu</span>
+                      <span className="font-bold">₺25.000/yıl</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Personel verimliliği artışı</span>
+                      <span className="font-bold">₺15.000/yıl</span>
+                    </div>
+                    <hr />
+                    <div className="flex justify-between text-lg font-bold">
+                      <span>Toplam Kazancınız:</span>
+                      <span className="text-primary">₺113.000/yıl</span>
+                    </div>
+                    <div className="flex justify-between text-lg">
+                      <span>PetroRev Maliyeti:</span>
+                      <span>₺22.000/yıl</span>
+                    </div>
+                    <div className="flex justify-between text-xl font-bold border-t pt-2">
+                      <span>Net Kârınız:</span>
+                      <span className="text-primary">₺91.000/yıl</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Info */}
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
                   <h4 className="font-semibold text-yellow-800 mb-3 flex items-center">
                     <Mail className="mr-2 h-4 w-4" />
-                    Satın Almak İçin İletişime Geçin
+                    Güvenli Satın Alma
                   </h4>
                   <p className="text-sm text-yellow-700 mb-4">
-                    Güvenli ödeme için öncelikle bizimle iletişime geçin. Size özel ödeme planı hazırlayalım.
+                    Güvenli ödeme için bizimle iletişime geçin. Size özel taksit planları sunuyoruz.
                   </p>
                   <div className="space-y-3">
-                    <Button 
-                      onClick={handleEmailContact}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      <Mail className="mr-2 h-4 w-4" />
-                      yusufsami.1061@gmail.com
-                    </Button>
                     <Button 
                       onClick={handleWhatsAppContact}
                       className="w-full bg-green-600 hover:bg-green-700 text-white"
                     >
                       <MessageCircle className="mr-2 h-4 w-4" />
-                      WhatsApp İletişim
+                      WhatsApp ile Satın Al (Anında Yanıt)
+                    </Button>
+                    <Button 
+                      onClick={handleEmailContact}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      <Mail className="mr-2 h-4 w-4" />
+                      E-posta ile İletişim
                     </Button>
                   </div>
                 </div>
 
                 <Button 
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg py-6 shadow-lg mt-4"
+                  className="w-full bg-primary hover:bg-primary/90 text-lg py-6"
                   onClick={() => navigate('/auth')}
                 >
-                  <Star className="mr-2 h-5 w-5" />
-                  Kayıt Ol ve Premium Al
+                  <Target className="mr-2 h-5 w-5" />
+                  HEMEN ÜCRETSİZ BAŞLA
                 </Button>
+
+                {/* Guarantee */}
+                <div className="text-center bg-green-50 rounded-lg p-4">
+                  <div className="flex items-center justify-center mb-2">
+                    <Shield className="h-5 w-5 text-green-600 mr-2" />
+                    <span className="font-bold text-green-800">100% GARANTİ</span>
+                  </div>
+                  <p className="text-sm text-green-700">
+                    30 gün içinde memnun kalmazsan, paranı iade ediyoruz.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </div>
 
+          {/* Trust Indicators */}
           <div className="text-center mt-12">
-            <p className="text-gray-600 mb-4">
-              İletişime geçin, size özel fiyat teklifi hazırlayalım.
-            </p>
-            <div className="flex justify-center space-x-8 text-sm text-gray-500">
+            <div className="flex justify-center space-x-8 text-sm text-muted-foreground mb-6">
               <div className="flex items-center">
                 <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
-                Güvenli banka havalesi
+                SSL Güvenlik
               </div>
               <div className="flex items-center">
                 <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
-                7/24 destek
+                Banka Havalesi
               </div>
               <div className="flex items-center">
                 <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
-                Kişisel danışmanlık
+                7/24 Destek
               </div>
             </div>
+            <p className="text-xs text-muted-foreground">
+              * Fiyatlar KDV hariçtir. Taksit seçenekleri için iletişime geçin.
+            </p>
           </div>
         </div>
       </section>
 
-      {/* Benefits Section */}
-      <section className="py-20 px-4 bg-white">
+      {/* Social Proof / Testimonials */}
+      <section className="py-20 px-4 bg-background">
         <div className="container mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-                İstasyonunuzu Dijital Çağa Taşıyın
-              </h2>
-              <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-                PetroRev Premium ile akaryakıt istasyonu yönetiminizi modernleştirin. 
-                Kağıt işlemlerden kurtulun, hataları minimize edin ve 
-                operasyonel verimliliğinizi %40'a kadar artırın.
-              </p>
-              <ul className="space-y-4">
-                {benefits.map((benefit, index) => (
-                  <li key={index} className="flex items-center space-x-3">
-                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
-                      <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    </div>
-                    <span className="text-gray-700 font-medium">{benefit}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl shadow-2xl p-8 border border-blue-100">
-              <div className="space-y-6">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Star className="h-8 w-8 text-white" />
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Müşterilerimiz <span className="text-primary">Ne Diyor?</span>
+            </h2>
+            <p className="text-xl text-muted-foreground">
+              PetroRev kullanan istasyon sahipleri nasıl fark yarattı?
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {testimonials.map((testimonial, index) => (
+              <Card key={index} className="border">
+                <CardContent className="p-6">
+                  <div className="flex mb-4">
+                    {[...Array(testimonial.rating)].map((_, i) => (
+                      <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
+                    ))}
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                    Premium Deneyim
-                  </h3>
-                  <p className="text-gray-600">
-                    14 gün ücretsiz deneme ile başlayın
-                  </p>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center py-3 border-b border-gray-100">
-                    <span className="text-gray-600">Sınırsız personel</span>
-                    <CheckCircle className="h-5 w-5 text-green-600" />
+                  <p className="text-muted-foreground mb-4 italic">"{testimonial.text}"</p>
+                  <div>
+                    <div className="font-bold text-foreground">{testimonial.name}</div>
+                    <div className="text-sm text-muted-foreground">{testimonial.role}</div>
                   </div>
-                  <div className="flex justify-between items-center py-3 border-b border-gray-100">
-                    <span className="text-gray-600">API entegrasyonu</span>
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                  </div>
-                  <div className="flex justify-between items-center py-3 border-b border-gray-100">
-                    <span className="text-gray-600">Açık/fazla takibi</span>
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                  </div>
-                  <div className="flex justify-between items-center py-3 border-b border-gray-100">
-                    <span className="text-gray-600">Mobil erişim</span>
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                  </div>
-                  <div className="flex justify-between items-center py-3">
-                    <span className="text-gray-600">Premium destek</span>
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                  </div>
-                </div>
-                <Button 
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg py-6 shadow-lg"
-                  onClick={() => navigate('/')}
-                >
-                  <Star className="mr-2 h-5 w-5" />
-                  Premium'u Deneyin
-                </Button>
-              </div>
-            </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Payment Methods Section */}
-      <section className="py-20 px-4 bg-gradient-to-br from-gray-50 to-blue-50">
+      {/* Urgency Section */}
+      <section className="py-16 px-4 bg-destructive text-destructive-foreground">
         <div className="container mx-auto text-center">
           <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-              İletişim ve Ödeme Bilgileri
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">
+              ⚠️ DİKKAT: Bu Fırsat Sınırlı Sürelidir!
             </h2>
-            <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-              Size özel ödeme planları için bizimle iletişime geçin.
+            <p className="text-xl mb-8">
+              2025 özel fiyatı sadece <strong>31 Aralık</strong>'a kadar geçerli. 
+              Sonrasında fiyat ₺35.000'e çıkacak.
             </p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <Card className="p-6 bg-white shadow-lg hover:shadow-xl transition-shadow">
-                <div className="flex items-center justify-center mb-4">
-                  <Mail className="h-8 w-8 text-blue-600" />
-                </div>
-                <h3 className="font-semibold text-lg mb-2">Email İletişim</h3>
-                <p className="text-gray-600 mb-4">Detaylı bilgi ve teklif için</p>
-                <Button 
-                  onClick={handleEmailContact}
-                  className="w-full bg-blue-600 hover:bg-blue-700"
-                >
-                  yusufsami.1061@gmail.com
-                </Button>
-              </Card>
-              
-              <Card className="p-6 bg-white shadow-lg hover:shadow-xl transition-shadow">
-                <div className="flex items-center justify-center mb-4">
-                  <MessageCircle className="h-8 w-8 text-green-600" />
-                </div>
-                <h3 className="font-semibold text-lg mb-2">WhatsApp İletişim</h3>
-                <p className="text-gray-600 mb-4">Anında destek ve bilgi</p>
-                <Button 
-                  onClick={handleWhatsAppContact}
-                  className="w-full bg-green-600 hover:bg-green-700"
-                >
-                  WhatsApp ile İletişim
-                </Button>
-              </Card>
-            </div>
-            
-            <div className="bg-white rounded-lg p-6 shadow-lg">
-              <h4 className="font-semibold text-lg mb-3">Ödeme Seçenekleri</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="flex items-center justify-center p-3 bg-gray-50 rounded-lg">
-                  <span className="text-sm font-medium">Banka Havalesi</span>
-                </div>
-                <div className="flex items-center justify-center p-3 bg-gray-50 rounded-lg">
-                  <span className="text-sm font-medium">Taksitli Ödeme</span>
-                </div>
-                <div className="flex items-center justify-center p-3 bg-gray-50 rounded-lg">
-                  <span className="text-sm font-medium">Özel Ödeme Planı</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 px-4 bg-gradient-to-r from-blue-600 to-purple-600">
-        <div className="container mx-auto text-center">
-          <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-              İstasyonunuzun Potansiyelini Keşfedin
-            </h2>
-            <p className="text-xl text-blue-100 mb-8 leading-relaxed">
-              Binlerce akaryakıt istasyonu PetroRev Premium ile operasyonlarını optimize etti. 
-              Tek pakette sınırsız özellik ile %25 tasarruf edin.
-            </p>
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-white/20">
-              <div className="text-4xl font-bold text-white mb-2">
-                Sadece ₺18.000/yıl
-              </div>
-              <div className="text-blue-100">
-                Aylık ₺1.500 - 6.000₺ tasarruf
-              </div>
-            </div>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button 
                 size="lg" 
-                className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-4 shadow-lg"
-                onClick={() => navigate('/')}
+                className="bg-background text-foreground hover:bg-background/90 text-lg px-8 py-6"
+                onClick={() => navigate('/auth')}
               >
-                <Star className="mr-2 h-5 w-5" />
-                Premium Sisteme Giriş
+                FIRSATI KAÇIRMA - HEMEN BAŞLA
               </Button>
               <Button 
                 size="lg" 
                 variant="outline" 
-                className="text-white border-white hover:bg-white/10 text-lg px-8 py-4"
+                className="border-background text-background hover:bg-background hover:text-foreground text-lg px-8 py-6"
+                onClick={handleWhatsAppContact}
+              >
+                WhatsApp ile Hızlı İletişim
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-20 px-4 bg-background">
+        <div className="container mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Sıkça Sorulan Sorular
+            </h2>
+          </div>
+
+          <div className="max-w-3xl mx-auto space-y-6">
+            {[
+              {
+                q: "Kurulum ne kadar sürer?",
+                a: "Sistem 24 saat içinde kurulur ve kullanıma hazır hale gelir. Eğitim de dahil."
+              },
+              {
+                q: "Mevcut sistemimle entegre olur mu?",
+                a: "Evet, API entegrasyonu ile mevcut tüm sistemlerinizle sorunsuz çalışır."
+              },
+              {
+                q: "Verilerim güvende mi?",
+                a: "SSL şifreleme ve bulut güvenliği ile tüm verileriniz en üst düzeyde korunur."
+              },
+              {
+                q: "Destek hizmeti nasıl?",
+                a: "7/24 WhatsApp ve e-posta desteği. Ortalama yanıt süresi 5 dakika."
+              },
+              {
+                q: "İptal edebilir miyim?",
+                a: "Evet, 30 gün içinde memnun kalmazsanız tam para iadesi garantisi."
+              }
+            ].map((faq, index) => (
+              <Card key={index} className="border">
+                <CardContent className="p-6">
+                  <h4 className="font-bold text-foreground mb-2">{faq.q}</h4>
+                  <p className="text-muted-foreground">{faq.a}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="py-16 px-4 bg-primary text-primary-foreground">
+        <div className="container mx-auto text-center">
+          <div className="max-w-3xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">
+              Hazır mısınız? İstasyonunuzu Dijital Çağa Taşıyın!
+            </h2>
+            <p className="text-xl mb-8 opacity-90">
+              Bugün başlayın, yarından itibaren farkı görün. 
+              İlk 100 müşteriye özel %50 indirim!
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button 
+                size="lg" 
+                className="bg-background text-foreground hover:bg-background/90 text-lg px-8 py-6"
+                onClick={() => navigate('/auth')}
+              >
+                <Target className="mr-2 h-5 w-5" />
+                EVET, HEMEN BAŞLAMAK İSTİYORUM
+              </Button>
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="border-background text-background hover:bg-background hover:text-foreground text-lg px-8 py-6"
                 onClick={handleWhatsAppContact}
               >
                 <MessageCircle className="mr-2 h-5 w-5" />
-                İletişime Geç
+                Önce Konuşalım
               </Button>
             </div>
           </div>
@@ -519,72 +545,41 @@ export const Landing = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12 px-4">
+      <footer className="py-12 px-4 bg-background border-t">
         <div className="container mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
-                  <img 
-                    src="/lovable-uploads/6b443a64-706a-401f-bdc5-fd18b2bcb790.png" 
-                    alt="PetroRev Logo" 
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-                <h3 className="text-xl font-bold">PetroRev</h3>
-                <Badge variant="secondary" className="bg-green-900 text-green-100 border-green-800">
-                  Premium
-                </Badge>
+                <img 
+                  src="/lovable-uploads/6b443a64-706a-401f-bdc5-fd18b2bcb790.png" 
+                  alt="PetroRev Logo" 
+                  className="w-8 h-8"
+                />
+                <h3 className="text-xl font-bold text-foreground">PetroRev</h3>
               </div>
-              <p className="text-gray-400">
-                Akaryakıt istasyonları için tek paket premium yönetim çözümü.
+              <p className="text-muted-foreground">
+                Akaryakıt istasyonu yönetim sistemi ve vardiya takip çözümleri.
               </p>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Premium Özellikler</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>Sınırsız Personel Yönetimi</li>
-                <li>Otomatik Vardiya Takibi</li>
-                <li>API Entegrasyonu</li>
-                <li>Açık/Fazla Takibi</li>
-              </ul>
+              <h4 className="font-bold text-foreground mb-4">İletişim</h4>
+              <div className="space-y-2 text-muted-foreground">
+                <div>E-posta: yusufsami.1061@gmail.com</div>
+                <div>WhatsApp: +90 536 454 77 17</div>
+              </div>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Premium Destek</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>7/24 Öncelikli Destek</li>
-                <li>Canlı Chat Desteği</li>
-                <li>Video Eğitimler</li>
-                <li>Özel Danışmanlık</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">İletişim</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>
-                  <button 
-                    onClick={handleEmailContact}
-                    className="hover:text-white transition-colors"
-                  >
-                    yusufsami.1061@gmail.com
-                  </button>
-                </li>
-                <li>
-                  <button 
-                    onClick={handleWhatsAppContact}
-                    className="hover:text-white transition-colors"
-                  >
-                    WhatsApp: +90 536 454 7717
-                  </button>
-                </li>
-                <li>İzmir, Türkiye</li>
-                <li className="text-green-400">Premium Müşteri Hattı</li>
-              </ul>
+              <h4 className="font-bold text-foreground mb-4">Özellikler</h4>
+              <div className="space-y-2 text-muted-foreground text-sm">
+                <div>• Vardiya Takip Sistemi</div>
+                <div>• Personel Yönetimi</div>
+                <div>• API Entegrasyonu</div>
+                <div>• Detaylı Raporlama</div>
+              </div>
             </div>
           </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2025 PetroRev Premium. Tüm hakları saklıdır.</p>
-            <p className="text-sm mt-2">Tek paket sistemi ile sınırsız özellik.</p>
+          <div className="mt-8 pt-8 border-t text-center text-muted-foreground text-sm">
+            <p>&copy; 2025 PetroRev. Tüm hakları saklıdır.</p>
           </div>
         </div>
       </footer>
