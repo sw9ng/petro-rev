@@ -89,30 +89,38 @@ serve(async (req) => {
 
     console.log('Fetching incoming invoices from Uyumsoft...');
     
-    // Fetch invoices using SOAP
-    const invoiceResponse = await fetch(integrationBaseUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/xml; charset=utf-8',
-        'SOAPAction': 'http://tempuri.org/IIntegration/GetInboxInvoiceList'
-      },
-      body: soapEnvelope
-    });
-
-    console.log('Invoice response status:', invoiceResponse.status);
-    const responseText = await invoiceResponse.text();
-    console.log('Invoice response:', responseText.substring(0, 500));
-
-    if (!invoiceResponse.ok) {
-      console.error('Failed to fetch invoices:', invoiceResponse.status, responseText);
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: `Fatura listesi alınamadı: ${invoiceResponse.status}` 
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // Add timeout to the request to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    
+    try {
+      // Fetch invoices using SOAP
+      const invoiceResponse = await fetch(integrationBaseUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/xml; charset=utf-8',
+          'SOAPAction': 'http://tempuri.org/IIntegration/GetInboxInvoiceList'
+        },
+        body: soapEnvelope,
+        signal: controller.signal
       });
-    }
+
+      clearTimeout(timeoutId);
+      
+      console.log('Invoice response status:', invoiceResponse.status);
+      const responseText = await invoiceResponse.text();
+      console.log('Invoice response:', responseText.substring(0, 500));
+
+      if (!invoiceResponse.ok) {
+        console.error('Failed to fetch invoices:', invoiceResponse.status, responseText);
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: `Fatura listesi alınamadı: ${invoiceResponse.status}` 
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
     // Parse SOAP response to extract invoice list
     const invoiceList = [];
@@ -193,6 +201,21 @@ serve(async (req) => {
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
+
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      if (fetchError.name === 'AbortError') {
+        console.error('Request timeout after 30 seconds');
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: 'Uyumsoft API isteği zaman aşımına uğradı' 
+        }), {
+          status: 408,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      throw fetchError;
+    }
 
   } catch (error) {
     console.error('Error in fetch-uyumsoft-invoices function:', error);
