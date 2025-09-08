@@ -42,16 +42,21 @@ serve(async (req) => {
     const apiEndpoint = testMode ? UYUMSOFT_TEST_API : UYUMSOFT_PROD_API
     console.log('Using endpoint:', apiEndpoint)
 
-    // Prepare SOAP envelope for Uyumsoft authentication
+    // Prepare SOAP envelope for Uyumsoft authentication with WS-Security
     const soapEnvelope = `<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
                xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
                xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Header>
+    <Security xmlns="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
+      <UsernameToken>
+        <Username>${username}</Username>
+        <Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText">${password}</Password>
+      </UsernameToken>
+    </Security>
+  </soap:Header>
   <soap:Body>
-    <TestConnection xmlns="http://tempuri.org/">
-      <kullaniciadi>${username}</kullaniciadi>
-      <sifre>${password}</sifre>
-    </TestConnection>
+    <TestConnection xmlns="http://tempuri.org/" />
   </soap:Body>
 </soap:Envelope>`;
 
