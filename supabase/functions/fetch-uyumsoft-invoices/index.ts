@@ -45,10 +45,8 @@ export default async function handler(req: Request) {
       });
     }
 
-    // Prepare Uyumsoft API request - Using Uyumsoft official endpoints
-    const integrationBaseUrl = uyumsoftAccount.test_mode
-      ? 'https://test.uyumsoft.com.tr/Services/Integration'
-      : 'https://api.uyumsoft.com.tr/Services/Integration';
+    // Prepare Uyumsoft API request - Using correct SOAP API endpoint
+    const integrationBaseUrl = 'https://edonusumapi.uyum.com.tr/Services/Integration';
 
     const authPayload = {
       kullaniciadi: uyumsoftAccount.username,
