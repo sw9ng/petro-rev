@@ -88,6 +88,7 @@ serve(async (req) => {
     const accountData = {
       username,
       password_encrypted: password, // In production, this should be encrypted
+      company_code: '', // Required field but not used
       test_mode: testMode,
       is_active: true,
       last_sync_at: new Date().toISOString()
