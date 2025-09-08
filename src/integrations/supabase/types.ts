@@ -937,6 +937,81 @@ export type Database = {
           },
         ]
       }
+      incoming_invoices: {
+        Row: {
+          company_id: string
+          created_at: string
+          currency_code: string
+          grand_total: number
+          id: string
+          invoice_date: string
+          invoice_number: string
+          invoice_type: string
+          notes: string | null
+          pdf_path: string | null
+          processed_at: string | null
+          processed_by: string | null
+          received_at: string
+          sender_address: string | null
+          sender_tax_number: string | null
+          sender_title: string | null
+          status: string
+          tax_amount: number
+          total_amount: number
+          updated_at: string
+          uyumsoft_invoice_id: string
+          xml_content: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          currency_code?: string
+          grand_total?: number
+          id?: string
+          invoice_date: string
+          invoice_number: string
+          invoice_type: string
+          notes?: string | null
+          pdf_path?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          received_at?: string
+          sender_address?: string | null
+          sender_tax_number?: string | null
+          sender_title?: string | null
+          status?: string
+          tax_amount?: number
+          total_amount?: number
+          updated_at?: string
+          uyumsoft_invoice_id: string
+          xml_content?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          currency_code?: string
+          grand_total?: number
+          id?: string
+          invoice_date?: string
+          invoice_number?: string
+          invoice_type?: string
+          notes?: string | null
+          pdf_path?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          received_at?: string
+          sender_address?: string | null
+          sender_tax_number?: string | null
+          sender_title?: string | null
+          status?: string
+          tax_amount?: number
+          total_amount?: number
+          updated_at?: string
+          uyumsoft_invoice_id?: string
+          xml_content?: string | null
+        }
+        Relationships: []
+      }
       personnel: {
         Row: {
           attendant_email: string | null

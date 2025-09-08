@@ -12,6 +12,7 @@ import { useInvoices } from "@/hooks/useInvoices";
 import { useEInvoices } from "@/hooks/useEInvoices";
 import { useEArchiveInvoices } from "@/hooks/useEArchiveInvoices";
 import { useToast } from "@/hooks/use-toast";
+import { IncomingInvoicesManagement } from "./IncomingInvoicesManagement";
 
 interface InvoiceManagementProps {
   companyId: string;
@@ -160,11 +161,12 @@ export const InvoiceManagement = ({ companyId }: InvoiceManagementProps) => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="income">Gelir Faturaları</TabsTrigger>
               <TabsTrigger value="expense">Gider Faturaları</TabsTrigger>
               <TabsTrigger value="e-invoice">E-Faturalar</TabsTrigger>
               <TabsTrigger value="e-archive">E-Arşiv</TabsTrigger>
+              <TabsTrigger value="incoming">Gelen Faturalar</TabsTrigger>
             </TabsList>
 
             <TabsContent value="income" className="space-y-4">
@@ -197,6 +199,10 @@ export const InvoiceManagement = ({ companyId }: InvoiceManagementProps) => {
               ) : (
                 renderInvoiceList(eArchiveInvoices, "e-archive")
               )}
+            </TabsContent>
+
+            <TabsContent value="incoming" className="space-y-4">
+              <IncomingInvoicesManagement companyId={companyId} />
             </TabsContent>
           </Tabs>
         </CardContent>
