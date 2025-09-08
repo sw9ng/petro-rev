@@ -1,3 +1,4 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.1';
 
 const corsHeaders = {
@@ -11,7 +12,7 @@ interface FetchInvoicesRequest {
   dateTo?: string;
 }
 
-export default async function handler(req: Request) {
+serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -45,125 +46,129 @@ export default async function handler(req: Request) {
       });
     }
 
-    // Prepare Uyumsoft API request - Using correct SOAP API endpoint
-    const integrationBaseUrl = 'https://edonusumapi.uyum.com.tr/Services/Integration';
+    // Prepare Uyumsoft API request - Using correct SOAP API endpoint  
+    const integrationBaseUrl = uyumsoftAccount.test_mode 
+      ? 'https://efatura-test.uyumsoft.com.tr/Services/Integration'
+      : 'https://edonusumapi.uyum.com.tr/Services/Integration';
 
-    const authPayload = {
-      kullaniciadi: uyumsoftAccount.username,
-      sifre: uyumsoftAccount.password_encrypted // This should be decrypted in production
-    };
+    console.log('Using Uyumsoft endpoint:', integrationBaseUrl);
 
-    // Authenticate with Uyumsoft - Updated endpoint
-    console.log('Authenticating with Uyumsoft...');
-    const authResponse = await fetch(`${integrationBaseUrl}/Login`, {
+    // Prepare date range
+    const fromDate = dateFrom || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const toDate = dateTo || new Date().toISOString().split('T')[0];
+
+    // Prepare SOAP envelope for GetInboxInvoiceList with WS-Security
+    const soapEnvelope = `<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+               xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+               xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Header>
+    <Security xmlns="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
+      <UsernameToken>
+        <Username>${uyumsoftAccount.username}</Username>
+        <Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText">${uyumsoftAccount.password_encrypted}</Password>
+      </UsernameToken>
+    </Security>
+  </soap:Header>
+  <soap:Body>
+    <GetInboxInvoiceList xmlns="http://tempuri.org/">
+      <invoiceSearchKey>
+        <VKN_TCKN></VKN_TCKN>
+        <UUID></UUID>
+        <FROM_DATE>${fromDate}</FROM_DATE>
+        <TO_DATE>${toDate}</TO_DATE>
+        <FROM_DATE_SPECIFIED>true</FROM_DATE_SPECIFIED>
+        <TO_DATE_SPECIFIED>true</TO_DATE_SPECIFIED>
+        <READ_INCLUDED>true</READ_INCLUDED>
+        <DIRECTION>IN</DIRECTION>
+        <INVOICE_TYPE_CODE>SATIS</INVOICE_TYPE_CODE>
+      </invoiceSearchKey>
+    </GetInboxInvoiceList>
+  </soap:Body>
+</soap:Envelope>`;
+
+    console.log('Fetching incoming invoices from Uyumsoft...');
+    
+    // Fetch invoices using SOAP
+    const invoiceResponse = await fetch(integrationBaseUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        'Content-Type': 'text/xml; charset=utf-8',
+        'SOAPAction': 'http://tempuri.org/IIntegration/GetInboxInvoiceList'
       },
-      body: JSON.stringify(authPayload),
+      body: soapEnvelope
     });
 
-    if (!authResponse.ok) {
-      const authErrorText = await authResponse.text();
-      console.error('Uyumsoft auth failed:', authErrorText);
+    console.log('Invoice response status:', invoiceResponse.status);
+    const responseText = await invoiceResponse.text();
+    console.log('Invoice response:', responseText.substring(0, 500));
+
+    if (!invoiceResponse.ok) {
+      console.error('Failed to fetch invoices:', invoiceResponse.status, responseText);
       return new Response(JSON.stringify({ 
         success: false, 
-        error: 'Uyumsoft kimlik doğrulaması başarısız' 
+        error: `Fatura listesi alınamadı: ${invoiceResponse.status}` 
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const authData = await authResponse.json();
-    const sessionId = authData.SessionId || authData.sessionId;
-
-    if (!sessionId) {
-      console.error('No session ID received from authentication');
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'Kimlik doğrulaması başarısız - Session ID alınamadı' 
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    // Parse SOAP response to extract invoice list
+    const invoiceList = [];
+    
+    // Simple XML parsing for SOAP response - look for INVOICE elements
+    const invoiceMatches = responseText.match(/<INVOICE.*?<\/INVOICE>/gs);
+    
+    if (invoiceMatches) {
+      for (const invoiceXml of invoiceMatches) {
+        try {
+          // Extract basic invoice data from XML
+          const uuid = invoiceXml.match(/<UUID>(.*?)<\/UUID>/)?.[1] || '';
+          const invoiceId = invoiceXml.match(/<ID>(.*?)<\/ID>/)?.[1] || '';
+          const profileId = invoiceXml.match(/<PROFILE_ID>(.*?)<\/PROFILE_ID>/)?.[1] || '';
+          const typeCode = invoiceXml.match(/<TYPE_CODE>(.*?)<\/TYPE_CODE>/)?.[1] || '';
+          const direction = invoiceXml.match(/<DIRECTION>(.*?)<\/DIRECTION>/)?.[1] || '';
+          const status = invoiceXml.match(/<STATUS>(.*?)<\/STATUS>/)?.[1] || '';
+          const statusDescription = invoiceXml.match(/<STATUS_DESCRIPTION>(.*?)<\/STATUS_DESCRIPTION>/)?.[1] || '';
+          const issueDate = invoiceXml.match(/<ISSUE_DATE>(.*?)<\/ISSUE_DATE>/)?.[1] || '';
+          const senderIdentifier = invoiceXml.match(/<SENDER_IDENTIFIER>(.*?)<\/SENDER_IDENTIFIER>/)?.[1] || '';
+          const senderAlias = invoiceXml.match(/<SENDER_ALIAS>(.*?)<\/SENDER_ALIAS>/)?.[1] || '';
+          const senderTitle = invoiceXml.match(/<SENDER_TITLE>(.*?)<\/SENDER_TITLE>/)?.[1] || '';
+          const receiverIdentifier = invoiceXml.match(/<RECEIVER_IDENTIFIER>(.*?)<\/RECEIVER_IDENTIFIER>/)?.[1] || '';
+          
+          if (uuid) {
+            invoiceList.push({
+              company_id: companyId,
+              uyumsoft_invoice_id: uuid,
+              invoice_number: invoiceId,
+              invoice_type: direction === 'IN' ? 'gelen-fatura' : 'giden-fatura',
+              sender_tax_number: senderIdentifier,
+              sender_title: senderTitle || senderAlias,
+              sender_address: '',
+              invoice_date: issueDate,
+              total_amount: 0, // Will be updated when we get detailed invoice
+              tax_amount: 0,
+              grand_total: 0,
+              currency_code: 'TRY',
+              xml_content: invoiceXml,
+              received_at: new Date().toISOString(),
+              status: statusDescription || status,
+              profile_id: profileId,
+              type_code: typeCode
+            });
+          }
+        } catch (parseError) {
+          console.error('Error parsing invoice XML:', parseError);
+        }
+      }
     }
 
-    // Fetch incoming e-invoices using correct Uyumsoft method
-    console.log('Fetching incoming e-invoices...');
-    const eInvoicePayload = {
-      SessionId: sessionId,
-      baslangicTarihi: dateFrom || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Last 30 days if no date
-      bitisTarihi: dateTo || new Date().toISOString().split('T')[0]
-    };
-
-    const eInvoiceResponse = await fetch(`${integrationBaseUrl}/GetIncomingInvoiceList`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify(eInvoicePayload),
-    });
-
-    // Fetch incoming e-archive invoices
-    console.log('Fetching incoming e-archive invoices...');
-    const eArchiveResponse = await fetch(`${integrationBaseUrl}/GetIncomingArchiveInvoiceList`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify(eInvoicePayload),
-    });
-
-    const eInvoices = eInvoiceResponse.ok ? await eInvoiceResponse.json() : { InvoiceList: [] };
-    const eArchiveInvoices = eArchiveResponse.ok ? await eArchiveResponse.json() : { InvoiceList: [] };
-
-    console.log(`Found ${eInvoices.InvoiceList?.length || 0} e-invoices and ${eArchiveInvoices.InvoiceList?.length || 0} e-archive invoices`);
-
-    // Process and store incoming invoices - Updated field mapping for Uyumsoft response
-    const allIncomingInvoices = [
-      ...(eInvoices.InvoiceList || []).map((invoice: any) => ({
-        company_id: companyId,
-        uyumsoft_invoice_id: invoice.InvoiceId || invoice.UUID,
-        invoice_number: invoice.InvoiceNumber || invoice.InvoiceSerialNumber,
-        invoice_type: 'e-invoice',
-        sender_tax_number: invoice.SenderVkn || invoice.SenderTaxNumber,
-        sender_title: invoice.SenderTitle || invoice.SenderName,
-        sender_address: invoice.SenderAddress,
-        invoice_date: invoice.InvoiceDate || invoice.IssueDate,
-        total_amount: parseFloat(invoice.TotalAmount || invoice.LineExtensionAmount || 0),
-        tax_amount: parseFloat(invoice.TaxAmount || invoice.TaxInclusiveAmount || 0),
-        grand_total: parseFloat(invoice.GrandTotal || invoice.PayableAmount || 0),
-        currency_code: invoice.Currency || invoice.DocumentCurrencyCode || 'TRY',
-        xml_content: invoice.InvoiceContent || invoice.XmlContent,
-        received_at: new Date().toISOString(),
-      })),
-      ...(eArchiveInvoices.InvoiceList || []).map((invoice: any) => ({
-        company_id: companyId,
-        uyumsoft_invoice_id: invoice.InvoiceId || invoice.UUID,
-        invoice_number: invoice.InvoiceNumber || invoice.InvoiceSerialNumber,
-        invoice_type: 'e-archive',
-        sender_tax_number: invoice.SenderVkn || invoice.SenderTaxNumber,
-        sender_title: invoice.SenderTitle || invoice.SenderName,
-        sender_address: invoice.SenderAddress,
-        invoice_date: invoice.InvoiceDate || invoice.IssueDate,
-        total_amount: parseFloat(invoice.TotalAmount || invoice.LineExtensionAmount || 0),
-        tax_amount: parseFloat(invoice.TaxAmount || invoice.TaxInclusiveAmount || 0),
-        grand_total: parseFloat(invoice.GrandTotal || invoice.PayableAmount || 0),
-        currency_code: invoice.Currency || invoice.DocumentCurrencyCode || 'TRY',
-        xml_content: invoice.InvoiceContent || invoice.XmlContent,
-        received_at: new Date().toISOString(),
-      }))
-    ];
-
-    console.log(`Processing ${allIncomingInvoices.length} total incoming invoices`);
+    console.log(`Found ${invoiceList.length} invoices`);
 
     // Store new invoices (upsert to avoid duplicates)
     let savedCount = 0;
-    for (const invoice of allIncomingInvoices) {
+    for (const invoice of invoiceList) {
       const { error: upsertError } = await supabase
         .from('incoming_invoices')
         .upsert(invoice, {
@@ -183,7 +188,7 @@ export default async function handler(req: Request) {
     return new Response(JSON.stringify({
       success: true,
       message: `${savedCount} fatura başarıyla alındı`,
-      totalFetched: allIncomingInvoices.length,
+      totalFetched: invoiceList.length,
       savedCount,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -199,4 +204,5 @@ export default async function handler(req: Request) {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
-}
+  }
+})
