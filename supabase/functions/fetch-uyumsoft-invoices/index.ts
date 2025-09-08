@@ -45,12 +45,7 @@ export default async function handler(req: Request) {
       });
     }
 
-    // Prepare Uyumsoft API request - Updated with correct endpoints
-    const uyumsoftBaseUrl = uyumsoftAccount.test_mode 
-      ? 'https://testapi.hepsiburadaefaturam.com' 
-      : 'https://api.hepsiburadaefaturam.com';
-
-    // For web services integration
+    // Prepare Uyumsoft API request - Correct endpoints based on environment
     const integrationBaseUrl = uyumsoftAccount.test_mode
       ? 'https://testapi.hepsiburadaefaturam.com/Services/Integration'
       : 'https://api.hepsiburadaefaturam.com/Services/Integration';
