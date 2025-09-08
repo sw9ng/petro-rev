@@ -57,6 +57,8 @@ export const IncomingInvoicesManagement: React.FC<IncomingInvoicesManagementProp
 
   const handleFetchFromUyumsoft = () => {
     console.log('Fetching from Uyumsoft with company ID:', companyId);
+    console.log('Date from:', dateFrom, 'Date to:', dateTo);
+    console.log('fetchFromUyumsoft mutation:', fetchFromUyumsoft);
     fetchFromUyumsoft.mutate({
       dateFrom: dateFrom || undefined,
       dateTo: dateTo || undefined,
