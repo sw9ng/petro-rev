@@ -15,7 +15,7 @@ interface AuthRequest {
 }
 
 // Uyumsoft API endpoints
-const UYUMSOFT_TEST_API = 'https://testapi.hepsiburadaefaturam.com/Services/Integration'
+const UYUMSOFT_TEST_API = 'https://efatura-test.uyumsoft.com.tr/Services/Integration'
 const UYUMSOFT_PROD_API = 'https://edonusumapi.uyum.com.tr/Services/Integration'
 
 serve(async (req) => {
