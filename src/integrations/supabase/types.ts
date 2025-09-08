@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -1164,6 +1164,69 @@ export type Database = {
           },
         ]
       }
+      tanker_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          notes: string | null
+          tanker_id: string
+          transaction_date: string
+          transaction_type: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          tanker_id: string
+          transaction_date?: string
+          transaction_type: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          tanker_id?: string
+          transaction_date?: string
+          transaction_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tankers: {
+        Row: {
+          capacity: number
+          created_at: string
+          current_fuel_level: number
+          id: string
+          name: string
+          station_id: string
+          updated_at: string
+        }
+        Insert: {
+          capacity?: number
+          created_at?: string
+          current_fuel_level?: number
+          id?: string
+          name: string
+          station_id: string
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number
+          created_at?: string
+          current_fuel_level?: number
+          id?: string
+          name?: string
+          station_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tax_registry: {
         Row: {
           address: string | null
@@ -1268,25 +1331,25 @@ export type Database = {
       get_attendant_shifts: {
         Args: {
           attendant_id_param: string
-          station_id_param: string
-          date_start_param?: string
           date_end_param?: string
+          date_start_param?: string
           shift_filter_param?: string
+          station_id_param: string
         }
         Returns: {
-          id: string
-          start_time: string
-          end_time: string
-          cash_sales: number
-          card_sales: number
           actual_amount: number
+          bank_transfer_description: string
+          bank_transfers: number
+          card_sales: number
+          cash_sales: number
+          end_time: string
+          id: string
+          loyalty_card: number
           over_short: number
+          shift_number: string
+          start_time: string
           status: string
           veresiye: number
-          bank_transfers: number
-          loyalty_card: number
-          shift_number: string
-          bank_transfer_description: string
         }[]
       }
       hash_attendant_password: {
