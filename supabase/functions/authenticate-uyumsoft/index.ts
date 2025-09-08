@@ -14,8 +14,9 @@ interface AuthRequest {
   testMode?: boolean
 }
 
-// Uyumsoft SOAP API integration endpoint - same for test and production
-const UYUMSOFT_INTEGRATION_BASE = 'https://edonusumapi.uyum.com.tr/Services/Integration'
+// Uyumsoft API endpoints
+const UYUMSOFT_TEST_API = 'https://testapi.hepsiburadaefaturam.com/Services/Integration'
+const UYUMSOFT_PROD_API = 'https://edonusumapi.uyum.com.tr/Services/Integration'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -43,8 +44,12 @@ serve(async (req) => {
 
     console.log('Uyumsoft authentication attempt:', { username, testMode })
 
+    // Select the correct API endpoint based on test mode
+    const apiEndpoint = testMode ? UYUMSOFT_TEST_API : UYUMSOFT_PROD_API
+    console.log('Using endpoint:', apiEndpoint)
+
     // Try to authenticate with Uyumsoft using SOAP API
-    const authResponse = await fetch(UYUMSOFT_INTEGRATION_BASE, {
+    const authResponse = await fetch(apiEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
