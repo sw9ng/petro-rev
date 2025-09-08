@@ -36,41 +36,52 @@ serve(async (req) => {
 
     const { companyId, username, password, testMode = true }: AuthRequest = await req.json()
 
-    // Prepare SOAP authentication request for Uyumsoft
-    const authPayload = {
-      kullaniciadi: username,
-      sifre: password
-    }
-
     console.log('Uyumsoft authentication attempt:', { username, testMode })
 
     // Select the correct API endpoint based on test mode
     const apiEndpoint = testMode ? UYUMSOFT_TEST_API : UYUMSOFT_PROD_API
     console.log('Using endpoint:', apiEndpoint)
 
+    // Prepare SOAP envelope for Uyumsoft authentication
+    const soapEnvelope = `<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+               xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+               xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <TestConnection xmlns="http://tempuri.org/">
+      <kullaniciadi>${username}</kullaniciadi>
+      <sifre>${password}</sifre>
+    </TestConnection>
+  </soap:Body>
+</soap:Envelope>`;
+
+    console.log('Sending SOAP request to:', apiEndpoint)
+
     // Try to authenticate with Uyumsoft using SOAP API
     const authResponse = await fetch(apiEndpoint, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        'Content-Type': 'text/xml; charset=utf-8',
         'SOAPAction': 'http://tempuri.org/IIntegration/TestConnection'
       },
-      body: JSON.stringify(authPayload)
+      body: soapEnvelope
     })
 
-    let authResult
-    try {
-      authResult = await authResponse.json()
-    } catch (error) {
-      console.error('Failed to parse Uyumsoft response:', error)
-      authResult = { success: false, message: 'Invalid response from Uyumsoft' }
+    console.log('Response status:', authResponse.status)
+    const responseText = await authResponse.text()
+    console.log('Response text:', responseText)
+
+    if (!authResponse.ok) {
+      throw new Error(`HTTP error! status: ${authResponse.status}`)
     }
 
-    console.log('Uyumsoft auth response:', authResult)
+    // Parse SOAP response
+    const isSuccessful = responseText.includes('<TestConnectionResult>true</TestConnectionResult>') || 
+                        responseText.includes('>true<') ||
+                        !responseText.includes('fault') && !responseText.includes('error');
 
-    if (!authResponse.ok || !authResult.success) {
-      throw new Error(authResult.message || 'Uyumsoft kimlik doğrulama başarısız')
+    if (!isSuccessful) {
+      throw new Error('Uyumsoft kimlik doğrulama başarısız - geçersiz kullanıcı adı veya şifre')
     }
 
     // If authentication successful, save/update the account
@@ -123,8 +134,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         message: 'Uyumsoft bağlantısı başarılı',
-        account: savedAccount,
-        authenticator: authResult.authenticator || authResult.token
+        account: savedAccount
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
