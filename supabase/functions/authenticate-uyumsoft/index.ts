@@ -121,7 +121,7 @@ serve(async (req) => {
         .from('uyumsoft_accounts')
         .insert({ 
           ...accountData, 
-          company_id: companyId,
+          company_id: companyId
         })
         .select()
         .single()
