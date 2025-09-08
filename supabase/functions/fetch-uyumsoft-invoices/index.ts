@@ -45,19 +45,24 @@ export default async function handler(req: Request) {
       });
     }
 
-    // Prepare Uyumsoft API request
+    // Prepare Uyumsoft API request - Updated with correct endpoints
     const uyumsoftBaseUrl = uyumsoftAccount.test_mode 
-      ? 'https://test.uyumsoft.com.tr/api' 
-      : 'https://api.uyumsoft.com.tr/api';
+      ? 'https://testapi.hepsiburadaefaturam.com' 
+      : 'https://api.hepsiburadaefaturam.com';
+
+    // For web services integration
+    const integrationBaseUrl = uyumsoftAccount.test_mode
+      ? 'https://testapi.hepsiburadaefaturam.com/Services/Integration'
+      : 'https://api.hepsiburadaefaturam.com/Services/Integration';
 
     const authPayload = {
-      username: uyumsoftAccount.username,
-      password: uyumsoftAccount.password_encrypted // This should be decrypted in production
+      kullaniciadi: uyumsoftAccount.username,
+      sifre: uyumsoftAccount.password_encrypted // This should be decrypted in production
     };
 
-    // Authenticate with Uyumsoft
+    // Authenticate with Uyumsoft - Updated endpoint
     console.log('Authenticating with Uyumsoft...');
-    const authResponse = await fetch(`${uyumsoftBaseUrl}/auth/login`, {
+    const authResponse = await fetch(`${integrationBaseUrl}/Login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -79,74 +84,84 @@ export default async function handler(req: Request) {
     }
 
     const authData = await authResponse.json();
-    const accessToken = authData.access_token;
+    const sessionId = authData.SessionId || authData.sessionId;
 
-    // Fetch incoming e-invoices
+    if (!sessionId) {
+      console.error('No session ID received from authentication');
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Kimlik doğrulaması başarısız - Session ID alınamadı' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Fetch incoming e-invoices using correct Uyumsoft method
     console.log('Fetching incoming e-invoices...');
-    const eInvoiceParams = new URLSearchParams({
-      page: '1',
-      limit: '100',
-      ...(dateFrom && { dateFrom }),
-      ...(dateTo && { dateTo }),
-    });
+    const eInvoicePayload = {
+      SessionId: sessionId,
+      baslangicTarihi: dateFrom || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Last 30 days if no date
+      bitisTarihi: dateTo || new Date().toISOString().split('T')[0]
+    };
 
-    const eInvoiceResponse = await fetch(`${uyumsoftBaseUrl}/einvoice/incoming?${eInvoiceParams}`, {
-      method: 'GET',
+    const eInvoiceResponse = await fetch(`${integrationBaseUrl}/GetIncomingInvoiceList`, {
+      method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
+      body: JSON.stringify(eInvoicePayload),
     });
 
     // Fetch incoming e-archive invoices
     console.log('Fetching incoming e-archive invoices...');
-    const eArchiveResponse = await fetch(`${uyumsoftBaseUrl}/earchive/incoming?${eInvoiceParams}`, {
-      method: 'GET',
+    const eArchiveResponse = await fetch(`${integrationBaseUrl}/GetIncomingArchiveInvoiceList`, {
+      method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
+      body: JSON.stringify(eInvoicePayload),
     });
 
-    const eInvoices = eInvoiceResponse.ok ? await eInvoiceResponse.json() : { data: [] };
-    const eArchiveInvoices = eArchiveResponse.ok ? await eArchiveResponse.json() : { data: [] };
+    const eInvoices = eInvoiceResponse.ok ? await eInvoiceResponse.json() : { InvoiceList: [] };
+    const eArchiveInvoices = eArchiveResponse.ok ? await eArchiveResponse.json() : { InvoiceList: [] };
 
-    console.log(`Found ${eInvoices.data?.length || 0} e-invoices and ${eArchiveInvoices.data?.length || 0} e-archive invoices`);
+    console.log(`Found ${eInvoices.InvoiceList?.length || 0} e-invoices and ${eArchiveInvoices.InvoiceList?.length || 0} e-archive invoices`);
 
-    // Process and store incoming invoices
+    // Process and store incoming invoices - Updated field mapping for Uyumsoft response
     const allIncomingInvoices = [
-      ...(eInvoices.data || []).map((invoice: any) => ({
+      ...(eInvoices.InvoiceList || []).map((invoice: any) => ({
         company_id: companyId,
-        uyumsoft_invoice_id: invoice.id || invoice.uuid,
-        invoice_number: invoice.invoice_number || invoice.invoiceNumber,
+        uyumsoft_invoice_id: invoice.InvoiceId || invoice.UUID,
+        invoice_number: invoice.InvoiceNumber || invoice.InvoiceSerialNumber,
         invoice_type: 'e-invoice',
-        sender_tax_number: invoice.sender_tax_number || invoice.senderTaxNumber,
-        sender_title: invoice.sender_title || invoice.senderTitle,
-        sender_address: invoice.sender_address || invoice.senderAddress,
-        invoice_date: invoice.invoice_date || invoice.invoiceDate,
-        total_amount: parseFloat(invoice.total_amount || invoice.totalAmount || 0),
-        tax_amount: parseFloat(invoice.tax_amount || invoice.taxAmount || 0),
-        grand_total: parseFloat(invoice.grand_total || invoice.grandTotal || 0),
-        currency_code: invoice.currency_code || invoice.currencyCode || 'TRY',
-        xml_content: invoice.xml_content || invoice.xmlContent,
+        sender_tax_number: invoice.SenderVkn || invoice.SenderTaxNumber,
+        sender_title: invoice.SenderTitle || invoice.SenderName,
+        sender_address: invoice.SenderAddress,
+        invoice_date: invoice.InvoiceDate || invoice.IssueDate,
+        total_amount: parseFloat(invoice.TotalAmount || invoice.LineExtensionAmount || 0),
+        tax_amount: parseFloat(invoice.TaxAmount || invoice.TaxInclusiveAmount || 0),
+        grand_total: parseFloat(invoice.GrandTotal || invoice.PayableAmount || 0),
+        currency_code: invoice.Currency || invoice.DocumentCurrencyCode || 'TRY',
+        xml_content: invoice.InvoiceContent || invoice.XmlContent,
         received_at: new Date().toISOString(),
       })),
-      ...(eArchiveInvoices.data || []).map((invoice: any) => ({
+      ...(eArchiveInvoices.InvoiceList || []).map((invoice: any) => ({
         company_id: companyId,
-        uyumsoft_invoice_id: invoice.id || invoice.uuid,
-        invoice_number: invoice.invoice_number || invoice.invoiceNumber,
+        uyumsoft_invoice_id: invoice.InvoiceId || invoice.UUID,
+        invoice_number: invoice.InvoiceNumber || invoice.InvoiceSerialNumber,
         invoice_type: 'e-archive',
-        sender_tax_number: invoice.sender_tax_number || invoice.senderTaxNumber,
-        sender_title: invoice.sender_title || invoice.senderTitle,
-        sender_address: invoice.sender_address || invoice.senderAddress,
-        invoice_date: invoice.invoice_date || invoice.invoiceDate,
-        total_amount: parseFloat(invoice.total_amount || invoice.totalAmount || 0),
-        tax_amount: parseFloat(invoice.tax_amount || invoice.taxAmount || 0),
-        grand_total: parseFloat(invoice.grand_total || invoice.grandTotal || 0),
-        currency_code: invoice.currency_code || invoice.currencyCode || 'TRY',
-        xml_content: invoice.xml_content || invoice.xmlContent,
+        sender_tax_number: invoice.SenderVkn || invoice.SenderTaxNumber,
+        sender_title: invoice.SenderTitle || invoice.SenderName,
+        sender_address: invoice.SenderAddress,
+        invoice_date: invoice.InvoiceDate || invoice.IssueDate,
+        total_amount: parseFloat(invoice.TotalAmount || invoice.LineExtensionAmount || 0),
+        tax_amount: parseFloat(invoice.TaxAmount || invoice.TaxInclusiveAmount || 0),
+        grand_total: parseFloat(invoice.GrandTotal || invoice.PayableAmount || 0),
+        currency_code: invoice.Currency || invoice.DocumentCurrencyCode || 'TRY',
+        xml_content: invoice.InvoiceContent || invoice.XmlContent,
         received_at: new Date().toISOString(),
       }))
     ];
