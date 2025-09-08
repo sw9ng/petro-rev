@@ -48,50 +48,34 @@ export const Landing = () => {
 
   const pricingPlans = [
     {
-      name: "Başlangıç",
-      price: "Ücretsiz",
-      period: "süresiz",
-      description: "Küçük işletmeler için temel özellikler",
+      name: "Ücretsiz",
+      price: "0₺",
+      period: "her zaman",
+      description: "Başlamak için her şey var",
       features: [
-        "1 kullanıcı hesabı",
         "Temel vardiya takibi",
-        "Basit raporlama",
-        "E-posta desteği"
+        "Basit raporlar",
+        "E-posta ile yardım"
       ],
-      cta: "Ücretsiz Başla",
-      popular: false
+      cta: "Hemen Başla",
+      popular: false,
+      savings: null
     },
     {
-      name: "Profesyonel",
-      price: "₺1.833",
-      period: "aylık",
-      description: "Büyüyen işletmeler için gelişmiş özellikler", 
+      name: "Premium",
+      price: "22.000₺",
+      period: "yıllık",
+      description: "İşinizi büyütün, daha çok para kazanın",
       features: [
         "Sınırsız kullanıcı",
-        "Gelişmiş analitik",
-        "API erişimi",
-        "Öncelikli destek",
-        "Özel entegrasyonlar",
+        "Gelişmiş raporlar",
+        "WhatsApp desteği",
+        "Tüm özellikler",
         "Mobil uygulama"
       ],
-      cta: "14 Gün Ücretsiz Dene",
-      popular: true
-    },
-    {
-      name: "Kurumsal",
-      price: "Özel Fiyat",
-      period: "teklif alın",
-      description: "Büyük işletmeler için özelleştirilebilir çözümler",
-      features: [
-        "Özel geliştirme",
-        "Dedicated server",
-        "SLA garantisi",
-        "Özel eğitim",
-        "24/7 destek",
-        "White-label"
-      ],
-      cta: "Teklif Al",
-      popular: false
+      cta: "Şimdi Al",
+      popular: true,
+      savings: "88.000₺"
     }
   ];
 
@@ -282,14 +266,14 @@ export const Landing = () => {
               Fiyatlandırma
             </Badge>
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              İşletmenize Uygun <span className="text-primary">Çözüm Seçin</span>
+              Hangi Paketi <span className="text-primary">İstiyorsun?</span>
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Esnek fiyatlandırma seçenekleri ile her büyüklükteki işletmeye uygun planlar
+              Basit ve net fiyatlar. Gizli ücret yok!
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {pricingPlans.map((plan, index) => (
               <Card key={index} className={`relative overflow-hidden ${plan.popular ? 'border-2 border-primary shadow-xl scale-105' : 'border'}`}>
                 {plan.popular && (
@@ -305,6 +289,17 @@ export const Landing = () => {
                     <div className="text-sm text-muted-foreground">/{plan.period}</div>
                   </div>
                   <p className="text-muted-foreground mt-2">{plan.description}</p>
+                  
+                  {plan.savings && (
+                    <div className="mt-4 p-3 bg-green-100 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                      <div className="text-lg font-bold text-green-600 dark:text-green-400">
+                        Yılda {plan.savings} kazanç!
+                      </div>
+                      <div className="text-xs text-green-700 dark:text-green-300 mt-1">
+                        Ortalama istasyon verilerine göre
+                      </div>
+                    </div>
+                  )}
                 </CardHeader>
 
                 <CardContent className="space-y-4">
@@ -320,7 +315,7 @@ export const Landing = () => {
                   <Button 
                     className={`w-full mt-6 ${plan.popular ? 'bg-primary hover:bg-primary/90' : ''}`}
                     variant={plan.popular ? 'default' : 'outline'}
-                    onClick={() => plan.name === 'Kurumsal' ? handleWhatsAppContact() : navigate('/auth')}
+                    onClick={() => navigate('/auth')}
                   >
                     {plan.cta}
                   </Button>
