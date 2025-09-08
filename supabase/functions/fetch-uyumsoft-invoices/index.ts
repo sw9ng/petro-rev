@@ -64,11 +64,9 @@ serve(async (req) => {
         tax_amount: 180,
         grand_total: 1180,
         currency_code: 'TRY',
+        status: 'pending',
         xml_content: '<test>XML içeriği</test>',
-        received_at: new Date().toISOString(),
-        status: 'Beklemede',
-        profile_id: 'TICARIFATURA',
-        type_code: 'SATIS'
+        received_at: new Date().toISOString()
       }
     ];
 

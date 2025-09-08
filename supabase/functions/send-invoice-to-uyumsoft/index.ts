@@ -13,8 +13,8 @@ interface InvoiceRequest {
 }
 
 // Uyumsoft API endpoints
-const UYUMSOFT_API_TEST = 'https://edonusum.uyum.com.tr/api/test'
-const UYUMSOFT_API_LIVE = 'https://edonusum.uyum.com.tr/api'
+const UYUMSOFT_API_TEST = 'https://efatura-test.uyumsoft.com.tr/Services/Integration'
+const UYUMSOFT_API_LIVE = 'https://edonusumapi.uyum.com.tr/Services/Integration'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
