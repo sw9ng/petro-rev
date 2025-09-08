@@ -14,9 +14,8 @@ interface AuthRequest {
   testMode?: boolean
 }
 
-// Uyumsoft authentication endpoints
-const UYUMSOFT_AUTH_TEST = 'https://edonusum.uyum.com.tr/api/test/auth'
-const UYUMSOFT_AUTH_LIVE = 'https://edonusum.uyum.com.tr/api/auth'
+// Uyumsoft SOAP API integration endpoint - same for test and production
+const UYUMSOFT_INTEGRATION_BASE = 'https://edonusumapi.uyum.com.tr/Services/Integration'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -36,22 +35,21 @@ serve(async (req) => {
 
     const { companyId, username, password, testMode = true }: AuthRequest = await req.json()
 
-    // Prepare authentication request
-    const authEndpoint = testMode ? UYUMSOFT_AUTH_TEST : UYUMSOFT_AUTH_LIVE
-    
+    // Prepare SOAP authentication request for Uyumsoft
     const authPayload = {
-      username,
-      password
+      kullaniciadi: username,
+      sifre: password
     }
 
     console.log('Uyumsoft authentication attempt:', { username, testMode })
 
-    // Try to authenticate with Uyumsoft
-    const authResponse = await fetch(authEndpoint, {
+    // Try to authenticate with Uyumsoft using SOAP API
+    const authResponse = await fetch(UYUMSOFT_INTEGRATION_BASE, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'SOAPAction': 'http://tempuri.org/IIntegration/TestConnection'
       },
       body: JSON.stringify(authPayload)
     })
