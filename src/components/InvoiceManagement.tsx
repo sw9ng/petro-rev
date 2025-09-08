@@ -13,6 +13,7 @@ import { useEInvoices } from "@/hooks/useEInvoices";
 import { useEArchiveInvoices } from "@/hooks/useEArchiveInvoices";
 import { useToast } from "@/hooks/use-toast";
 import { IncomingInvoicesManagement } from "./IncomingInvoicesManagement";
+import { EInvoiceCreationForm } from "./EInvoiceCreationForm";
 
 interface InvoiceManagementProps {
   companyId: string;
@@ -186,6 +187,7 @@ export const InvoiceManagement = ({ companyId }: InvoiceManagementProps) => {
             </TabsContent>
 
             <TabsContent value="e-invoice" className="space-y-4">
+              <EInvoiceCreationForm companyId={companyId} />
               {eInvoicesLoading ? (
                 <div className="text-center py-8">Yükleniyor...</div>
               ) : (
