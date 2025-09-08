@@ -17,6 +17,7 @@ import {
   Crown,
   Banknote,
   Calculator,
+  Truck,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -31,6 +32,7 @@ import { PaymentTracking } from "@/components/PaymentTracking";
 import { AdminPanel } from "@/components/AdminPanel";
 import { FreemiumGate } from "@/components/FreemiumGate";
 import { FreemiumLimits } from "@/components/FreemiumLimits";
+import { TankerManagement } from "@/components/TankerManagement";
 import CashRegister from "@/pages/CashRegister";
 import Accounting from "@/pages/Accounting";
 
@@ -148,7 +150,7 @@ const Index = () => {
       <div className="max-w-7xl mx-auto py-4 sm:py-6 px-2 sm:px-4 lg:px-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
           <div className="overflow-x-auto">
-            <TabsList className={`flex w-max min-w-full ${isAdmin ? 'grid-cols-11' : 'grid-cols-10'} bg-white border shadow-sm rounded-xl p-1 gap-1`}>
+            <TabsList className={`flex w-max min-w-full ${isAdmin ? 'grid-cols-12' : 'grid-cols-11'} bg-white border shadow-sm rounded-xl p-1 gap-1`}>
               <TabsTrigger value="dashboard" className="flex items-center space-x-1 sm:space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap">
                 <LayoutDashboard className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span>Özet</span>
@@ -184,6 +186,10 @@ const Index = () => {
               <TabsTrigger value="fuel" className="flex items-center space-x-1 sm:space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap">
                 <Fuel className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span>Yakıt</span>
+              </TabsTrigger>
+              <TabsTrigger value="tankers" className="flex items-center space-x-1 sm:space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap">
+                <Truck className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span>Tanker</span>
               </TabsTrigger>
               <TabsTrigger value="reports" className="flex items-center space-x-1 sm:space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap">
                 <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -242,6 +248,12 @@ const Index = () => {
           <TabsContent value="fuel" className="space-y-4 sm:space-y-6">
             <FreemiumGate feature="Yakıt Satış Yönetimi" description="Detaylı yakıt takibi ve kar analizi premium özelliklerdir.">
               <FuelSalesManagement />
+            </FreemiumGate>
+          </TabsContent>
+
+          <TabsContent value="tankers" className="space-y-4 sm:space-y-6">
+            <FreemiumGate feature="Tanker Takip Sistemi" description="Tanker yakıt seviyesi takibi ve işlem yönetimi premium özelliklerdir.">
+              <TankerManagement />
             </FreemiumGate>
           </TabsContent>
 

@@ -12,6 +12,7 @@ import { Landing } from "./pages/Landing";
 import CustomerDetail from "./pages/CustomerDetail";
 import CashRegister from "./pages/CashRegister";
 import Accounting from "./pages/Accounting";
+import TankerTracking from "./pages/TankerTracking";
 import AttendantDashboard from "./pages/AttendantDashboard";
 import NotFound from "./pages/NotFound";
 
@@ -33,6 +34,7 @@ const App = () => {
                 <Route path="/customer/:id" element={<CustomerDetail />} />
                 <Route path="/cash-register" element={<CashRegister />} />
                 <Route path="/accounting" element={<Accounting />} />
+                <Route path="/tanker-tracking" element={<TankerTracking />} />
                 <Route path="/attendant-dashboard" element={<AttendantDashboard />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
