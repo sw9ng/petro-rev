@@ -72,15 +72,20 @@ serve(async (req) => {
     console.log('Response text:', responseText)
 
     if (!authResponse.ok) {
-      throw new Error(`HTTP error! status: ${authResponse.status}`)
+      console.error('HTTP error response:', authResponse.status, authResponse.statusText)
+      console.error('Response text:', responseText)
+      throw new Error(`Uyumsoft API hatası: ${authResponse.status} - ${authResponse.statusText}. API yanıtı: ${responseText.substring(0, 200)}`)
     }
 
     // Parse SOAP response
     const isSuccessful = responseText.includes('<TestConnectionResult>true</TestConnectionResult>') || 
                         responseText.includes('>true<') ||
-                        !responseText.includes('fault') && !responseText.includes('error');
+                        (!responseText.includes('fault') && !responseText.includes('error') && !responseText.includes('exception'));
+
+    console.log('Authentication result:', isSuccessful)
 
     if (!isSuccessful) {
+      console.error('Authentication failed. Response:', responseText)
       throw new Error('Uyumsoft kimlik doğrulama başarısız - geçersiz kullanıcı adı veya şifre')
     }
 
