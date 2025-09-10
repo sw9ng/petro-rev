@@ -104,14 +104,14 @@ serve(async (req) => {
       )
     }
 
-    // Try different SOAP envelope structure for Uyumsoft API
+    // Try GetCustomers method instead of GetEInvoiceUsers
     const soapEnvelope = `<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tem="http://tempuri.org/">
   <soap:Body>
-    <tem:GetEInvoiceUsers>
+    <tem:GetCustomers>
       <tem:Username>${uyumsoftAccount.username}</tem:Username>
       <tem:Password>${uyumsoftAccount.password_encrypted}</tem:Password>
-    </tem:GetEInvoiceUsers>
+    </tem:GetCustomers>
   </soap:Body>
 </soap:Envelope>`;
 
@@ -122,7 +122,7 @@ serve(async (req) => {
         method: 'POST',
         headers: {
           'Content-Type': 'text/xml; charset=utf-8',
-          'SOAPAction': 'http://tempuri.org/IIntegration/GetEInvoiceUsers',
+          'SOAPAction': 'http://tempuri.org/IIntegration/GetCustomers',
           'Accept': 'text/xml'
         },
         body: soapEnvelope
@@ -211,8 +211,8 @@ serve(async (req) => {
       }
 
       // Try to extract real taxpayer data from response
-      if (responseText.includes('GetEInvoiceUsersResponse') || responseText.includes('EInvoiceUser')) {
-        console.log('Found GetEInvoiceUsersResponse in response')
+      if (responseText.includes('GetCustomersResponse') || responseText.includes('Customer')) {
+        console.log('Found GetCustomersResponse in response')
         
         // Try different XML parsing approaches
         const userMatches = responseText.match(/<EInvoiceUser[^>]*>[\s\S]*?<\/EInvoiceUser>/gi) ||
