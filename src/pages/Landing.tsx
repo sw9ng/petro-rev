@@ -10,39 +10,39 @@ export const Landing = () => {
   const features = [
     {
       icon: <Gauge className="h-12 w-12" />,
-      title: "Akıllı Vardiya Yönetimi",
-      description: "Otomatik vardiya takibi ve personel performans analizi ile operasyonel mükemmellik",
-      stats: "2 saat/gün tasarruf"
+      title: "Çalışan Takibi",
+      description: "Kim ne zaman çalıştı? Hepsini otomatik takip et. Çok kolay!",
+      stats: "2 saat tasarruf"
     },
     {
       icon: <BarChart3 className="h-12 w-12" />,
-      title: "Gelişmiş Raporlama & Analitik",
-      description: "Gerçek zamanlı dashboard ve derinlemesine iş zekası ile stratejik kararlar",
-      stats: "%40 daha iyi karar"
+      title: "Kolay Raporlar",
+      description: "Günlük satışını gör. Hangi gün daha çok sattın? Hemen öğren.",
+      stats: "Daha iyi kararlar"
     },
     {
       icon: <Shield className="h-12 w-12" />,
-      title: "Kurumsal Güvenlik",
-      description: "Bankacılık düzeyinde güvenlik ve şifreleme ile verileriniz her zaman korunur",
-      stats: "99.9% uptime"
+      title: "Güvenli",
+      description: "Bilgilerin güvende. Hiç kimse göremez. Sadece sen görebilirsin.",
+      stats: "Süper güvenli"
     },
     {
       icon: <Smartphone className="h-12 w-12" />,
-      title: "Mobil & Bulut Erişim",
-      description: "Her yerden erişim, otomatik senkronizasyon ve offline çalışma desteği",
-      stats: "7/24 erişim"
+      title: "Telefonda da Çalışır",
+      description: "Evde, işte, her yerde kullan. İnternetsiz de çalışır.",
+      stats: "Her zaman açık"
     },
     {
       icon: <Database className="h-12 w-12" />,
-      title: "API & Entegrasyon",
-      description: "Mevcut sistemlerinizle kusursuz entegrasyon ve özel API desteği",
-      stats: "Sınırsız entegrasyon"
+      title: "Diğer Programlarla Çalışır",
+      description: "Zaten kullandığın programlar var mı? Onlarla da çalışır.",
+      stats: "Hepsiyle çalışır"
     },
     {
       icon: <TrendingUp className="h-12 w-12" />,
-      title: "İş Zekası & Optimizasyon",
-      description: "Makine öğrenmesi ile tahminleme ve iş süreçlerini optimize etme",
-      stats: "%25 kar artışı"
+      title: "Daha Çok Para Kazan",
+      description: "Nerelerde para kaybediyorsun? Göster. Daha çok para kazan.",
+      stats: "Daha çok para"
     }
   ];
 
@@ -162,19 +162,19 @@ export const Landing = () => {
         <div className="container mx-auto">
           <div className="max-w-4xl mx-auto text-center">
             <Badge variant="secondary" className="mb-6 text-sm font-medium px-4 py-2">
-              🚀 Yeni Nesil Akaryakıt İstasyonu Yönetimi
+              🚀 Benzin İstasyonu için Yeni Program
             </Badge>
             
             <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
-              Akaryakıt İstasyonunuzu
+              Benzin İstasyonunu
               <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent block">
-                Dijital Geleceğe Taşıyın
+                Daha Kolay Yönet
               </span>
             </h1>
             
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
-              PetroRev ile operasyonel mükemmelliği yakalayın. Gelişmiş analitik, 
-              otomatik süreçler ve kurumsal güvenlik ile işinizi bir üst seviyeye çıkarın.
+              PetroRev ile işin çok kolay olsun. Kim ne zaman çalıştı, ne kadar sattın, 
+              hepsini otomatik takip et. Daha çok para kazan.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
@@ -184,7 +184,7 @@ export const Landing = () => {
                 onClick={() => navigate('/auth')}
               >
                 <Target className="mr-2 h-5 w-5" />
-                Ücretsiz Denemeye Başla
+                Ücretsiz Dene
               </Button>
               <Button 
                 size="lg" 
@@ -193,7 +193,7 @@ export const Landing = () => {
                 onClick={handleWhatsAppContact}
               >
                 <MessageCircle className="mr-2 h-5 w-5" />
-                Canlı Demo İzle
+                Demo İzle
               </Button>
             </div>
 
@@ -224,10 +224,10 @@ export const Landing = () => {
               Özellikler
             </Badge>
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Gelişmiş <span className="text-primary">Teknoloji Altyapısı</span>
+              <span className="text-primary">Neler</span> Yapabilirsin?
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Kurumsal düzeyde özellikler ile işletmenizi geleceğe hazırlayın
+              İşini çok daha kolay hale getiren özellikler
             </p>
           </div>
 
@@ -269,7 +269,7 @@ export const Landing = () => {
               Hangi Paketi <span className="text-primary">İstiyorsun?</span>
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Basit ve net fiyatlar. Gizli ücret yok!
+              Kolay fiyatlar. Gizli ücret yok!
             </p>
           </div>
 
@@ -354,10 +354,10 @@ export const Landing = () => {
               Müşteri Görüşleri
             </Badge>
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Müşterilerimiz <span className="text-primary">Ne Diyor?</span>
+              Müşteriler <span className="text-primary">Ne Diyor?</span>
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Binlerce işletme sahibi PetroRev ile başarı hikayesi yazıyor
+              PetroRev kullanan kişiler çok memnun
             </p>
           </div>
 
