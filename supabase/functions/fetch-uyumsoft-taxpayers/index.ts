@@ -57,14 +57,14 @@ serve(async (req) => {
 
     console.log('Sending request to Uyumsoft:', uyumsoftEndpoint)
 
-    // Create SOAP envelope for GetTaxpayers operation according to Uyumsoft WSDL
+    // Create SOAP envelope for GetEInvoiceUsers operation (correct operation for taxpayers)
     const soapBody = `
-      <tem:GetTaxpayers>
+      <tem:GetEInvoiceUsers>
         <tem:userInfo>
           <tem:Username>${uyumsoftAccount.username}</tem:Username>
           <tem:Password>${uyumsoftAccount.password_encrypted}</tem:Password>
         </tem:userInfo>
-      </tem:GetTaxpayers>
+      </tem:GetEInvoiceUsers>
     `;
 
     const soapEnvelope = `<?xml version="1.0" encoding="utf-8"?>
@@ -79,7 +79,7 @@ serve(async (req) => {
         method: 'POST',
         headers: {
           'Content-Type': 'text/xml; charset=utf-8',
-          'SOAPAction': 'http://tempuri.org/IIntegration/GetTaxpayers',
+          'SOAPAction': 'http://tempuri.org/IIntegration/GetEInvoiceUsers',
           'Accept': 'text/xml'
         },
         body: soapEnvelope
@@ -153,27 +153,25 @@ serve(async (req) => {
         )
       }
 
-      // Extract taxpayer data from response
-      if (responseText.includes('GetTaxpayersResponse') || responseText.includes('Taxpayer')) {
+      // Extract taxpayer data from GetEInvoiceUsers response
+      if (responseText.includes('GetEInvoiceUsersResponse') || responseText.includes('EInvoiceUser')) {
         // Parse XML response to extract taxpayer information
-        const taxpayerMatches = responseText.match(/<Taxpayer[^>]*>[\s\S]*?<\/Taxpayer>/gi) || []
+        const userMatches = responseText.match(/<EInvoiceUser[^>]*>[\s\S]*?<\/EInvoiceUser>/gi) || []
         
-        taxpayers = taxpayerMatches.map(taxpayerXml => {
-          const taxNumberMatch = taxpayerXml.match(/<TaxNumber[^>]*>(.*?)<\/TaxNumber>/i)
-          const titleMatch = taxpayerXml.match(/<Title[^>]*>(.*?)<\/Title>/i)
-          const addressMatch = taxpayerXml.match(/<Address[^>]*>(.*?)<\/Address>/i)
-          const emailMatch = taxpayerXml.match(/<Email[^>]*>(.*?)<\/Email>/i)
-          const phoneMatch = taxpayerXml.match(/<Phone[^>]*>(.*?)<\/Phone>/i)
-          const eInvoiceMatch = taxpayerXml.match(/<EInvoiceEnabled[^>]*>(.*?)<\/EInvoiceEnabled>/i)
+        taxpayers = userMatches.map(userXml => {
+          const vknMatch = userXml.match(/<Vkn[^>]*>(.*?)<\/Vkn>/i)
+          const titleMatch = userXml.match(/<Title[^>]*>(.*?)<\/Title>/i) || userXml.match(/<CompanyTitle[^>]*>(.*?)<\/CompanyTitle>/i)
+          const aliasMatch = userXml.match(/<Alias[^>]*>(.*?)<\/Alias>/i)
+          const typeMatch = userXml.match(/<Type[^>]*>(.*?)<\/Type>/i)
           
           return {
-            tax_number: taxNumberMatch ? taxNumberMatch[1] : '',
-            company_title: titleMatch ? titleMatch[1] : '',
-            address: addressMatch ? addressMatch[1] : '',
-            email: emailMatch ? emailMatch[1] : '',
-            phone: phoneMatch ? phoneMatch[1] : '',
-            is_einvoice_enabled: eInvoiceMatch ? eInvoiceMatch[1].toLowerCase() === 'true' : false,
-            profile_id: eInvoiceMatch && eInvoiceMatch[1].toLowerCase() === 'true' ? 'TICARIFATURA' : 'TEMEL'
+            tax_number: vknMatch ? vknMatch[1] : '',
+            company_title: titleMatch ? titleMatch[1] : (aliasMatch ? aliasMatch[1] : ''),
+            address: '', // Not typically provided in this response
+            email: '', // Not typically provided in this response  
+            phone: '', // Not typically provided in this response
+            is_einvoice_enabled: true, // All returned users are e-invoice enabled
+            profile_id: typeMatch ? typeMatch[1] : 'TICARIFATURA'
           }
         }).filter(taxpayer => taxpayer.tax_number) // Filter out empty results
 
