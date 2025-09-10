@@ -104,17 +104,14 @@ serve(async (req) => {
       )
     }
 
-    // Create proper SOAP envelope for GetEInvoiceUsers with proper auth structure
+    // Try different SOAP envelope structure for Uyumsoft API
     const soapEnvelope = `<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tem="http://tempuri.org/">
-  <soap:Header>
-    <tem:AuthenticationInfo>
+  <soap:Body>
+    <tem:GetEInvoiceUsers>
       <tem:Username>${uyumsoftAccount.username}</tem:Username>
       <tem:Password>${uyumsoftAccount.password_encrypted}</tem:Password>
-    </tem:AuthenticationInfo>
-  </soap:Header>
-  <soap:Body>
-    <tem:GetEInvoiceUsers />
+    </tem:GetEInvoiceUsers>
   </soap:Body>
 </soap:Envelope>`;
 
