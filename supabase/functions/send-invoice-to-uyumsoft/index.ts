@@ -12,9 +12,29 @@ interface InvoiceRequest {
   invoiceType: 'e-invoice' | 'e-archive'
 }
 
-// Uyumsoft API endpoints
-const UYUMSOFT_API_TEST = 'https://efatura-test.uyumsoft.com.tr/Services/Integration'
-const UYUMSOFT_API_LIVE = 'https://edonusumapi.uyum.com.tr/Services/Integration'
+// Uyumsoft SOAP API endpoints based on WSDL
+const UYUMSOFT_SOAP_TEST = 'https://efatura-test.uyumsoft.com.tr/Services/Integration'
+const UYUMSOFT_SOAP_LIVE = 'https://edonusumapi.uyum.com.tr/Services/Integration'
+
+// SOAP envelope template for Uyumsoft integration
+const createSOAPEnvelope = (action: string, body: string, username: string, password: string) => {
+  return `<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tem="http://tempuri.org/">
+  <soap:Header>
+    <wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
+      <wsse:UsernameToken>
+        <wsse:Username>${username}</wsse:Username>
+        <wsse:Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText">${password}</wsse:Password>
+      </wsse:UsernameToken>
+    </wsse:Security>
+  </soap:Header>
+  <soap:Body>
+    <tem:${action}>
+      ${body}
+    </tem:${action}>
+  </soap:Body>
+</soap:Envelope>`;
+}
 
 // Fatura veri yapıları
 interface UyumsoftInvoiceEntity {
@@ -421,40 +441,101 @@ serve(async (req) => {
       }
     }
 
-    // Determine API endpoint
-    const apiBaseUrl = uyumsoftAccount.test_mode ? UYUMSOFT_API_TEST : UYUMSOFT_API_LIVE
-    const uyumsoftEndpoint = `${apiBaseUrl}/einvoice/sendinvoice`
-
-    console.log('Sending to Uyumsoft:', uyumsoftEndpoint)
-    console.log('Payload preview:', JSON.stringify({
-      Action: uyumsoftPayload.Action,
+    // Determine SOAP API endpoint
+    const apiBaseUrl = uyumsoftAccount.test_mode ? UYUMSOFT_SOAP_TEST : UYUMSOFT_SOAP_LIVE
+    
+    console.log('Sending to Uyumsoft SOAP API:', apiBaseUrl)
+    console.log('Invoice details:', {
       invoiceId: invoiceEntity.Id?.Value,
       companyName: companyData.name,
       customerName: invoiceData.recipient_title,
       amount: uyumsoftPayload.parameters.LegalMonetaryTotal?.PayableAmount?.Value
-    }, null, 2))
+    })
 
-    // Send to Uyumsoft API
-    const uyumsoftResponse = await fetch(uyumsoftEndpoint, {
+    // Create SOAP body for SendInvoice operation
+    const soapBody = `
+      <tem:invoiceEntity>
+        <tem:InvoiceData>${JSON.stringify(invoiceEntity)}</tem:InvoiceData>
+        <tem:EArchiveInvoiceInfo>
+          <tem:DeliveryType>Electronic</tem:DeliveryType>
+        </tem:EArchiveInvoiceInfo>
+        <tem:Scenario>0</tem:Scenario>
+        <tem:Notification>
+          <tem:Mailing>
+            <tem:Subject>Fatura: ${invoiceData.invoice_number} numaralı faturanız.</tem:Subject>
+            <tem:EnableNotification>true</tem:EnableNotification>
+            <tem:To>${invoiceData.recipient_email || ""}</tem:To>
+            <tem:Attachment>
+              <tem:Xml>true</tem:Xml>
+              <tem:Pdf>true</tem:Pdf>
+            </tem:Attachment>
+          </tem:Mailing>
+        </tem:Notification>
+      </tem:invoiceEntity>
+    `;
+
+    // Create SOAP envelope
+    const soapEnvelope = createSOAPEnvelope(
+      'SendInvoice',
+      soapBody,
+      uyumsoftAccount.username,
+      uyumsoftAccount.password_encrypted
+    );
+
+    console.log('SOAP envelope created for SendInvoice operation')
+
+    // Send SOAP request to Uyumsoft API
+    const uyumsoftResponse = await fetch(apiBaseUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Content-Type': 'text/xml; charset=utf-8',
+        'SOAPAction': 'http://tempuri.org/IIntegration/SendInvoice',
+        'Accept': 'text/xml'
       },
-      body: JSON.stringify(uyumsoftPayload)
+      body: soapEnvelope
     })
 
     let uyumsoftResult
     try {
-      uyumsoftResult = await uyumsoftResponse.json()
-    } catch (error) {
-      console.error('Failed to parse Uyumsoft response:', error)
       const responseText = await uyumsoftResponse.text()
-      console.log('Raw response:', responseText)
+      console.log('SOAP Response received:', responseText.substring(0, 500) + '...')
+      
+      // Parse SOAP response
+      if (responseText.includes('<soap:Fault>') || responseText.includes('soap:Fault')) {
+        // SOAP fault occurred
+        const faultMatch = responseText.match(/<faultstring[^>]*>(.*?)<\/faultstring>/i)
+        const faultString = faultMatch ? faultMatch[1] : 'SOAP Fault occurred'
+        uyumsoftResult = { 
+          success: false, 
+          message: `SOAP Fault: ${faultString}`,
+          rawResponse: responseText,
+          statusCode: uyumsoftResponse.status 
+        }
+      } else if (responseText.includes('SendInvoiceResponse')) {
+        // Success response
+        const resultMatch = responseText.match(/<SendInvoiceResult[^>]*>(.*?)<\/SendInvoiceResult>/is)
+        const resultContent = resultMatch ? resultMatch[1] : responseText
+        uyumsoftResult = { 
+          success: true, 
+          message: 'Fatura başarıyla gönderildi',
+          data: resultContent,
+          rawResponse: responseText 
+        }
+      } else {
+        // Unknown response format
+        uyumsoftResult = { 
+          success: false, 
+          message: 'Beklenmeyen yanıt formatı',
+          rawResponse: responseText,
+          statusCode: uyumsoftResponse.status 
+        }
+      }
+    } catch (error) {
+      console.error('Failed to parse Uyumsoft SOAP response:', error)
       uyumsoftResult = { 
         success: false, 
-        message: 'Uyumsoft\'tan geçersiz yanıt alındı',
-        rawResponse: responseText,
+        message: 'Uyumsoft SOAP yanıtı işlenemedi',
+        error: error.message,
         statusCode: uyumsoftResponse.status 
       }
     }
