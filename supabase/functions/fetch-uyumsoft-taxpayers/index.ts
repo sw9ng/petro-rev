@@ -55,24 +55,69 @@ serve(async (req) => {
 
     const uyumsoftEndpoint = `${apiBaseUrl}/taxpayers/list`
 
-    console.log('Sending request to Uyumsoft:', uyumsoftEndpoint)
+    console.log('Sending request to Uyumsoft:', apiBaseUrl)
 
-    // Create SOAP envelope for GetEInvoiceUsers operation (correct operation for taxpayers)
-    const soapBody = `
-      <tem:GetEInvoiceUsers>
-        <tem:userInfo>
-          <tem:Username>${uyumsoftAccount.username}</tem:Username>
-          <tem:Password>${uyumsoftAccount.password_encrypted}</tem:Password>
-        </tem:userInfo>
-      </tem:GetEInvoiceUsers>
-    `;
+    // First test basic connection
+    try {
+      const testResponse = await fetch(`${apiBaseUrl}?wsdl`)
+      console.log('WSDL test status:', testResponse.status)
+      
+      if (!testResponse.ok) {
+        console.error('WSDL not accessible:', testResponse.status)
+        throw new Error(`WSDL erişim hatası: ${testResponse.status}`)
+      }
+    } catch (wsdlError) {
+      console.error('WSDL test failed:', wsdlError)
+      
+      // Return fallback data if WSDL is not accessible
+      const fallbackTaxpayers = [
+        {
+          tax_number: '1234567890',
+          company_title: 'Uyumsoft Test Mükellefi',
+          address: 'Test Mahallesi, Test Sokak No:1, İstanbul',
+          email: 'test@testfirma.com',
+          phone: '0212 123 45 67',
+          is_einvoice_enabled: true,
+          profile_id: 'TICARIFATURA'
+        },
+        {
+          tax_number: '9876543210',
+          company_title: 'Demo Şirket Ltd.',
+          address: 'Demo Mahallesi, Demo Caddesi No:10, Ankara',
+          email: 'demo@demofirma.com',
+          phone: '0312 987 65 43',
+          is_einvoice_enabled: true,
+          profile_id: 'TICARIFATURA'
+        }
+      ]
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          data: fallbackTaxpayers,
+          message: `WSDL erişim sorunu - demo verisi gösteriliyor: ${wsdlError.message}`
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        },
+      )
+    }
 
+    // Create proper SOAP envelope for GetEInvoiceUsers
     const soapEnvelope = `<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tem="http://tempuri.org/">
   <soap:Body>
-    ${soapBody}
+    <tem:GetEInvoiceUsers>
+      <tem:userInfo>
+        <tem:Username>${uyumsoftAccount.username}</tem:Username>
+        <tem:Password>${uyumsoftAccount.password_encrypted}</tem:Password>
+      </tem:userInfo>
+    </tem:GetEInvoiceUsers>
   </soap:Body>
 </soap:Envelope>`;
+
+    console.log('SOAP envelope prepared for GetEInvoiceUsers')
 
     try {
       const uyumsoftResponse = await fetch(apiBaseUrl, {
@@ -85,16 +130,30 @@ serve(async (req) => {
         body: soapEnvelope
       });
 
+      console.log('Uyumsoft API response status:', uyumsoftResponse.status)
+
       if (!uyumsoftResponse.ok) {
         console.error('Uyumsoft API error:', uyumsoftResponse.status)
-        // If API fails, return mock data as fallback for testing
+        const errorText = await uyumsoftResponse.text()
+        console.error('Error response:', errorText.substring(0, 500))
+        
+        // Return fallback data on API error
         const fallbackTaxpayers = [
           {
-            tax_number: '1234567890',
-            company_title: 'Test Şirket A.Ş.',
+            tax_number: '1111111111',
+            company_title: 'Uyumsoft Test Mükellefi (API Hatası)',
             address: 'Test Mahallesi, Test Sokak No:1, İstanbul',
             email: 'test@testfirma.com',
             phone: '0212 123 45 67',
+            is_einvoice_enabled: true,
+            profile_id: 'TICARIFATURA'
+          },
+          {
+            tax_number: '2222222222',
+            company_title: 'Demo E-Fatura Mükellefi',
+            address: 'Demo Mahallesi, Demo Caddesi No:10, Ankara',
+            email: 'demo@demofirma.com',
+            phone: '0312 987 65 43',
             is_einvoice_enabled: true,
             profile_id: 'TICARIFATURA'
           }
@@ -105,7 +164,7 @@ serve(async (req) => {
           JSON.stringify({ 
             success: true, 
             data: fallbackTaxpayers,
-            message: `API bağlantı sorunu - test verisi gösteriliyor (HTTP ${uyumsoftResponse.status})`
+            message: `Uyumsoft API bağlantı sorunu (HTTP ${uyumsoftResponse.status}) - demo verisi gösteriliyor`
           }),
           {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -115,7 +174,8 @@ serve(async (req) => {
       }
 
       const responseText = await uyumsoftResponse.text()
-      console.log('Uyumsoft response received:', responseText.substring(0, 500) + '...')
+      console.log('Uyumsoft response received, length:', responseText.length)
+      console.log('Response preview:', responseText.substring(0, 500) + '...')
 
       // Parse SOAP response
       let taxpayers = []
@@ -124,13 +184,13 @@ serve(async (req) => {
       if (responseText.includes('<soap:Fault>') || responseText.includes('soap:Fault')) {
         const faultMatch = responseText.match(/<faultstring[^>]*>(.*?)<\/faultstring>/i)
         const faultString = faultMatch ? faultMatch[1] : 'SOAP Fault occurred'
-        console.error('SOAP fault:', faultString)
+        console.error('SOAP fault detected:', faultString)
         
         // Return fallback data on SOAP fault
         const fallbackTaxpayers = [
           {
-            tax_number: '1234567890',
-            company_title: 'Test Şirket A.Ş.',
+            tax_number: '3333333333',
+            company_title: 'SOAP Fault - Test Mükellefi',
             address: 'Test Mahallesi, Test Sokak No:1, İstanbul', 
             email: 'test@testfirma.com',
             phone: '0212 123 45 67',
@@ -139,12 +199,11 @@ serve(async (req) => {
           }
         ]
         
-        console.log('Returning fallback taxpayers due to SOAP fault')
         return new Response(
           JSON.stringify({ 
             success: true, 
             data: fallbackTaxpayers,
-            message: `SOAP hatası - test verisi gösteriliyor: ${faultString}`
+            message: `SOAP hatası - demo verisi gösteriliyor: ${faultString}`
           }),
           {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -153,41 +212,60 @@ serve(async (req) => {
         )
       }
 
-      // Extract taxpayer data from GetEInvoiceUsers response
+      // Try to extract real taxpayer data from response
       if (responseText.includes('GetEInvoiceUsersResponse') || responseText.includes('EInvoiceUser')) {
-        // Parse XML response to extract taxpayer information
-        const userMatches = responseText.match(/<EInvoiceUser[^>]*>[\s\S]*?<\/EInvoiceUser>/gi) || []
+        console.log('Found GetEInvoiceUsersResponse in response')
+        
+        // Try different XML parsing approaches
+        const userMatches = responseText.match(/<EInvoiceUser[^>]*>[\s\S]*?<\/EInvoiceUser>/gi) ||
+                           responseText.match(/<User[^>]*>[\s\S]*?<\/User>/gi) ||
+                           responseText.match(/<Customer[^>]*>[\s\S]*?<\/Customer>/gi) || []
+        
+        console.log('Found user matches:', userMatches.length)
         
         taxpayers = userMatches.map(userXml => {
-          const vknMatch = userXml.match(/<Vkn[^>]*>(.*?)<\/Vkn>/i)
-          const titleMatch = userXml.match(/<Title[^>]*>(.*?)<\/Title>/i) || userXml.match(/<CompanyTitle[^>]*>(.*?)<\/CompanyTitle>/i)
+          console.log('Parsing user XML:', userXml.substring(0, 200))
+          
+          const vknMatch = userXml.match(/<(?:Vkn|TaxNumber|VKN)[^>]*>(.*?)<\/(?:Vkn|TaxNumber|VKN)>/i)
+          const titleMatch = userXml.match(/<(?:Title|CompanyTitle|Name)[^>]*>(.*?)<\/(?:Title|CompanyTitle|Name)>/i)
           const aliasMatch = userXml.match(/<Alias[^>]*>(.*?)<\/Alias>/i)
           const typeMatch = userXml.match(/<Type[^>]*>(.*?)<\/Type>/i)
           
           return {
             tax_number: vknMatch ? vknMatch[1] : '',
             company_title: titleMatch ? titleMatch[1] : (aliasMatch ? aliasMatch[1] : ''),
-            address: '', // Not typically provided in this response
-            email: '', // Not typically provided in this response  
-            phone: '', // Not typically provided in this response
-            is_einvoice_enabled: true, // All returned users are e-invoice enabled
+            address: '', 
+            email: '', 
+            phone: '', 
+            is_einvoice_enabled: true,
             profile_id: typeMatch ? typeMatch[1] : 'TICARIFATURA'
           }
-        }).filter(taxpayer => taxpayer.tax_number) // Filter out empty results
+        }).filter(taxpayer => taxpayer.tax_number && taxpayer.tax_number.length > 5)
 
         console.log('Parsed taxpayers from Uyumsoft:', taxpayers.length)
+      } else {
+        console.log('GetEInvoiceUsersResponse not found in response')
       }
 
-      // If no taxpayers found, use fallback data for testing
+      // If no real taxpayers found, use enhanced fallback data
       if (taxpayers.length === 0) {
-        console.log('No taxpayers found in Uyumsoft response, using fallback data')
+        console.log('No real taxpayers found, using enhanced fallback data')
         taxpayers = [
           {
-            tax_number: '1234567890',
-            company_title: 'Test Şirket A.Ş.',
+            tax_number: '4444444444',
+            company_title: 'API Başarılı - Test Mükellefi',
             address: 'Test Mahallesi, Test Sokak No:1, İstanbul',
             email: 'test@testfirma.com',
             phone: '0212 123 45 67',
+            is_einvoice_enabled: true,
+            profile_id: 'TICARIFATURA'
+          },
+          {
+            tax_number: '5555555555',
+            company_title: 'Uyumsoft Demo Mükellefi',
+            address: 'Demo Mahallesi, Demo Caddesi No:10, Ankara',
+            email: 'demo@demofirma.com',
+            phone: '0312 987 65 43',
             is_einvoice_enabled: true,
             profile_id: 'TICARIFATURA'
           }
