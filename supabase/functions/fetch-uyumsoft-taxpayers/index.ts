@@ -57,50 +57,119 @@ serve(async (req) => {
 
     console.log('Sending request to Uyumsoft:', uyumsoftEndpoint)
 
-    // For now, return mock data since we don't have the exact API structure
-    const mockTaxpayers = [
-      {
-        tax_number: '1234567890',
-        company_title: 'Örnek Şirket A.Ş.',
-        address: 'Örnek Mahallesi, Örnek Sokak No:1, İstanbul',
-        email: 'info@ornekfirma.com',
-        phone: '0212 123 45 67',
-        is_einvoice_enabled: true,
-        profile_id: 'TICARIFATURA'
-      },
-      {
-        tax_number: '9876543210',
-        company_title: 'Test Limited Şti.',
-        address: 'Test Mahallesi, Test Caddesi No:10, Ankara',
-        email: 'iletisim@testfirma.com',
-        phone: '0312 987 65 43',
-        is_einvoice_enabled: true,
-        profile_id: 'TICARIFATURA'
-      },
-      {
-        tax_number: '5555555555',
-        company_title: 'Demo Ticaret Ltd.',
-        address: 'Demo Sokağı No:5, İzmir',
-        email: 'demo@demoticaret.com',
-        phone: '0232 555 55 55',
-        is_einvoice_enabled: false,
-        profile_id: 'TEMEL'
+    // Create SOAP envelope for getting taxpayers
+    const soapBody = `
+      <tem:GetCustomers>
+        <tem:userName>${uyumsoftAccount.username}</tem:userName>
+        <tem:password>${uyumsoftAccount.password_encrypted}</tem:password>
+      </tem:GetCustomers>
+    `;
+
+    const soapEnvelope = `<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tem="http://tempuri.org/">
+  <soap:Header>
+    <wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
+      <wsse:UsernameToken>
+        <wsse:Username>${uyumsoftAccount.username}</wsse:Username>
+        <wsse:Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText">${uyumsoftAccount.password_encrypted}</wsse:Password>
+      </wsse:UsernameToken>
+    </wsse:Security>
+  </soap:Header>
+  <soap:Body>
+    ${soapBody}
+  </soap:Body>
+</soap:Envelope>`;
+
+    try {
+      const uyumsoftResponse = await fetch(apiBaseUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/xml; charset=utf-8',
+          'SOAPAction': 'http://tempuri.org/IIntegration/GetCustomers',
+          'Accept': 'text/xml'
+        },
+        body: soapEnvelope
+      });
+
+      if (!uyumsoftResponse.ok) {
+        console.error('Uyumsoft API error:', uyumsoftResponse.status)
+        throw new Error(`Uyumsoft API hatası: ${uyumsoftResponse.status}`)
       }
-    ]
 
-    console.log('Returning mock taxpayers:', mockTaxpayers.length)
+      const responseText = await uyumsoftResponse.text()
+      console.log('Uyumsoft response received:', responseText.substring(0, 500) + '...')
 
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        data: mockTaxpayers,
-        message: 'E-Fatura mükellefleri başarıyla alındı'
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      },
-    )
+      // Parse SOAP response
+      let taxpayers = []
+      
+      // Check for SOAP fault
+      if (responseText.includes('<soap:Fault>') || responseText.includes('soap:Fault')) {
+        const faultMatch = responseText.match(/<faultstring[^>]*>(.*?)<\/faultstring>/i)
+        const faultString = faultMatch ? faultMatch[1] : 'SOAP Fault occurred'
+        throw new Error(`Uyumsoft SOAP hatası: ${faultString}`)
+      }
+
+      // Extract customer data from response
+      if (responseText.includes('GetCustomersResponse')) {
+        // Parse XML response to extract taxpayer information
+        // For now, we'll use a simple regex approach
+        const customerMatches = responseText.match(/<Customer[^>]*>[\s\S]*?<\/Customer>/gi) || []
+        
+        taxpayers = customerMatches.map(customerXml => {
+          const taxNumberMatch = customerXml.match(/<TaxNumber[^>]*>(.*?)<\/TaxNumber>/i)
+          const titleMatch = customerXml.match(/<Title[^>]*>(.*?)<\/Title>/i)
+          const addressMatch = customerXml.match(/<Address[^>]*>(.*?)<\/Address>/i)
+          const emailMatch = customerXml.match(/<Email[^>]*>(.*?)<\/Email>/i)
+          const phoneMatch = customerXml.match(/<Phone[^>]*>(.*?)<\/Phone>/i)
+          const eInvoiceMatch = customerXml.match(/<EInvoiceEnabled[^>]*>(.*?)<\/EInvoiceEnabled>/i)
+          
+          return {
+            tax_number: taxNumberMatch ? taxNumberMatch[1] : '',
+            company_title: titleMatch ? titleMatch[1] : '',
+            address: addressMatch ? addressMatch[1] : '',
+            email: emailMatch ? emailMatch[1] : '',
+            phone: phoneMatch ? phoneMatch[1] : '',
+            is_einvoice_enabled: eInvoiceMatch ? eInvoiceMatch[1].toLowerCase() === 'true' : false,
+            profile_id: eInvoiceMatch && eInvoiceMatch[1].toLowerCase() === 'true' ? 'TICARIFATURA' : 'TEMEL'
+          }
+        }).filter(taxpayer => taxpayer.tax_number) // Filter out empty results
+
+        console.log('Parsed taxpayers from Uyumsoft:', taxpayers.length)
+      }
+
+      // If no taxpayers found or API call failed, return empty array instead of mock data
+      if (taxpayers.length === 0) {
+        console.log('No taxpayers found in Uyumsoft response')
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          data: taxpayers,
+          message: 'E-Fatura mükellefleri başarıyla alındı'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        },
+      )
+
+    } catch (apiError) {
+      console.error('Uyumsoft API call failed:', apiError)
+      
+      // Return empty array if API call fails
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          data: [],
+          message: `Uyumsoft API bağlantı hatası: ${apiError.message}`
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        },
+      )
+    }
 
   } catch (error) {
     console.error('Error fetching taxpayers from Uyumsoft:', error)
