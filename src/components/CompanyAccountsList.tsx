@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/numberUtils';
 import { toast } from 'sonner';
 import { CompanyAccountDetailView } from './CompanyAccountDetailView';
+import { EditTransactionDialog } from './EditTransactionDialog';
 
 interface CompanyAccountsListProps {
   companyId: string;

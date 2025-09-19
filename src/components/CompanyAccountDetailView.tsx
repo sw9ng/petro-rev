@@ -16,6 +16,9 @@ import { formatCurrency } from '@/lib/numberUtils';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { generateIslemGecmisiRaporu } from '@/lib/pdfUtils';
+import * as XLSX from 'xlsx';
+import { EditTransactionDialog } from './EditTransactionDialog';
 
 interface CompanyAccountDetailViewProps {
   accountId: string;
@@ -45,7 +48,7 @@ export const CompanyAccountDetailView = ({ accountId, companyId, onBack }: Compa
   });
 
   // Gelir faturalarını getir
-  const { data: incomeInvoices = [] } = useQuery({
+  const { data: incomeInvoices = [], refetch: refetchIncomeInvoices } = useQuery({
     queryKey: ['income-invoices', companyId, accountId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -65,7 +68,7 @@ export const CompanyAccountDetailView = ({ accountId, companyId, onBack }: Compa
   });
 
   // Gider faturalarını getir
-  const { data: expenseInvoices = [] } = useQuery({
+  const { data: expenseInvoices = [], refetch: refetchExpenseInvoices } = useQuery({
     queryKey: ['expense-invoices', companyId, accountId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -134,6 +137,66 @@ export const CompanyAccountDetailView = ({ accountId, companyId, onBack }: Compa
     setEndDate(undefined);
     setAmountFilter('');
     setTransactionTypeFilter('all');
+  };
+
+  const exportToPDF = () => {
+    if (!account) return;
+    
+    const transactionsToExport = filteredTransactions;
+    
+    // İşlemleri düzenle
+    const islemler = transactionsToExport.map(transaction => ({
+      tarih: format(new Date(transaction.transaction_date), 'dd/MM/yyyy'),
+      saat: format(new Date(transaction.transaction_date), 'HH:mm'),
+      personel: transaction.transaction_type === 'income' ? 'Gelir' : 'Gider',
+      islemTuru: transaction.transaction_type === 'income' ? 'Gelir Faturası' : 'Gider Faturası',
+      tutar: transaction.amount,
+      odemeYontemi: transaction.payment_status === 'paid' ? 'Ödendi' : 'Ödenmedi',
+      aciklama: transaction.description || ''
+    }));
+
+    // Toplam hesaplamalar
+    const toplamGelir = transactionsToExport
+      .filter(t => t.transaction_type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    const toplamGider = transactionsToExport
+      .filter(t => t.transaction_type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const data = {
+      musteriAdi: account.name,
+      baslangicTarihi: startDate ? format(startDate, 'dd/MM/yyyy') : undefined,
+      bitisTarihi: endDate ? format(endDate, 'dd/MM/yyyy') : undefined,
+      islemler,
+      toplamBorc: toplamGider,
+      toplamOdeme: toplamGelir,
+      bakiye: balance
+    };
+
+    const pdf = generateIslemGecmisiRaporu(data);
+    pdf.save(`${account.name}_${startDate ? format(startDate, 'ddMMyyyy') : 'baslangic'}_${endDate ? format(endDate, 'ddMMyyyy') : 'bitis'}.pdf`);
+  };
+
+  const exportToExcel = () => {
+    if (!account) return;
+    
+    const transactionsToExport = filteredTransactions;
+    
+    const data = transactionsToExport.map(transaction => ({
+      'Tarih': format(new Date(transaction.transaction_date), 'dd/MM/yyyy'),
+      'İşlem Türü': transaction.transaction_type === 'income' ? 'Gelir' : 'Gider',
+      'Tutar': `${transaction.transaction_type === 'income' ? '+' : '-'}${formatCurrency(transaction.amount)}`,
+      'Ödeme Durumu': transaction.payment_status === 'paid' ? 'Ödendi' : 'Ödenmedi',
+      'Açıklama': transaction.description || '-'
+    }));
+    
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'İşlemler');
+    
+    const fileName = `${account.name}_${startDate ? format(startDate, 'ddMMyyyy') : 'baslangic'}_${endDate ? format(endDate, 'ddMMyyyy') : 'bitis'}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
   };
 
   if (!account) {
@@ -298,6 +361,14 @@ export const CompanyAccountDetailView = ({ accountId, companyId, onBack }: Compa
             <Button onClick={clearAllFilters} variant="outline" size="sm">
               Tüm Filtreleri Temizle
             </Button>
+            <Button onClick={exportToPDF} variant="outline" className="flex items-center gap-2">
+              <Download className="h-4 w-4" />
+              PDF İndir
+            </Button>
+            <Button onClick={exportToExcel} variant="outline" className="flex items-center gap-2">
+              <Download className="h-4 w-4" />
+              Excel İndir
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -337,6 +408,7 @@ export const CompanyAccountDetailView = ({ accountId, companyId, onBack }: Compa
                     <TableHead>Tutar</TableHead>
                     <TableHead>Ödeme Durumu</TableHead>
                     <TableHead>Açıklama</TableHead>
+                    <TableHead>İşlemler</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -378,6 +450,15 @@ export const CompanyAccountDetailView = ({ accountId, companyId, onBack }: Compa
                         ) : (
                           <span className="text-gray-400 text-sm">-</span>
                         )}
+                      </TableCell>
+                      <TableCell>
+                        <EditTransactionDialog 
+                          transaction={transaction}
+                          onTransactionUpdated={() => {
+                            refetchIncomeInvoices();
+                            refetchExpenseInvoices();
+                          }}
+                        />
                       </TableCell>
                     </TableRow>
                   ))}
