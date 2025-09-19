@@ -178,25 +178,114 @@ export const CompanyAccountDetailView = ({ accountId, companyId, onBack }: Compa
     pdf.save(`${account.name}_${startDate ? format(startDate, 'ddMMyyyy') : 'baslangic'}_${endDate ? format(endDate, 'ddMMyyyy') : 'bitis'}.pdf`);
   };
 
+  const getPaymentMethodText = (method: string) => {
+    switch (method) {
+      case 'cash': return 'Nakit';
+      case 'card': return 'Kart';
+      case 'transfer': return 'Havale';
+      case 'check': return 'Çek';
+      default: return 'Belirtilmemiş';
+    }
+  };
+
   const exportToExcel = () => {
     if (!account) return;
     
-    const transactionsToExport = filteredTransactions;
+    if (filteredTransactions.length === 0) {
+      toast("Dışa aktarılacak işlem bulunmuyor.");
+      return;
+    }
     
-    const data = transactionsToExport.map(transaction => ({
+    // Excel için veri hazırla
+    const data = filteredTransactions.map(transaction => ({
       'Tarih': format(new Date(transaction.transaction_date), 'dd/MM/yyyy'),
-      'İşlem Türü': transaction.transaction_type === 'income' ? 'Gelir' : 'Gider',
-      'Tutar': `${transaction.transaction_type === 'income' ? '+' : '-'}${formatCurrency(transaction.amount)}`,
-      'Ödeme Durumu': transaction.payment_status === 'paid' ? 'Ödendi' : 'Ödenmedi',
-      'Açıklama': transaction.description || '-'
+      'İşlem Türü': transaction.transaction_type === 'income' ? 'Gelir Faturası' : 'Gider Faturası',
+      'Fatura No': transaction.invoice_number || '-',
+      'Tutar (TL)': Number(transaction.amount).toFixed(2),
+      'İşlem Yönü': transaction.transaction_type === 'income' ? 'Alacak (+)' : 'Borç (-)',
+      'Ödeme Durumu': transaction.payment_status === 'paid' ? 'Ödendi' : 'Beklemede',
+      'Açıklama': transaction.description || 'Açıklama yok'
     }));
+
+    // Özet bilgiler hesapla
+    const toplamGelir = filteredTransactions
+      .filter(t => t.transaction_type === 'income')
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+    
+    const toplamGider = filteredTransactions
+      .filter(t => t.transaction_type === 'expense')
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+    const netBakiye = toplamGelir - toplamGider;
+
+    // Özet satırları ekle
+    data.push({
+      'Tarih': '',
+      'İşlem Türü': '',
+      'Fatura No': '',
+      'Tutar (TL)': '',
+      'İşlem Yönü': '',
+      'Ödeme Durumu': '',
+      'Açıklama': ''
+    });
+    data.push({
+      'Tarih': '=== ÖZET ===',
+      'İşlem Türü': '',
+      'Fatura No': '',
+      'Tutar (TL)': '',
+      'İşlem Yönü': '',
+      'Ödeme Durumu': '',
+      'Açıklama': ''
+    });
+    data.push({
+      'Tarih': 'Toplam Gelir',
+      'İşlem Türü': '',
+      'Fatura No': '',
+      'Tutar (TL)': toplamGelir.toFixed(2),
+      'İşlem Yönü': 'Alacak (+)',
+      'Ödeme Durumu': '',
+      'Açıklama': ''
+    });
+    data.push({
+      'Tarih': 'Toplam Gider',
+      'İşlem Türü': '',
+      'Fatura No': '',
+      'Tutar (TL)': toplamGider.toFixed(2),
+      'İşlem Yönü': 'Borç (-)',
+      'Ödeme Durumu': '',
+      'Açıklama': ''
+    });
+    data.push({
+      'Tarih': 'Net Bakiye',
+      'İşlem Türü': '',
+      'Fatura No': '',
+      'Tutar (TL)': Math.abs(netBakiye).toFixed(2),
+      'İşlem Yönü': netBakiye >= 0 ? 'Alacak (+)' : 'Borç (-)',
+      'Ödeme Durumu': '',
+      'Açıklama': netBakiye >= 0 ? 'Müşteri borçlu' : 'Biz borçluyuz'
+    });
     
     const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'İşlemler');
     
-    const fileName = `${account.name}_${startDate ? format(startDate, 'ddMMyyyy') : 'baslangic'}_${endDate ? format(endDate, 'ddMMyyyy') : 'bitis'}.xlsx`;
+    // Sütun genişliklerini ayarla
+    const colWidths = [
+      { wch: 15 }, // Tarih
+      { wch: 18 }, // İşlem Türü
+      { wch: 15 }, // Fatura No
+      { wch: 15 }, // Tutar
+      { wch: 15 }, // İşlem Yönü
+      { wch: 15 }, // Ödeme Durumu
+      { wch: 30 }  // Açıklama
+    ];
+    worksheet['!cols'] = colWidths;
+    
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'İşlem Geçmişi');
+    
+    const fileName = `${account.name.replace(/[^\w\s]/gi, '')}_İşlem_Geçmişi_${format(new Date(), 'ddMMyyyy_HHmm')}.xlsx`;
     XLSX.writeFile(workbook, fileName);
+    
+    toast("Excel dosyası başarıyla indirildi.");
   };
 
   if (!account) {
