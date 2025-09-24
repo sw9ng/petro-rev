@@ -10,14 +10,14 @@ export const Landing = () => {
   const features = [
     {
       icon: <Gauge className="h-12 w-12" />,
-      title: "Çalışan Takibi",
-      description: "Kim ne zaman çalıştı? Hepsini otomatik takip et. Çok kolay!",
-      stats: "2 saat tasarruf"
+      title: "Vardiya Takip Sistemi",
+      description: "PetroRev ile akaryakıt personelinin vardiya saatlerini otomatik takip edin. Kim ne zaman çalıştı, hepsini kaydedin.",
+      stats: "Günde 2 saat tasarruf"
     },
     {
       icon: <BarChart3 className="h-12 w-12" />,
-      title: "Kolay Raporlar",
-      description: "Günlük satışını gör. Hangi gün daha çok sattın? Hemen öğren.",
+      title: "Akaryakıt Satış Raporları",
+      description: "PetroRev ile benzin, motorin satışlarınızı detaylı olarak görün. Hangi günler daha karlı?",
       stats: "Daha iyi kararlar"
     },
     {
@@ -162,19 +162,19 @@ export const Landing = () => {
         <div className="container mx-auto">
           <div className="max-w-4xl mx-auto text-center">
             <Badge variant="secondary" className="mb-6 text-sm font-medium px-4 py-2">
-              🚀 Benzin İstasyonu için Yeni Program
+              🚀 PetroRev - Akaryakıt Vardiya Programı
             </Badge>
             
             <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
-              Benzin İstasyonunu
+              Akaryakıt İstasyonu
               <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent block">
-                Daha Kolay Yönet
+                Vardiya Takip Sistemi
               </span>
             </h1>
             
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
-              PetroRev ile işin çok kolay olsun. Kim ne zaman çalıştı, ne kadar sattın, 
-              hepsini otomatik takip et. Daha çok para kazan.
+              PetroRev ile akaryakıt istasyonunuzu dijital olarak yönetin. Vardiya programı, 
+              personel takibi, satış raporları ve cari hesap yönetimi tek platformda.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
@@ -224,10 +224,10 @@ export const Landing = () => {
               Özellikler
             </Badge>
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              <span className="text-primary">Neler</span> Yapabilirsin?
+              PetroRev <span className="text-primary">Özellikleri</span>
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              İşini çok daha kolay hale getiren özellikler
+              Akaryakıt istasyonu yönetimini kolaylaştıran vardiya takip sistemi özellikleri
             </p>
           </div>
 
@@ -399,10 +399,10 @@ export const Landing = () => {
         <div className="container mx-auto text-center">
           <div className="max-w-3xl mx-auto">
             <h2 className="text-3xl md:text-4xl font-bold mb-6">
-              Hazır mısınız? İstasyonunuzu Dijital Çağa Taşıyın!
+              PetroRev ile Akaryakıt İstasyonunuzu Dijitalleştirin!
             </h2>
             <p className="text-xl mb-8 opacity-90">
-              Bugün başlayın, yarından itibaren farkı görün. 
+              Türkiye'nin en gelişmiş akaryakıt vardiya programı ile bugün başlayın. 
               İlk 100 müşteriye özel %50 indirim!
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
