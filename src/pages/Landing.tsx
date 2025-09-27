@@ -292,7 +292,7 @@ export const Landing = () => {
                   
                   {plan.savings && (
                     <div className="mt-4 p-3 bg-green-100 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                      <div className="text-lg font-bold text-green-600 dark:text-green-400">
+                      <div className="text-lg font-bold text-green-800 dark:text-green-400">
                         Yılda {plan.savings} kazanç!
                       </div>
                       <div className="text-xs text-green-700 dark:text-green-300 mt-1">
