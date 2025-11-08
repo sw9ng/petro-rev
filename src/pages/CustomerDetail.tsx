@@ -7,7 +7,7 @@ const CustomerDetail = () => {
   const navigate = useNavigate();
   
   const handleBack = () => {
-    navigate('/');
+    navigate(-1);
   };
 
   console.log('CustomerDetail - ID from params:', id);
