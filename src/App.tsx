@@ -9,7 +9,7 @@ import { lazy, Suspense } from "react";
 // Lazy load pages for better performance
 const Index = lazy(() => import("./pages/Index"));
 const Auth = lazy(() => import("./pages/Auth"));
-const Landing = lazy(() => import("./pages/Landing").then(module => ({ default: module.Landing })));
+const Landing = lazy(() => import("./pages/Landing"));
 const CustomerDetail = lazy(() => import("./pages/CustomerDetail"));
 const CashRegister = lazy(() => import("./pages/CashRegister"));
 const Accounting = lazy(() => import("./pages/Accounting"));
