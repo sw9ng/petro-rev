@@ -1427,14 +1427,8 @@ export type Database = {
           veresiye: number
         }[]
       }
-      hash_attendant_password: {
-        Args: { password: string }
-        Returns: string
-      }
-      is_user_premium: {
-        Args: { user_id: string }
-        Returns: boolean
-      }
+      hash_attendant_password: { Args: { password: string }; Returns: string }
+      is_user_premium: { Args: { user_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
