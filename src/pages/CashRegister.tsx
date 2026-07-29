@@ -202,10 +202,32 @@ const CashRegister = () => {
         {companies.map(company => (
           <Card key={company.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setSelectedCompany(company.id)}>
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center space-x-2">
-                <Building2 className="h-5 w-5 text-blue-500" />
-                <span>{company.name}</span>
-              </CardTitle>
+              <div className="flex items-start justify-between gap-2">
+                <CardTitle className="flex items-center space-x-2">
+                  <Building2 className="h-5 w-5 text-blue-500" />
+                  <span>{company.name}</span>
+                </CardTitle>
+                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    aria-label="Kasa adını düzenle"
+                    onClick={() => setEditingCompany({ id: company.id, name: company.name, description: company.description || '' })}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    aria-label="Kasayı sil"
+                    onClick={() => setDeletingCompany({ id: company.id, name: company.name })}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
               <CardDescription>
                 {company.description || "Şirket açıklaması bulunmuyor."}
               </CardDescription>
@@ -218,6 +240,7 @@ const CashRegister = () => {
                 Yönet <ChevronRight className="h-4 w-4" />
               </Button>
             </CardContent>
+
           </Card>
         ))}
 
