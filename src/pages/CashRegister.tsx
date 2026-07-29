@@ -305,8 +305,62 @@ const CashRegister = () => {
           </Card>
         )}
       </div>
+
+      <Dialog open={!!editingCompany} onOpenChange={(open) => !open && setEditingCompany(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Kasayı Düzenle</DialogTitle>
+            <DialogDescription>Kasa adını ve açıklamasını güncelleyin.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-company-name">Kasa Adı</Label>
+              <Input
+                id="edit-company-name"
+                value={editingCompany?.name || ''}
+                onChange={(e) => setEditingCompany(prev => prev ? { ...prev, name: e.target.value } : prev)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-company-desc">Açıklama (Opsiyonel)</Label>
+              <Textarea
+                id="edit-company-desc"
+                value={editingCompany?.description || ''}
+                onChange={(e) => setEditingCompany(prev => prev ? { ...prev, description: e.target.value } : prev)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingCompany(null)}>İptal</Button>
+            <Button onClick={handleUpdateCompany} disabled={updateCompany.isPending}>
+              {updateCompany.isPending ? 'Kaydediliyor...' : 'Kaydet'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deletingCompany} onOpenChange={(open) => !open && setDeletingCompany(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Kasa silinsin mi?</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{deletingCompany?.name}" kasası kalıcı olarak silinecek. Bu işlem geri alınamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDeleteCompany(); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
+
 };
 
 export default CashRegister;
