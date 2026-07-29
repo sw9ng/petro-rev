@@ -6,9 +6,10 @@ import { CompanyCashManagement } from '@/components/CompanyCashManagement';
 import { CompanyAccountsList } from '@/components/CompanyAccountsList';
 import { CustomerDetailView } from '@/components/CustomerDetailView';
 import { CheckManagement } from '@/components/CheckManagement';
-import { Plus, Building2, ArrowLeft, ChevronRight, Users, AlertCircle } from 'lucide-react';
+import { Plus, Building2, ArrowLeft, ChevronRight, Users, AlertCircle, Pencil, Trash2 } from 'lucide-react';
 import { usePremiumStatus } from '@/hooks/usePremiumStatus';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -18,19 +19,53 @@ import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const CashRegister = () => {
-  const { companies, loading, addCompany, error } = useCompanies();
+  const { companies, loading, addCompany, error, updateCompany, deleteCompany } = useCompanies();
   const { getTotalOutstandingDebt } = useCustomerTransactions();
   const { isPremium } = usePremiumStatus();
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'income' | 'expense' | 'accounts' | 'checks'>('income');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingCompany, setEditingCompany] = useState<{ id: string; name: string; description: string } | null>(null);
+  const [deletingCompany, setDeletingCompany] = useState<{ id: string; name: string } | null>(null);
   const [newCompanyData, setNewCompanyData] = useState({
     name: '',
     description: ''
   });
 
   const totalOutstandingDebt = getTotalOutstandingDebt();
+
+  const handleUpdateCompany = async () => {
+    if (!editingCompany) return;
+    if (!editingCompany.name.trim()) {
+      toast.error("Şirket adı zorunludur.");
+      return;
+    }
+    try {
+      await updateCompany.mutateAsync({
+        id: editingCompany.id,
+        name: editingCompany.name.trim(),
+        description: editingCompany.description || null,
+      });
+      toast.success("Kasa adı güncellendi.");
+      setEditingCompany(null);
+    } catch {
+      toast.error("Güncelleme sırasında bir hata oluştu.");
+    }
+  };
+
+  const handleDeleteCompany = async () => {
+    if (!deletingCompany) return;
+    try {
+      await deleteCompany.mutateAsync(deletingCompany.id);
+      toast.success("Kasa silindi.");
+      if (selectedCompany === deletingCompany.id) setSelectedCompany(null);
+      setDeletingCompany(null);
+    } catch {
+      toast.error("Silme sırasında bir hata oluştu. Bu kasaya bağlı kayıtlar olabilir.");
+    }
+  };
+
 
   const handleCreateCompany = async () => {
     if (!newCompanyData.name.trim()) {
@@ -167,10 +202,32 @@ const CashRegister = () => {
         {companies.map(company => (
           <Card key={company.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setSelectedCompany(company.id)}>
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center space-x-2">
-                <Building2 className="h-5 w-5 text-blue-500" />
-                <span>{company.name}</span>
-              </CardTitle>
+              <div className="flex items-start justify-between gap-2">
+                <CardTitle className="flex items-center space-x-2">
+                  <Building2 className="h-5 w-5 text-blue-500" />
+                  <span>{company.name}</span>
+                </CardTitle>
+                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    aria-label="Kasa adını düzenle"
+                    onClick={() => setEditingCompany({ id: company.id, name: company.name, description: company.description || '' })}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    aria-label="Kasayı sil"
+                    onClick={() => setDeletingCompany({ id: company.id, name: company.name })}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
               <CardDescription>
                 {company.description || "Şirket açıklaması bulunmuyor."}
               </CardDescription>
@@ -183,6 +240,7 @@ const CashRegister = () => {
                 Yönet <ChevronRight className="h-4 w-4" />
               </Button>
             </CardContent>
+
           </Card>
         ))}
 
@@ -247,8 +305,62 @@ const CashRegister = () => {
           </Card>
         )}
       </div>
+
+      <Dialog open={!!editingCompany} onOpenChange={(open) => !open && setEditingCompany(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Kasayı Düzenle</DialogTitle>
+            <DialogDescription>Kasa adını ve açıklamasını güncelleyin.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-company-name">Kasa Adı</Label>
+              <Input
+                id="edit-company-name"
+                value={editingCompany?.name || ''}
+                onChange={(e) => setEditingCompany(prev => prev ? { ...prev, name: e.target.value } : prev)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-company-desc">Açıklama (Opsiyonel)</Label>
+              <Textarea
+                id="edit-company-desc"
+                value={editingCompany?.description || ''}
+                onChange={(e) => setEditingCompany(prev => prev ? { ...prev, description: e.target.value } : prev)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingCompany(null)}>İptal</Button>
+            <Button onClick={handleUpdateCompany} disabled={updateCompany.isPending}>
+              {updateCompany.isPending ? 'Kaydediliyor...' : 'Kaydet'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deletingCompany} onOpenChange={(open) => !open && setDeletingCompany(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Kasa silinsin mi?</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{deletingCompany?.name}" kasası kalıcı olarak silinecek. Bu işlem geri alınamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDeleteCompany(); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
+
 };
 
 export default CashRegister;
