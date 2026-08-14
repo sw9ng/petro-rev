@@ -20,7 +20,8 @@ interface BankSelectionDialogProps {
 
 const defaultBanks = [
   'Ziraat Bankası',
-  'İş Bankası', 
+  'Ziraat Katılım Bankası',
+  'İş Bankası',
   'Garanti BBVA',
   'Yapı Kredi',
   'Akbank',
