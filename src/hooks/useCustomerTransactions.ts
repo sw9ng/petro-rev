@@ -393,54 +393,39 @@ export const useCustomerTransactions = () => {
     return mappedData;
   };
 
-  const getTotalOutstandingDebt = () => {
-    // Group by customer and calculate each customer's balance
-    const customerBalances: { [key: string]: number } = {};
-    
-    transactions.forEach(transaction => {
-      if (!customerBalances[transaction.customer_id]) {
-        customerBalances[transaction.customer_id] = 0;
-      }
-      
-      if (transaction.transaction_type === 'debt') {
-        customerBalances[transaction.customer_id] += transaction.amount;
-      } else {
-        customerBalances[transaction.customer_id] -= transaction.amount;
-      }
-    });
-    
-    // Sum only positive balances (outstanding debts)
-    return Object.values(customerBalances)
-      .filter(balance => balance > 0)
-      .reduce((sum, balance) => sum + balance, 0);
-  };
+  // Tek hesap: müşteri bazlı gruplama + toplam borç (her render'da tekrar hesaplanmaz)
+  const groupedByCustomer = useMemo(() => {
+    const grouped: Record<string, { customer: any; transactions: CustomerTransaction[]; balance: number }> = {};
 
-  const getAllTransactionsGroupedByCustomer = () => {
-    const grouped: { [key: string]: { customer: any, transactions: CustomerTransaction[], balance: number } } = {};
-    
-    transactions.forEach(transaction => {
+    for (const transaction of transactions) {
       if (!grouped[transaction.customer_id]) {
         grouped[transaction.customer_id] = {
-          customer: { 
+          customer: {
             id: transaction.customer_id,
-            name: transaction.customer.name 
+            name: transaction.customer?.name ?? ''
           },
           transactions: [],
           balance: 0
         };
       }
-      
+
       grouped[transaction.customer_id].transactions.push(transaction);
-      
-      if (transaction.transaction_type === 'debt') {
-        grouped[transaction.customer_id].balance += transaction.amount;
-      } else {
-        grouped[transaction.customer_id].balance -= transaction.amount;
-      }
-    });
-    
+      grouped[transaction.customer_id].balance +=
+        transaction.transaction_type === 'debt' ? transaction.amount : -transaction.amount;
+    }
+
     return Object.values(grouped);
-  };
+  }, [transactions]);
+
+  const totalOutstandingDebt = useMemo(
+    () => groupedByCustomer.reduce((sum, g) => (g.balance > 0 ? sum + g.balance : sum), 0),
+    [groupedByCustomer]
+  );
+
+  const getTotalOutstandingDebt = useCallback(() => totalOutstandingDebt, [totalOutstandingDebt]);
+
+  const getAllTransactionsGroupedByCustomer = useCallback(() => groupedByCustomer, [groupedByCustomer]);
+
 
   const findTransactionsByDate = async (date: string) => {
     if (!user) return [];
