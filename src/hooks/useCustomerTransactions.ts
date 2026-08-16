@@ -232,20 +232,33 @@ export const useCustomerTransactions = () => {
     return { error };
   };
 
-  const getCustomerBalance = (customerId: string) => {
-    const customerTransactions = transactions.filter(t => t.customer_id === customerId);
-    const totalDebt = customerTransactions
-      .filter(t => t.transaction_type === 'debt')
-      .reduce((sum, t) => sum + t.amount, 0);
-    const totalPayments = customerTransactions
-      .filter(t => t.transaction_type === 'payment')
-      .reduce((sum, t) => sum + t.amount, 0);
-    return totalDebt - totalPayments;
-  };
+  // Tek geçişte müşteri bazlı indeks + bakiye (O(n) yerine her müşteri için O(n) tarama yapmıyoruz)
+  const { transactionsByCustomer, balanceByCustomer } = useMemo(() => {
+    const byCustomer: Record<string, CustomerTransaction[]> = {};
+    const balances: Record<string, number> = {};
 
-  const getCustomerTransactions = (customerId: string) => {
-    return transactions.filter(t => t.customer_id === customerId);
-  };
+    for (const t of transactions) {
+      if (!byCustomer[t.customer_id]) {
+        byCustomer[t.customer_id] = [];
+        balances[t.customer_id] = 0;
+      }
+      byCustomer[t.customer_id].push(t);
+      balances[t.customer_id] += t.transaction_type === 'debt' ? t.amount : -t.amount;
+    }
+
+    return { transactionsByCustomer: byCustomer, balanceByCustomer: balances };
+  }, [transactions]);
+
+  const getCustomerBalance = useCallback(
+    (customerId: string) => balanceByCustomer[customerId] ?? 0,
+    [balanceByCustomer]
+  );
+
+  const getCustomerTransactions = useCallback(
+    (customerId: string) => transactionsByCustomer[customerId] ?? [],
+    [transactionsByCustomer]
+  );
+
 
   const getCustomerDebts = () => {
     // Group by customer and calculate each customer's balance
