@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useMemo, useCallback, useDeferredValue, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,10 +34,28 @@ export const CustomerListView = ({ onCustomerSelect }: CustomerListViewProps) =>
     notes: ''
   });
 
-  const filteredCustomers = customers.filter(customer =>
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.phone?.toLowerCase().includes(searchTerm.toLowerCase())
+  const PAGE_SIZE = 20;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const deferredSearch = useDeferredValue(searchTerm);
+
+  const filteredCustomers = useMemo(() => {
+    const term = deferredSearch.trim().toLowerCase();
+    if (!term) return customers;
+    return customers.filter(customer =>
+      customer.name.toLowerCase().includes(term) ||
+      customer.phone?.toLowerCase().includes(term)
+    );
+  }, [customers, deferredSearch]);
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [deferredSearch]);
+
+  const visibleCustomers = useMemo(
+    () => filteredCustomers.slice(0, visibleCount),
+    [filteredCustomers, visibleCount]
   );
+
 
   const getBalanceColor = (balance: number) => {
     if (balance > 0) return 'bg-red-100 text-red-800 border-red-200';
@@ -193,7 +211,7 @@ export const CustomerListView = ({ onCustomerSelect }: CustomerListViewProps) =>
       <CardContent>
         {filteredCustomers.length > 0 ? (
           <div className="space-y-2">
-            {filteredCustomers.map((customer) => {
+            {visibleCustomers.map((customer) => {
               const balance = getCustomerBalance(customer.id);
               return (
                 <div
@@ -326,7 +344,22 @@ export const CustomerListView = ({ onCustomerSelect }: CustomerListViewProps) =>
                 </div>
               );
             })}
+
+            {visibleCustomers.length < filteredCustomers.length && (
+              <div className="flex flex-col items-center gap-2 pt-2">
+                <p className="text-xs text-gray-500">
+                  {visibleCustomers.length} / {filteredCustomers.length} müşteri gösteriliyor
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                >
+                  Daha Fazla Göster
+                </Button>
+              </div>
+            )}
           </div>
+
         ) : (
           <div className="text-center py-8">
             <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
