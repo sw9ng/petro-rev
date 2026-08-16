@@ -452,9 +452,6 @@ export const useCustomerTransactions = () => {
     return mappedData;
   };
 
-  useEffect(() => {
-    fetchTransactions();
-  }, [user]);
 
   return {
     transactions,
