@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -20,83 +21,97 @@ export interface CustomerTransaction {
   } | null;
 }
 
+const TRANSACTION_COLUMNS = `
+  id,
+  customer_id,
+  personnel_id,
+  amount,
+  transaction_date,
+  transaction_type,
+  status,
+  payment_method,
+  description,
+  customer:customer_id ( name )
+`;
+
+// Tüm cari işlemleri tek seferde çeker (react-query ile önbelleğe alınır, sekmeler arası paylaşılır)
+const fetchCustomerTransactionsFromDb = async (stationId: string): Promise<CustomerTransaction[]> => {
+  const allTransactions: any[] = [];
+  let from = 0;
+  const limit = 1000;
+  let hasMore = true;
+
+  while (hasMore) {
+    const { data, error } = await supabase
+      .from('customer_transactions')
+      .select(TRANSACTION_COLUMNS)
+      .eq('station_id', stationId)
+      .order('created_at', { ascending: false })
+      .range(from, from + limit - 1);
+
+    if (error) throw error;
+
+    if (data && data.length > 0) {
+      allTransactions.push(...data);
+      from += limit;
+      hasMore = data.length === limit;
+    } else {
+      hasMore = false;
+    }
+  }
+
+  const personnelIds = [...new Set(allTransactions.map(item => item.personnel_id))].filter(Boolean);
+  let personnelMap: Record<string, { id: string; name: string }> = {};
+
+  if (personnelIds.length > 0) {
+    const { data: personnelData } = await supabase
+      .from('personnel')
+      .select('id, name')
+      .in('id', personnelIds);
+
+    personnelMap = (personnelData || []).reduce((acc, p) => {
+      acc[p.id] = p;
+      return acc;
+    }, {} as Record<string, { id: string; name: string }>);
+  }
+
+  return allTransactions.map(item => ({
+    id: item.id,
+    customer_id: item.customer_id,
+    personnel_id: item.personnel_id,
+    amount: item.amount,
+    transaction_date: item.transaction_date,
+    transaction_type: item.transaction_type as 'debt' | 'payment',
+    status: item.status as 'pending' | 'completed',
+    payment_method: item.payment_method,
+    description: item.description,
+    customer: item.customer,
+    personnel: personnelMap[item.personnel_id]
+      ? { name: personnelMap[item.personnel_id].name }
+      : { name: 'Bilinmeyen Personel' }
+  }));
+};
+
 export const useCustomerTransactions = () => {
   const { user } = useAuth();
-  const [transactions, setTransactions] = useState<CustomerTransaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const fetchTransactions = async () => {
-    if (!user) return;
-    
-    setLoading(true);
-    try {
-      // Fetch all transactions using pagination
-      let allTransactions: any[] = [];
-      let from = 0;
-      const limit = 1000;
-      let hasMore = true;
+  const { data: transactions = [], isLoading } = useQuery({
+    queryKey: ['customer-transactions', user?.id],
+    queryFn: () => fetchCustomerTransactionsFromDb(user!.id),
+    enabled: !!user?.id,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
 
-      while (hasMore) {
-        const { data, error } = await supabase
-          .from('customer_transactions')
-          .select(`
-            *,
-            customer:customer_id (
-              name
-            )
-          `)
-          .eq('station_id', user.id)
-          .order('created_at', { ascending: false })
-          .range(from, from + limit - 1);
+  const loading = !!user?.id && isLoading;
 
-        if (error) {
-          console.error('Error fetching customer transactions:', error);
-          setTransactions([]);
-          setLoading(false);
-          return;
-        }
+  const fetchTransactions = useCallback(async () => {
+    if (!user?.id) return;
+    await queryClient.invalidateQueries({ queryKey: ['customer-transactions', user.id] });
+  }, [queryClient, user?.id]);
 
-        if (data && data.length > 0) {
-          allTransactions = [...allTransactions, ...data];
-          from += limit;
-          hasMore = data.length === limit;
-        } else {
-          hasMore = false;
-        }
-      }
-      // Fetch personnel data separately
-      const personnelIds = [...new Set(allTransactions.map(item => item.personnel_id))];
-      const { data: personnelData } = await supabase
-        .from('personnel')
-        .select('id, name')
-        .in('id', personnelIds);
-
-      const personnelMap = (personnelData || []).reduce((acc, p) => {
-        acc[p.id] = p;
-        return acc;
-      }, {} as Record<string, { id: string; name: string }>);
-
-      const mappedData = allTransactions.map(item => ({
-        id: item.id,
-        customer_id: item.customer_id,
-        personnel_id: item.personnel_id,
-        amount: item.amount,
-        transaction_date: item.transaction_date,
-        transaction_type: item.transaction_type as 'debt' | 'payment',
-        status: item.status as 'pending' | 'completed',
-        payment_method: item.payment_method,
-        description: item.description,
-        customer: item.customer,
-        personnel: personnelMap[item.personnel_id] ? { name: personnelMap[item.personnel_id].name } : { name: 'Bilinmeyen Personel' }
-      }));
-      setTransactions(mappedData);
-      console.log(`[DEBUG] Fetched ${mappedData.length} transactions from database (unlimited)`);
-    } catch (error) {
-      console.error('Unexpected error fetching transactions:', error);
-      setTransactions([]);
-    }
-    setLoading(false);
-  };
 
   const addPayment = async (paymentData: {
     customer_id: string;
@@ -437,9 +452,6 @@ export const useCustomerTransactions = () => {
     return mappedData;
   };
 
-  useEffect(() => {
-    fetchTransactions();
-  }, [user]);
 
   return {
     transactions,
