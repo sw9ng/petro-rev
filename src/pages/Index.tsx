@@ -213,6 +213,7 @@ const Index = () => {
             </TabsList>
           </div>
 
+          <Suspense fallback={<TabLoader />}>
           <TabsContent value="dashboard" className="space-y-4 sm:space-y-6">
             <FreemiumLimits />
             <FuelStationDashboard />
@@ -277,6 +278,8 @@ const Index = () => {
               <AdminPanel />
             </TabsContent>
           )}
+          </Suspense>
+
         </Tabs>
       </div>
     </div>
