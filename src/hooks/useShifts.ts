@@ -108,7 +108,8 @@ export const useShifts = () => {
         personnel:personnel_id ( name )
       `)
       .eq('station_id', user.id)
-      .order('start_time', { ascending: false });
+      .order('start_time', { ascending: false })
+      .limit(1000);
 
     if (error) {
       console.error('Error fetching all shifts:', error);
