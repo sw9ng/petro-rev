@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,20 +21,29 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { FuelStationDashboard } from "@/components/FuelStationDashboard";
-import { PersonnelManagement } from "@/components/PersonnelManagement";
-import { ShiftManagement } from "@/components/ShiftManagement";
-import { ShiftList } from "@/components/ShiftList";
-import { ReportsView } from "@/components/ReportsView";
-import { FuelSalesManagement } from "@/components/FuelSalesManagement";
-import { CustomerManagement } from "@/components/CustomerManagement";
-import { PaymentTracking } from "@/components/PaymentTracking";
-import { AdminPanel } from "@/components/AdminPanel";
 import { FreemiumGate } from "@/components/FreemiumGate";
 import { FreemiumLimits } from "@/components/FreemiumLimits";
-import { TankerManagement } from "@/components/TankerManagement";
-import CashRegister from "@/pages/CashRegister";
-import Accounting from "@/pages/Accounting";
+
+// Sekmeler ilk açıldığında yüklenir (daha hızlı açılış)
+const FuelStationDashboard = lazy(() => import("@/components/FuelStationDashboard").then(m => ({ default: m.FuelStationDashboard })));
+const PersonnelManagement = lazy(() => import("@/components/PersonnelManagement").then(m => ({ default: m.PersonnelManagement })));
+const ShiftManagement = lazy(() => import("@/components/ShiftManagement").then(m => ({ default: m.ShiftManagement })));
+const ShiftList = lazy(() => import("@/components/ShiftList").then(m => ({ default: m.ShiftList })));
+const ReportsView = lazy(() => import("@/components/ReportsView").then(m => ({ default: m.ReportsView })));
+const FuelSalesManagement = lazy(() => import("@/components/FuelSalesManagement").then(m => ({ default: m.FuelSalesManagement })));
+const CustomerManagement = lazy(() => import("@/components/CustomerManagement").then(m => ({ default: m.CustomerManagement })));
+const PaymentTracking = lazy(() => import("@/components/PaymentTracking").then(m => ({ default: m.PaymentTracking })));
+const AdminPanel = lazy(() => import("@/components/AdminPanel").then(m => ({ default: m.AdminPanel })));
+const TankerManagement = lazy(() => import("@/components/TankerManagement").then(m => ({ default: m.TankerManagement })));
+const CashRegister = lazy(() => import("@/pages/CashRegister"));
+const Accounting = lazy(() => import("@/pages/Accounting"));
+
+const TabLoader = () => (
+  <div className="flex items-center justify-center py-16">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+  </div>
+);
+
 
 const Index = () => {
   const { user, signOut, loading } = useAuth();
@@ -204,6 +213,7 @@ const Index = () => {
             </TabsList>
           </div>
 
+          <Suspense fallback={<TabLoader />}>
           <TabsContent value="dashboard" className="space-y-4 sm:space-y-6">
             <FreemiumLimits />
             <FuelStationDashboard />
@@ -268,6 +278,8 @@ const Index = () => {
               <AdminPanel />
             </TabsContent>
           )}
+          </Suspense>
+
         </Tabs>
       </div>
     </div>
