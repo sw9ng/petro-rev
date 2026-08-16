@@ -344,7 +344,22 @@ export const CustomerListView = ({ onCustomerSelect }: CustomerListViewProps) =>
                 </div>
               );
             })}
+
+            {visibleCustomers.length < filteredCustomers.length && (
+              <div className="flex flex-col items-center gap-2 pt-2">
+                <p className="text-xs text-gray-500">
+                  {visibleCustomers.length} / {filteredCustomers.length} müşteri gösteriliyor
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                >
+                  Daha Fazla Göster
+                </Button>
+              </div>
+            )}
           </div>
+
         ) : (
           <div className="text-center py-8">
             <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
