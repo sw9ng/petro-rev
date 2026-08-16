@@ -165,32 +165,22 @@ export const ShiftList = () => {
     loadShifts();
   }, []);
 
-
-  useEffect(() => {
+  // Filtreleme sadece filtre veya veri değişince hesaplanır
+  const filteredShifts = useMemo(() => {
     let filtered = shifts;
 
-    // Filter by date range using effective shift dates
     if (startDate || endDate) {
+      const startDateString = startDate ? format(startDate, 'yyyy-MM-dd') : null;
+      const endDateString = endDate ? format(endDate, 'yyyy-MM-dd') : null;
+
       filtered = filtered.filter(shift => {
-        const effectiveShiftDate = getEffectiveShiftDate(
-          shift.start_time, 
-          shift.end_time, 
-          shift.shift_number
+        const shiftDateString = format(
+          getEffectiveShiftDate(shift.start_time, shift.end_time, shift.shift_number),
+          'yyyy-MM-dd'
         );
-        const shiftDateString = format(effectiveShiftDate, 'yyyy-MM-dd');
-        
-        if (startDate && endDate) {
-          const startDateString = format(startDate, 'yyyy-MM-dd');
-          const endDateString = format(endDate, 'yyyy-MM-dd');
-          return shiftDateString >= startDateString && shiftDateString <= endDateString;
-        } else if (startDate) {
-          const startDateString = format(startDate, 'yyyy-MM-dd');
-          return shiftDateString >= startDateString;
-        } else if (endDate) {
-          const endDateString = format(endDate, 'yyyy-MM-dd');
-          return shiftDateString <= endDateString;
-        }
-        
+
+        if (startDateString && shiftDateString < startDateString) return false;
+        if (endDateString && shiftDateString > endDateString) return false;
         return true;
       });
     }
@@ -199,29 +189,39 @@ export const ShiftList = () => {
       filtered = filtered.filter(shift => shift.personnel_id === selectedPersonnel);
     }
 
-    setFilteredShifts(filtered);
+    return filtered;
   }, [startDate, endDate, selectedPersonnel, shifts, getEffectiveShiftDate]);
 
-  const clearFilters = () => {
+  // Filtre değişince listeyi başa al
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [startDate, endDate, selectedPersonnel, shifts]);
+
+  const visibleShifts = useMemo(
+    () => filteredShifts.slice(0, visibleCount),
+    [filteredShifts, visibleCount]
+  );
+
+  const clearFilters = useCallback(() => {
     setStartDate(undefined);
     setEndDate(undefined);
     setSelectedPersonnel('');
-  };
+  }, []);
 
-  const handleShiftDetail = (shift: any) => {
+  const handleShiftDetail = useCallback((shift: any) => {
     setSelectedShift(shift);
     setDetailDialogOpen(true);
-  };
+  }, []);
 
-  const handleEditShift = (shift: any) => {
+  const handleEditShift = useCallback((shift: any) => {
     setEditingShift(shift);
     setEditDialogOpen(true);
-  };
+  }, []);
 
-  const handleDeleteShift = async (shiftId: string) => {
+  const handleDeleteShift = useCallback(async (shiftId: string) => {
     if (window.confirm('Bu vardiyayı silmek istediğinizden emin misiniz?')) {
       const { error } = await deleteShift(shiftId);
-      
+
       if (error) {
         toast({
           title: "Hata",
@@ -233,12 +233,11 @@ export const ShiftList = () => {
           title: "Vardiya Silindi",
           description: "Vardiya başarıyla silindi.",
         });
-        
-        const allShifts = await fetchAllShifts();
-        setShifts(allShifts);
+
+        setShifts(prev => prev.filter(s => s.id !== shiftId));
       }
     }
-  };
+  }, [deleteShift, toast]);
 
   const handleShiftUpdated = async () => {
     const allShifts = await fetchAllShifts();
@@ -250,17 +249,6 @@ export const ShiftList = () => {
     });
   };
 
-  const calculateDuration = (startTime: string, endTime: string | null) => {
-    if (!endTime) return 'Devam ediyor';
-    
-    const start = formatDateTimeForDisplay(startTime);
-    const end = formatDateTimeForDisplay(endTime);
-    const diffMs = end.getTime() - start.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    
-    return `${diffHours}s ${diffMinutes}dk`;
-  };
 
   if (loading) {
     return (
