@@ -60,10 +60,10 @@ export const useShifts = () => {
     const { data, error } = await supabase
       .from('shifts')
       .select(`
-        *,
-        personnel:personnel_id (
-          name
-        )
+        id, personnel_id, start_time, end_time, cash_sales, card_sales,
+        actual_amount, over_short, status, veresiye, bank_transfers,
+        loyalty_card, bank_transfer_description, shift_number,
+        personnel:personnel_id ( name )
       `)
       .eq('station_id', user.id)
       .order('created_at', { ascending: false });
@@ -102,10 +102,10 @@ export const useShifts = () => {
     const { data, error } = await supabase
       .from('shifts')
       .select(`
-        *,
-        personnel:personnel_id (
-          name
-        )
+        id, personnel_id, start_time, end_time, cash_sales, card_sales,
+        actual_amount, over_short, status, veresiye, bank_transfers,
+        loyalty_card, bank_transfer_description, shift_number,
+        personnel:personnel_id ( name )
       `)
       .eq('station_id', user.id)
       .order('start_time', { ascending: false });
@@ -163,10 +163,10 @@ export const useShifts = () => {
         }
       ])
       .select(`
-        *,
-        personnel:personnel_id (
-          name
-        )
+        id, personnel_id, start_time, end_time, cash_sales, card_sales,
+        actual_amount, over_short, status, veresiye, bank_transfers,
+        loyalty_card, bank_transfer_description, shift_number,
+        personnel:personnel_id ( name )
       `)
       .single();
 
@@ -217,10 +217,10 @@ export const useShifts = () => {
       .eq('id', shiftId)
       .eq('station_id', user.id)
       .select(`
-        *,
-        personnel:personnel_id (
-          name
-        )
+        id, personnel_id, start_time, end_time, cash_sales, card_sales,
+        actual_amount, over_short, status, veresiye, bank_transfers,
+        loyalty_card, bank_transfer_description, shift_number,
+        personnel:personnel_id ( name )
       `)
       .single();
 
@@ -293,10 +293,10 @@ export const useShifts = () => {
     let query = supabase
       .from('shifts')
       .select(`
-        *,
-        personnel:personnel_id (
-          name
-        )
+        id, personnel_id, start_time, end_time, cash_sales, card_sales,
+        actual_amount, over_short, status, veresiye, bank_transfers,
+        loyalty_card, bank_transfer_description, shift_number,
+        personnel:personnel_id ( name )
       `)
       .eq('station_id', user.id);
 
