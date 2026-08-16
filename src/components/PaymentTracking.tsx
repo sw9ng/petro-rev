@@ -347,8 +347,14 @@ export const PaymentTracking = () => {
   };
 
   // Separate transactions by type for history
-  const paymentTransactions = transactions.filter(t => t.transaction_type === 'payment');
-  const debtTransactions = transactions.filter(t => t.transaction_type === 'debt');
+  const paymentTransactions = useMemo(
+    () => transactions.filter(t => t.transaction_type === 'payment'),
+    [transactions]
+  );
+  const debtTransactions = useMemo(
+    () => transactions.filter(t => t.transaction_type === 'debt'),
+    [transactions]
+  );
 
   return (
     <div className="space-y-6">
@@ -417,7 +423,7 @@ export const PaymentTracking = () => {
             <TabsTrigger value="debt-history">Borç Geçmişi</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-6">
+          {activeTab === 'overview' && <TabsContent value="overview" className="space-y-6">
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
               <div className="flex items-center space-x-4 flex-1">
                 <div className="relative flex-1 max-w-md">
@@ -510,9 +516,9 @@ export const PaymentTracking = () => {
                 </Card>
               ))}
             </div>
-          </TabsContent>
+          </TabsContent>}
 
-          <TabsContent value="payment" className="space-y-6">
+          {activeTab === 'payment' && <TabsContent value="payment" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Ödeme Al</CardTitle>
@@ -607,9 +613,9 @@ export const PaymentTracking = () => {
                 </Button>
               </CardContent>
             </Card>
-          </TabsContent>
+          </TabsContent>}
 
-          <TabsContent value="debt" className="space-y-6">
+          {activeTab === 'debt' && <TabsContent value="debt" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Borç Kaydet</CardTitle>
@@ -694,9 +700,9 @@ export const PaymentTracking = () => {
                 </Button>
               </CardContent>
             </Card>
-          </TabsContent>
+          </TabsContent>}
 
-          <TabsContent value="payment-history" className="space-y-6">
+          {activeTab === 'payment-history' && <TabsContent value="payment-history" className="space-y-6">
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -859,9 +865,9 @@ export const PaymentTracking = () => {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </TabsContent>}
 
-          <TabsContent value="debt-history" className="space-y-6">
+          {activeTab === 'debt-history' && <TabsContent value="debt-history" className="space-y-6">
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -1017,7 +1023,7 @@ export const PaymentTracking = () => {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </TabsContent>}
         </Tabs>
       </div>
 
