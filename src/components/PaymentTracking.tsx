@@ -18,6 +18,7 @@ import { formatCurrency } from '@/lib/numberUtils';
 import { generateTahsilatMakbuzu, numberToWords } from '@/lib/pdfUtils';
 import { Plus, Search, CreditCard, ArrowUpDown, Calendar, Users, TrendingUp, TrendingDown, Edit, Trash2, FileText, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { SearchableLimitedSelect } from '@/components/SearchableLimitedSelect';
 
 export const PaymentTracking = () => {
   const { customers } = useCustomers();
@@ -44,6 +45,7 @@ export const PaymentTracking = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [sortBy, setSortBy] = useState<string>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [visibleCustomerCount, setVisibleCustomerCount] = useState(20);
 
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -114,6 +116,19 @@ export const PaymentTracking = () => {
 
     return filtered;
   }, [groupedTransactions, searchTerm, sortBy, sortOrder]);
+
+  const visibleCustomerTransactions = useMemo(
+    () => filteredAndSortedTransactions.slice(0, visibleCustomerCount),
+    [filteredAndSortedTransactions, visibleCustomerCount]
+  );
+  const customerOptions = useMemo(
+    () => customers.map(customer => ({ value: customer.id, label: customer.name })),
+    [customers]
+  );
+  const personnelOptions = useMemo(
+    () => personnel.map(person => ({ value: person.id, label: person.name })),
+    [personnel]
+  );
 
   const handleAddPayment = async () => {
     if (!selectedCustomer || !selectedPersonnel || !amount) {
@@ -347,8 +362,14 @@ export const PaymentTracking = () => {
   };
 
   // Separate transactions by type for history
-  const paymentTransactions = transactions.filter(t => t.transaction_type === 'payment');
-  const debtTransactions = transactions.filter(t => t.transaction_type === 'debt');
+  const paymentTransactions = useMemo(
+    () => transactions.filter(t => t.transaction_type === 'payment'),
+    [transactions]
+  );
+  const debtTransactions = useMemo(
+    () => transactions.filter(t => t.transaction_type === 'debt'),
+    [transactions]
+  );
 
   return (
     <div className="space-y-6">
@@ -417,7 +438,7 @@ export const PaymentTracking = () => {
             <TabsTrigger value="debt-history">Borç Geçmişi</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-6">
+          {activeTab === 'overview' && <TabsContent value="overview" className="space-y-6">
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
               <div className="flex items-center space-x-4 flex-1">
                 <div className="relative flex-1 max-w-md">
@@ -425,7 +446,10 @@ export const PaymentTracking = () => {
                   <Input
                     placeholder="Müşteri ara..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setVisibleCustomerCount(20);
+                    }}
                     className="pl-10"
                   />
                 </div>
@@ -457,7 +481,7 @@ export const PaymentTracking = () => {
             </div>
 
             <div className="grid gap-4">
-              {filteredAndSortedTransactions.map((group) => (
+              {visibleCustomerTransactions.map((group) => (
                 <Card 
                   key={group.customer.id} 
                   className="hover:shadow-md transition-shadow" 
@@ -509,10 +533,19 @@ export const PaymentTracking = () => {
                   </CardContent>
                 </Card>
               ))}
+              {visibleCustomerCount < filteredAndSortedTransactions.length && (
+                <Button
+                  variant="outline"
+                  onClick={() => setVisibleCustomerCount(count => count + 20)}
+                  className="w-full"
+                >
+                  Daha Fazla Göster
+                </Button>
+              )}
             </div>
-          </TabsContent>
+          </TabsContent>}
 
-          <TabsContent value="payment" className="space-y-6">
+          {activeTab === 'payment' && <TabsContent value="payment" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Ödeme Al</CardTitle>
@@ -522,34 +555,24 @@ export const PaymentTracking = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Müşteri</Label>
-                    <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Müşteri seçin" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {customers.map((customer) => (
-                          <SelectItem key={customer.id} value={customer.id}>
-                            {customer.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchableLimitedSelect
+                      options={customerOptions}
+                      value={selectedCustomer}
+                      onValueChange={setSelectedCustomer}
+                      placeholder="Müşteri seçin"
+                      searchPlaceholder="Müşteri ara..."
+                    />
                   </div>
 
                   <div className="space-y-2">
                     <Label>Personel</Label>
-                    <Select value={selectedPersonnel} onValueChange={setSelectedPersonnel}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Personel seçin" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {personnel.map((person) => (
-                          <SelectItem key={person.id} value={person.id}>
-                            {person.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchableLimitedSelect
+                      options={personnelOptions}
+                      value={selectedPersonnel}
+                      onValueChange={setSelectedPersonnel}
+                      placeholder="Personel seçin"
+                      searchPlaceholder="Personel ara..."
+                    />
                   </div>
 
                   <div className="space-y-2">
@@ -607,9 +630,9 @@ export const PaymentTracking = () => {
                 </Button>
               </CardContent>
             </Card>
-          </TabsContent>
+          </TabsContent>}
 
-          <TabsContent value="debt" className="space-y-6">
+          {activeTab === 'debt' && <TabsContent value="debt" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Borç Kaydet</CardTitle>
@@ -619,34 +642,24 @@ export const PaymentTracking = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Müşteri</Label>
-                    <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Müşteri seçin" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {customers.map((customer) => (
-                          <SelectItem key={customer.id} value={customer.id}>
-                            {customer.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchableLimitedSelect
+                      options={customerOptions}
+                      value={selectedCustomer}
+                      onValueChange={setSelectedCustomer}
+                      placeholder="Müşteri seçin"
+                      searchPlaceholder="Müşteri ara..."
+                    />
                   </div>
 
                   <div className="space-y-2">
                     <Label>Personel</Label>
-                    <Select value={selectedPersonnel} onValueChange={setSelectedPersonnel}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Personel seçin" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {personnel.map((person) => (
-                          <SelectItem key={person.id} value={person.id}>
-                            {person.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchableLimitedSelect
+                      options={personnelOptions}
+                      value={selectedPersonnel}
+                      onValueChange={setSelectedPersonnel}
+                      placeholder="Personel seçin"
+                      searchPlaceholder="Personel ara..."
+                    />
                   </div>
 
                   <div className="space-y-2">
@@ -694,9 +707,9 @@ export const PaymentTracking = () => {
                 </Button>
               </CardContent>
             </Card>
-          </TabsContent>
+          </TabsContent>}
 
-          <TabsContent value="payment-history" className="space-y-6">
+          {activeTab === 'payment-history' && <TabsContent value="payment-history" className="space-y-6">
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -859,9 +872,9 @@ export const PaymentTracking = () => {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </TabsContent>}
 
-          <TabsContent value="debt-history" className="space-y-6">
+          {activeTab === 'debt-history' && <TabsContent value="debt-history" className="space-y-6">
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -1017,7 +1030,7 @@ export const PaymentTracking = () => {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </TabsContent>}
         </Tabs>
       </div>
 
