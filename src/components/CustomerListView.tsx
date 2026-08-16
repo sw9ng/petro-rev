@@ -211,7 +211,7 @@ export const CustomerListView = ({ onCustomerSelect }: CustomerListViewProps) =>
       <CardContent>
         {filteredCustomers.length > 0 ? (
           <div className="space-y-2">
-            {filteredCustomers.map((customer) => {
+            {visibleCustomers.map((customer) => {
               const balance = getCustomerBalance(customer.id);
               return (
                 <div
