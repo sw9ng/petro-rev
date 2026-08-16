@@ -374,123 +374,37 @@ export const ShiftList = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {filteredShifts.map((shift) => {
-            const totalExpenses = shift.cash_sales + shift.card_sales + shift.veresiye + shift.bank_transfers + shift.loyalty_card;
-            const effectiveShiftDate = getEffectiveShiftDate(shift.start_time, shift.end_time, shift.shift_number);
-            
-            return (
-              <Card key={shift.id} className="shadow-sm border hover:shadow-md transition-shadow">
-                <CardHeader className="pb-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg font-semibold text-gray-900">{shift.personnel.name}</CardTitle>
-                      <CardDescription className="mt-1">
-                        <div className="flex items-center space-x-1 mb-2">
-                          <Calendar className="h-3 w-3" />
-                          <span className="text-sm">{format(effectiveShiftDate, "dd MMMM yyyy", { locale: tr })}</span>
-                          {shift.shift_number && (
-                            <Badge variant="outline" className="ml-2 text-xs">
-                              {shift.shift_number}
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center space-x-4 text-xs text-gray-500">
-                          <div className="flex items-center space-x-1">
-                            <Clock className="h-3 w-3" />
-                            <span>{format(formatDateTimeForDisplay(shift.start_time), "HH:mm")}</span>
-                            {shift.end_time && (
-                              <>
-                                <span>-</span>
-                                <span>{format(formatDateTimeForDisplay(shift.end_time), "HH:mm")}</span>
-                              </>
-                            )}
-                          </div>
-                          <div className="text-gray-700 font-medium">
-                            {calculateDuration(shift.start_time, shift.end_time)}
-                          </div>
-                        </div>
-                      </CardDescription>
-                    </div>
-                    <div className="flex flex-col space-y-2 ml-4">
-                      <Badge variant="secondary" className="bg-green-50 text-green-700 border border-green-200">
-                        Tamamlandı
-                      </Badge>
-                      <div className="flex space-x-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleShiftDetail(shift)}
-                          className="flex items-center space-x-1 h-8 px-2"
-                        >
-                          <Eye className="h-3 w-3" />
-                          <span className="hidden sm:inline text-xs">Detay</span>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditShift(shift)}
-                          className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-8 px-2"
-                        >
-                          <Edit className="h-3 w-3" />
-                          <span className="hidden sm:inline text-xs">Düzenle</span>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteShift(shift.id)}
-                          className="flex items-center space-x-1 text-red-600 hover:text-red-700 hover:bg-red-50 h-8 px-2"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Satış Özeti */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 bg-gray-50 rounded-lg border">
-                    <div className="text-center">
-                      <p className="text-xs text-gray-600 font-medium">Otomasyon</p>
-                      <p className="text-sm font-semibold text-gray-900">{formatCurrency(shift.otomasyon_satis)}</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs text-gray-600 font-medium">Nakit</p>
-                      <p className="text-sm font-semibold text-gray-900">{formatCurrency(shift.cash_sales)}</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs text-gray-600 font-medium">Kart</p>
-                      <p className="text-sm font-semibold text-gray-900">{formatCurrency(shift.card_sales)}</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs text-gray-600 font-medium">Veresiye</p>
-                      <p className="text-sm font-semibold text-gray-900">{formatCurrency(shift.veresiye)}</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs text-gray-600 font-medium">Havale</p>
-                      <p className="text-sm font-semibold text-gray-900">{formatCurrency(shift.bank_transfers)}</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs text-gray-600 font-medium">Toplam</p>
-                      <p className="text-sm font-bold text-gray-900">{formatCurrency(totalExpenses)}</p>
-                    </div>
-                  </div>
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {visibleShifts.map((shift) => (
+              <ShiftCard
+                key={shift.id}
+                shift={shift}
+                effectiveDate={getEffectiveShiftDate(shift.start_time, shift.end_time, shift.shift_number)}
+                onDetail={handleShiftDetail}
+                onEdit={handleEditShift}
+                onDelete={handleDeleteShift}
+              />
+            ))}
+          </div>
 
-                  <div className="p-4 border rounded-lg bg-white">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">Açık/Fazla</span>
-                      <Calculator className="h-4 w-4 text-gray-500" />
-                    </div>
-                    <div className={`text-right font-bold text-lg ${shift.over_short >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      <span>{shift.over_short >= 0 ? 'Fazla:' : 'Açık:'} {formatCurrency(Math.abs(shift.over_short))}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+          {visibleCount < filteredShifts.length && (
+            <div className="flex flex-col items-center space-y-2 pt-2">
+              <p className="text-sm text-gray-600">
+                {visibleShifts.length} / {filteredShifts.length} vardiya gösteriliyor
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                className="h-11 px-8"
+              >
+                Daha Fazla Göster
+              </Button>
+            </div>
+          )}
+        </>
       )}
+
 
       <ShiftDetailDialog
         shift={selectedShift}
