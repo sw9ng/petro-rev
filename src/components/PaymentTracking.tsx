@@ -18,6 +18,7 @@ import { formatCurrency } from '@/lib/numberUtils';
 import { generateTahsilatMakbuzu, numberToWords } from '@/lib/pdfUtils';
 import { Plus, Search, CreditCard, ArrowUpDown, Calendar, Users, TrendingUp, TrendingDown, Edit, Trash2, FileText, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { SearchableLimitedSelect } from '@/components/SearchableLimitedSelect';
 
 export const PaymentTracking = () => {
   const { customers } = useCustomers();
@@ -119,6 +120,14 @@ export const PaymentTracking = () => {
   const visibleCustomerTransactions = useMemo(
     () => filteredAndSortedTransactions.slice(0, visibleCustomerCount),
     [filteredAndSortedTransactions, visibleCustomerCount]
+  );
+  const customerOptions = useMemo(
+    () => customers.map(customer => ({ value: customer.id, label: customer.name })),
+    [customers]
+  );
+  const personnelOptions = useMemo(
+    () => personnel.map(person => ({ value: person.id, label: person.name })),
+    [personnel]
   );
 
   const handleAddPayment = async () => {
@@ -546,34 +555,24 @@ export const PaymentTracking = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Müşteri</Label>
-                    <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Müşteri seçin" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {customers.map((customer) => (
-                          <SelectItem key={customer.id} value={customer.id}>
-                            {customer.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchableLimitedSelect
+                      options={customerOptions}
+                      value={selectedCustomer}
+                      onValueChange={setSelectedCustomer}
+                      placeholder="Müşteri seçin"
+                      searchPlaceholder="Müşteri ara..."
+                    />
                   </div>
 
                   <div className="space-y-2">
                     <Label>Personel</Label>
-                    <Select value={selectedPersonnel} onValueChange={setSelectedPersonnel}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Personel seçin" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {personnel.map((person) => (
-                          <SelectItem key={person.id} value={person.id}>
-                            {person.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchableLimitedSelect
+                      options={personnelOptions}
+                      value={selectedPersonnel}
+                      onValueChange={setSelectedPersonnel}
+                      placeholder="Personel seçin"
+                      searchPlaceholder="Personel ara..."
+                    />
                   </div>
 
                   <div className="space-y-2">
@@ -643,34 +642,24 @@ export const PaymentTracking = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Müşteri</Label>
-                    <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Müşteri seçin" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {customers.map((customer) => (
-                          <SelectItem key={customer.id} value={customer.id}>
-                            {customer.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchableLimitedSelect
+                      options={customerOptions}
+                      value={selectedCustomer}
+                      onValueChange={setSelectedCustomer}
+                      placeholder="Müşteri seçin"
+                      searchPlaceholder="Müşteri ara..."
+                    />
                   </div>
 
                   <div className="space-y-2">
                     <Label>Personel</Label>
-                    <Select value={selectedPersonnel} onValueChange={setSelectedPersonnel}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Personel seçin" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {personnel.map((person) => (
-                          <SelectItem key={person.id} value={person.id}>
-                            {person.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchableLimitedSelect
+                      options={personnelOptions}
+                      value={selectedPersonnel}
+                      onValueChange={setSelectedPersonnel}
+                      placeholder="Personel seçin"
+                      searchPlaceholder="Personel ara..."
+                    />
                   </div>
 
                   <div className="space-y-2">
