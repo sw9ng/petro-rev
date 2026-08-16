@@ -44,6 +44,7 @@ export const PaymentTracking = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [sortBy, setSortBy] = useState<string>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [visibleCustomerCount, setVisibleCustomerCount] = useState(20);
 
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -114,6 +115,11 @@ export const PaymentTracking = () => {
 
     return filtered;
   }, [groupedTransactions, searchTerm, sortBy, sortOrder]);
+
+  const visibleCustomerTransactions = useMemo(
+    () => filteredAndSortedTransactions.slice(0, visibleCustomerCount),
+    [filteredAndSortedTransactions, visibleCustomerCount]
+  );
 
   const handleAddPayment = async () => {
     if (!selectedCustomer || !selectedPersonnel || !amount) {
@@ -431,7 +437,10 @@ export const PaymentTracking = () => {
                   <Input
                     placeholder="Müşteri ara..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setVisibleCustomerCount(20);
+                    }}
                     className="pl-10"
                   />
                 </div>
@@ -463,7 +472,7 @@ export const PaymentTracking = () => {
             </div>
 
             <div className="grid gap-4">
-              {filteredAndSortedTransactions.map((group) => (
+              {visibleCustomerTransactions.map((group) => (
                 <Card 
                   key={group.customer.id} 
                   className="hover:shadow-md transition-shadow" 
@@ -515,6 +524,15 @@ export const PaymentTracking = () => {
                   </CardContent>
                 </Card>
               ))}
+              {visibleCustomerCount < filteredAndSortedTransactions.length && (
+                <Button
+                  variant="outline"
+                  onClick={() => setVisibleCustomerCount(count => count + 20)}
+                  className="w-full"
+                >
+                  Daha Fazla Göster
+                </Button>
+              )}
             </div>
           </TabsContent>}
 
