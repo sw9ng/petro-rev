@@ -34,10 +34,28 @@ export const CustomerListView = ({ onCustomerSelect }: CustomerListViewProps) =>
     notes: ''
   });
 
-  const filteredCustomers = customers.filter(customer =>
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.phone?.toLowerCase().includes(searchTerm.toLowerCase())
+  const PAGE_SIZE = 20;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const deferredSearch = useDeferredValue(searchTerm);
+
+  const filteredCustomers = useMemo(() => {
+    const term = deferredSearch.trim().toLowerCase();
+    if (!term) return customers;
+    return customers.filter(customer =>
+      customer.name.toLowerCase().includes(term) ||
+      customer.phone?.toLowerCase().includes(term)
+    );
+  }, [customers, deferredSearch]);
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [deferredSearch]);
+
+  const visibleCustomers = useMemo(
+    () => filteredCustomers.slice(0, visibleCount),
+    [filteredCustomers, visibleCount]
   );
+
 
   const getBalanceColor = (balance: number) => {
     if (balance > 0) return 'bg-red-100 text-red-800 border-red-200';
