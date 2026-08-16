@@ -1,5 +1,6 @@
 
-import { useState, useEffect } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -14,28 +15,44 @@ export interface Customer {
   station_id?: string;
 }
 
+const fetchCustomersFromDb = async (stationId: string): Promise<Customer[]> => {
+  const { data, error } = await supabase
+    .from('customers')
+    .select('id, name, phone, address, notes, created_at, updated_at, station_id')
+    .eq('station_id', stationId)
+    .order('name', { ascending: true });
+
+  if (error) throw error;
+  return data || [];
+};
+
 export const useCustomers = () => {
   const { user } = useAuth();
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const queryKey = ['customers', user?.id];
 
-  const fetchCustomers = async () => {
-    if (!user) return;
-    
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('customers')
-      .select('*')
-      .eq('station_id', user.id)
-      .order('name', { ascending: true });
+  const { data: customers = [], isLoading } = useQuery({
+    queryKey,
+    queryFn: () => fetchCustomersFromDb(user!.id),
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
 
-    if (error) {
-      console.error('Error fetching customers:', error);
-    } else {
-      setCustomers(data || []);
-    }
-    setLoading(false);
-  };
+  const loading = !!user?.id && isLoading;
+
+  const setCache = useCallback(
+    (updater: (prev: Customer[]) => Customer[]) => {
+      queryClient.setQueryData<Customer[]>(['customers', user?.id], (prev) => updater(prev || []));
+    },
+    [queryClient, user?.id]
+  );
+
+  const fetchCustomers = useCallback(async () => {
+    if (!user?.id) return;
+    await queryClient.invalidateQueries({ queryKey: ['customers', user.id] });
+  }, [queryClient, user?.id]);
 
   const addCustomer = async (customerData: {
     name: string;
@@ -47,17 +64,12 @@ export const useCustomers = () => {
 
     const { data, error } = await supabase
       .from('customers')
-      .insert([
-        {
-          ...customerData,
-          station_id: user.id
-        }
-      ])
+      .insert([{ ...customerData, station_id: user.id }])
       .select()
       .single();
 
     if (!error && data) {
-      setCustomers(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
+      setCache(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
     }
 
     return { data, error };
@@ -80,9 +92,11 @@ export const useCustomers = () => {
       .single();
 
     if (!error && data) {
-      setCustomers(prev => prev.map(customer => 
-        customer.id === customerId ? data : customer
-      ).sort((a, b) => a.name.localeCompare(b.name)));
+      setCache(prev =>
+        prev
+          .map(customer => (customer.id === customerId ? data : customer))
+          .sort((a, b) => a.name.localeCompare(b.name))
+      );
     }
 
     return { data, error };
@@ -98,15 +112,11 @@ export const useCustomers = () => {
       .eq('station_id', user.id);
 
     if (!error) {
-      setCustomers(prev => prev.filter(customer => customer.id !== customerId));
+      setCache(prev => prev.filter(customer => customer.id !== customerId));
     }
 
     return { error };
   };
-
-  useEffect(() => {
-    fetchCustomers();
-  }, [user]);
 
   return {
     customers,
