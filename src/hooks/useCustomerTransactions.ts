@@ -107,11 +107,40 @@ export const useCustomerTransactions = () => {
 
   const loading = !!user?.id && isLoading;
 
+  const queryKey = ['customer-transactions', user?.id];
+
   const fetchTransactions = useCallback(async () => {
     if (!user?.id) return;
     await queryClient.invalidateQueries({ queryKey: ['customer-transactions', user.id] });
   }, [queryClient, user?.id]);
 
+  // Arka planda sessizce tazele (kullanıcı beklemez)
+  const backgroundRefresh = useCallback(() => {
+    if (!user?.id) return;
+    queryClient.invalidateQueries({ queryKey: ['customer-transactions', user.id] });
+  }, [queryClient, user?.id]);
+
+  // Yeni kaydı hemen önbelleğe ekle: tüm listeyi tekrar indirmeye gerek yok
+  const appendToCache = useCallback((row: any, type: 'debt' | 'payment') => {
+    if (!user?.id) return;
+    queryClient.setQueryData<CustomerTransaction[]>(['customer-transactions', user.id], (old) => {
+      if (!old) return old;
+      const item: CustomerTransaction = {
+        id: row.id,
+        customer_id: row.customer_id,
+        personnel_id: row.personnel_id,
+        amount: row.amount,
+        transaction_date: row.transaction_date,
+        transaction_type: type,
+        status: row.status,
+        payment_method: row.payment_method,
+        description: row.description,
+        customer: row.customer ?? { name: '' },
+        personnel: null,
+      };
+      return [item, ...old];
+    });
+  }, [queryClient, user?.id]);
 
   const addPayment = async (paymentData: {
     customer_id: string;
@@ -139,24 +168,27 @@ export const useCustomerTransactions = () => {
         }
       ])
       .select(`
-        *,
-        customer:customer_id (
-          name
-        )
+        id,
+        customer_id,
+        personnel_id,
+        amount,
+        transaction_date,
+        transaction_type,
+        status,
+        payment_method,
+        description,
+        customer:customer_id ( name )
       `)
       .single();
 
-    if (!error) {
-      // Refresh all transactions to ensure data consistency
-      await fetchTransactions();
-      // Force a small delay to ensure UI updates
-      setTimeout(() => {
-        fetchTransactions();
-      }, 100);
+    if (!error && data) {
+      appendToCache(data, 'payment');
+      backgroundRefresh();
     }
 
     return { data, error };
   };
+
 
   const addVeresiye = async (veresiyeData: {
     customer_id: string;
@@ -182,20 +214,22 @@ export const useCustomerTransactions = () => {
         }
       ])
       .select(`
-        *,
-        customer:customer_id (
-          name
-        )
+        id,
+        customer_id,
+        personnel_id,
+        amount,
+        transaction_date,
+        transaction_type,
+        status,
+        payment_method,
+        description,
+        customer:customer_id ( name )
       `)
       .single();
 
-    if (!error) {
-      // Refresh all transactions to ensure data consistency
-      await fetchTransactions();
-      // Force a small delay to ensure UI updates
-      setTimeout(() => {
-        fetchTransactions();
-      }, 100);
+    if (!error && data) {
+      appendToCache(data, 'debt');
+      backgroundRefresh();
     }
 
     return { data, error };
@@ -215,16 +249,24 @@ export const useCustomerTransactions = () => {
       .eq('id', transactionId)
       .eq('station_id', user.id)
       .select(`
-        *,
-        customer:customer_id (
-          name
-        )
+        id,
+        customer_id,
+        personnel_id,
+        amount,
+        transaction_date,
+        transaction_type,
+        status,
+        payment_method,
+        description,
+        customer:customer_id ( name )
       `)
       .single();
 
     if (!error) {
-      // Refresh all transactions to ensure data consistency
-      await fetchTransactions();
+      queryClient.setQueryData<CustomerTransaction[]>(['customer-transactions', user.id], (old) =>
+        old ? old.map(t => (t.id === transactionId ? { ...t, ...updateData } : t)) : old
+      );
+      backgroundRefresh();
     }
 
     return { data, error };
@@ -240,12 +282,14 @@ export const useCustomerTransactions = () => {
       .eq('station_id', user.id);
 
     if (!error) {
-      // Refresh all transactions to ensure data consistency
-      await fetchTransactions();
+      queryClient.setQueryData<CustomerTransaction[]>(['customer-transactions', user.id], (old) =>
+        old ? old.filter(t => t.id !== transactionId) : old
+      );
     }
 
     return { error };
   };
+
 
   // Tek geçişte müşteri bazlı indeks + bakiye (O(n) yerine her müşteri için O(n) tarama yapmıyoruz)
   const { transactionsByCustomer, balanceByCustomer } = useMemo(() => {
@@ -349,54 +393,39 @@ export const useCustomerTransactions = () => {
     return mappedData;
   };
 
-  const getTotalOutstandingDebt = () => {
-    // Group by customer and calculate each customer's balance
-    const customerBalances: { [key: string]: number } = {};
-    
-    transactions.forEach(transaction => {
-      if (!customerBalances[transaction.customer_id]) {
-        customerBalances[transaction.customer_id] = 0;
-      }
-      
-      if (transaction.transaction_type === 'debt') {
-        customerBalances[transaction.customer_id] += transaction.amount;
-      } else {
-        customerBalances[transaction.customer_id] -= transaction.amount;
-      }
-    });
-    
-    // Sum only positive balances (outstanding debts)
-    return Object.values(customerBalances)
-      .filter(balance => balance > 0)
-      .reduce((sum, balance) => sum + balance, 0);
-  };
+  // Tek hesap: müşteri bazlı gruplama + toplam borç (her render'da tekrar hesaplanmaz)
+  const groupedByCustomer = useMemo(() => {
+    const grouped: Record<string, { customer: any; transactions: CustomerTransaction[]; balance: number }> = {};
 
-  const getAllTransactionsGroupedByCustomer = () => {
-    const grouped: { [key: string]: { customer: any, transactions: CustomerTransaction[], balance: number } } = {};
-    
-    transactions.forEach(transaction => {
+    for (const transaction of transactions) {
       if (!grouped[transaction.customer_id]) {
         grouped[transaction.customer_id] = {
-          customer: { 
+          customer: {
             id: transaction.customer_id,
-            name: transaction.customer.name 
+            name: transaction.customer?.name ?? ''
           },
           transactions: [],
           balance: 0
         };
       }
-      
+
       grouped[transaction.customer_id].transactions.push(transaction);
-      
-      if (transaction.transaction_type === 'debt') {
-        grouped[transaction.customer_id].balance += transaction.amount;
-      } else {
-        grouped[transaction.customer_id].balance -= transaction.amount;
-      }
-    });
-    
+      grouped[transaction.customer_id].balance +=
+        transaction.transaction_type === 'debt' ? transaction.amount : -transaction.amount;
+    }
+
     return Object.values(grouped);
-  };
+  }, [transactions]);
+
+  const totalOutstandingDebt = useMemo(
+    () => groupedByCustomer.reduce((sum, g) => (g.balance > 0 ? sum + g.balance : sum), 0),
+    [groupedByCustomer]
+  );
+
+  const getTotalOutstandingDebt = useCallback(() => totalOutstandingDebt, [totalOutstandingDebt]);
+
+  const getAllTransactionsGroupedByCustomer = useCallback(() => groupedByCustomer, [groupedByCustomer]);
+
 
   const findTransactionsByDate = async (date: string) => {
     if (!user) return [];

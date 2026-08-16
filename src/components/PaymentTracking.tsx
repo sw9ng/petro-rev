@@ -150,9 +150,6 @@ export const PaymentTracking = () => {
       setDescription('');
       setTransactionDate(new Date().toISOString().split('T')[0]);
       setTransactionTime(new Date().toTimeString().split(' ')[0].slice(0, 5));
-      
-      // Force refresh the transactions immediately
-      await refreshTransactions();
     }
     } catch (error) {
       console.error('Unexpected error adding payment:', error);
@@ -195,9 +192,6 @@ export const PaymentTracking = () => {
       setDescription('');
       setTransactionDate(new Date().toISOString().split('T')[0]);
       setTransactionTime(new Date().toTimeString().split(' ')[0].slice(0, 5));
-      
-      // Force refresh the transactions immediately
-      await refreshTransactions();
     }
     } catch (error) {
       console.error('Unexpected error adding debt:', error);
