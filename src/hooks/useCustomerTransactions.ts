@@ -214,20 +214,22 @@ export const useCustomerTransactions = () => {
         }
       ])
       .select(`
-        *,
-        customer:customer_id (
-          name
-        )
+        id,
+        customer_id,
+        personnel_id,
+        amount,
+        transaction_date,
+        transaction_type,
+        status,
+        payment_method,
+        description,
+        customer:customer_id ( name )
       `)
       .single();
 
-    if (!error) {
-      // Refresh all transactions to ensure data consistency
-      await fetchTransactions();
-      // Force a small delay to ensure UI updates
-      setTimeout(() => {
-        fetchTransactions();
-      }, 100);
+    if (!error && data) {
+      appendToCache(data, 'debt');
+      backgroundRefresh();
     }
 
     return { data, error };
@@ -247,16 +249,24 @@ export const useCustomerTransactions = () => {
       .eq('id', transactionId)
       .eq('station_id', user.id)
       .select(`
-        *,
-        customer:customer_id (
-          name
-        )
+        id,
+        customer_id,
+        personnel_id,
+        amount,
+        transaction_date,
+        transaction_type,
+        status,
+        payment_method,
+        description,
+        customer:customer_id ( name )
       `)
       .single();
 
     if (!error) {
-      // Refresh all transactions to ensure data consistency
-      await fetchTransactions();
+      queryClient.setQueryData<CustomerTransaction[]>(['customer-transactions', user.id], (old) =>
+        old ? old.map(t => (t.id === transactionId ? { ...t, ...updateData } : t)) : old
+      );
+      backgroundRefresh();
     }
 
     return { data, error };
@@ -272,12 +282,14 @@ export const useCustomerTransactions = () => {
       .eq('station_id', user.id);
 
     if (!error) {
-      // Refresh all transactions to ensure data consistency
-      await fetchTransactions();
+      queryClient.setQueryData<CustomerTransaction[]>(['customer-transactions', user.id], (old) =>
+        old ? old.filter(t => t.id !== transactionId) : old
+      );
     }
 
     return { error };
   };
+
 
   // Tek geçişte müşteri bazlı indeks + bakiye (O(n) yerine her müşteri için O(n) tarama yapmıyoruz)
   const { transactionsByCustomer, balanceByCustomer } = useMemo(() => {
