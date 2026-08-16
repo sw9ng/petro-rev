@@ -107,11 +107,40 @@ export const useCustomerTransactions = () => {
 
   const loading = !!user?.id && isLoading;
 
+  const queryKey = ['customer-transactions', user?.id];
+
   const fetchTransactions = useCallback(async () => {
     if (!user?.id) return;
     await queryClient.invalidateQueries({ queryKey: ['customer-transactions', user.id] });
   }, [queryClient, user?.id]);
 
+  // Arka planda sessizce tazele (kullanıcı beklemez)
+  const backgroundRefresh = useCallback(() => {
+    if (!user?.id) return;
+    queryClient.invalidateQueries({ queryKey: ['customer-transactions', user.id] });
+  }, [queryClient, user?.id]);
+
+  // Yeni kaydı hemen önbelleğe ekle: tüm listeyi tekrar indirmeye gerek yok
+  const appendToCache = useCallback((row: any, type: 'debt' | 'payment') => {
+    if (!user?.id) return;
+    queryClient.setQueryData<CustomerTransaction[]>(['customer-transactions', user.id], (old) => {
+      if (!old) return old;
+      const item: CustomerTransaction = {
+        id: row.id,
+        customer_id: row.customer_id,
+        personnel_id: row.personnel_id,
+        amount: row.amount,
+        transaction_date: row.transaction_date,
+        transaction_type: type,
+        status: row.status,
+        payment_method: row.payment_method,
+        description: row.description,
+        customer: row.customer ?? { name: '' },
+        personnel: null,
+      };
+      return [item, ...old];
+    });
+  }, [queryClient, user?.id]);
 
   const addPayment = async (paymentData: {
     customer_id: string;
@@ -139,24 +168,27 @@ export const useCustomerTransactions = () => {
         }
       ])
       .select(`
-        *,
-        customer:customer_id (
-          name
-        )
+        id,
+        customer_id,
+        personnel_id,
+        amount,
+        transaction_date,
+        transaction_type,
+        status,
+        payment_method,
+        description,
+        customer:customer_id ( name )
       `)
       .single();
 
-    if (!error) {
-      // Refresh all transactions to ensure data consistency
-      await fetchTransactions();
-      // Force a small delay to ensure UI updates
-      setTimeout(() => {
-        fetchTransactions();
-      }, 100);
+    if (!error && data) {
+      appendToCache(data, 'payment');
+      backgroundRefresh();
     }
 
     return { data, error };
   };
+
 
   const addVeresiye = async (veresiyeData: {
     customer_id: string;
