@@ -19,6 +19,7 @@ import { generateTahsilatMakbuzu, numberToWords } from '@/lib/pdfUtils';
 import { Plus, Search, CreditCard, ArrowUpDown, Calendar, Users, TrendingUp, TrendingDown, Edit, Trash2, FileText, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { SearchableLimitedSelect } from '@/components/SearchableLimitedSelect';
+import { CustomerDetailView } from '@/components/CustomerDetailView';
 
 export const PaymentTracking = () => {
   const { customers } = useCustomers();
@@ -67,11 +68,11 @@ export const PaymentTracking = () => {
   const [isAddingDebt, setIsAddingDebt] = useState(false);
 
   const navigate = useNavigate();
+  const [detailCustomerId, setDetailCustomerId] = useState<string | null>(null);
 
   const handleCustomerClick = (customerId: string) => {
-    console.log('Navigating to customer:', customerId);
     if (customerId) {
-      navigate(`/customer/${customerId}`);
+      setDetailCustomerId(customerId);
     }
   };
 
@@ -370,6 +371,15 @@ export const PaymentTracking = () => {
     () => transactions.filter(t => t.transaction_type === 'debt'),
     [transactions]
   );
+
+  if (detailCustomerId) {
+    return (
+      <CustomerDetailView
+        customerId={detailCustomerId}
+        onBack={() => setDetailCustomerId(null)}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
