@@ -371,6 +371,15 @@ export const PaymentTracking = () => {
     [transactions]
   );
 
+  if (detailCustomerId) {
+    return (
+      <CustomerDetailView
+        customerId={detailCustomerId}
+        onBack={() => setDetailCustomerId(null)}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
