@@ -67,11 +67,11 @@ export const PaymentTracking = () => {
   const [isAddingDebt, setIsAddingDebt] = useState(false);
 
   const navigate = useNavigate();
+  const [detailCustomerId, setDetailCustomerId] = useState<string | null>(null);
 
   const handleCustomerClick = (customerId: string) => {
-    console.log('Navigating to customer:', customerId);
     if (customerId) {
-      navigate(`/customer/${customerId}`);
+      setDetailCustomerId(customerId);
     }
   };
 
