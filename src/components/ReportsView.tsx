@@ -267,6 +267,7 @@ const CustomerTransactionsSummary = memo(({
                   <th className="px-4 py-2 text-left">Müşteri</th>
                   <th className="px-4 py-2 text-left">İşlem</th>
                   <th className="px-4 py-2 text-right">Tutar</th>
+                  <th className="px-4 py-2 text-left">Açıklama</th>
                 </tr>
               </thead>
               <tbody>
@@ -287,6 +288,9 @@ const CustomerTransactionsSummary = memo(({
                     </td>
                     <td className="px-4 py-2 text-right font-medium">
                       {formatCurrency(transaction.amount)}
+                    </td>
+                    <td className="px-4 py-2 text-muted-foreground max-w-[200px] truncate" title={transaction.description || ''}>
+                      {transaction.description || '-'}
                     </td>
                   </tr>
                 ))}

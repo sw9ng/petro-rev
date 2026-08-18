@@ -48,6 +48,11 @@ export const PaymentTracking = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [visibleCustomerCount, setVisibleCustomerCount] = useState(20);
 
+  // History filter/sort state
+  const emptyFilters = { search: '', startDate: '', endDate: '', method: 'all', minAmount: '', maxAmount: '', sortBy: 'date-newest' };
+  const [paymentFilters, setPaymentFilters] = useState({ ...emptyFilters });
+  const [debtFilters, setDebtFilters] = useState({ ...emptyFilters });
+
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<any>(null);
@@ -362,14 +367,47 @@ export const PaymentTracking = () => {
     setPaymentSelectMode(false);
   };
 
-  // Separate transactions by type for history
+  // Separate transactions by type for history (with search, filter and sort)
+  const applyHistoryFilters = (list: any[], f: typeof paymentFilters) => {
+    const term = f.search.trim().toLowerCase();
+    let result = list.filter((t) => {
+      if (term) {
+        const hay = `${t.customer?.name || ''} ${t.personnel?.name || ''} ${t.description || ''}`.toLowerCase();
+        if (!hay.includes(term)) return false;
+      }
+      if (f.startDate && new Date(t.transaction_date) < new Date(`${f.startDate}T00:00:00`)) return false;
+      if (f.endDate && new Date(t.transaction_date) > new Date(`${f.endDate}T23:59:59`)) return false;
+      if (f.method && f.method !== 'all' && t.payment_method !== f.method) return false;
+      if (f.minAmount && Number(t.amount) < Number(f.minAmount)) return false;
+      if (f.maxAmount && Number(t.amount) > Number(f.maxAmount)) return false;
+      return true;
+    });
+
+    result = [...result].sort((a, b) => {
+      switch (f.sortBy) {
+        case 'date-oldest':
+          return new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime();
+        case 'amount-high':
+          return Number(b.amount) - Number(a.amount);
+        case 'amount-low':
+          return Number(a.amount) - Number(b.amount);
+        case 'customer':
+          return (a.customer?.name || '').localeCompare(b.customer?.name || '', 'tr');
+        default:
+          return new Date(b.transaction_date).getTime() - new Date(a.transaction_date).getTime();
+      }
+    });
+
+    return result;
+  };
+
   const paymentTransactions = useMemo(
-    () => transactions.filter(t => t.transaction_type === 'payment'),
-    [transactions]
+    () => applyHistoryFilters(transactions.filter(t => t.transaction_type === 'payment'), paymentFilters),
+    [transactions, paymentFilters]
   );
   const debtTransactions = useMemo(
-    () => transactions.filter(t => t.transaction_type === 'debt'),
-    [transactions]
+    () => applyHistoryFilters(transactions.filter(t => t.transaction_type === 'debt'), debtFilters),
+    [transactions, debtFilters]
   );
 
   if (detailCustomerId) {
@@ -773,6 +811,48 @@ export const PaymentTracking = () => {
                 </div>
               </CardHeader>
               <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
+                  <div className="lg:col-span-2 relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      className="pl-10"
+                      placeholder="Müşteri, personel veya açıklama ara..."
+                      value={paymentFilters.search}
+                      onChange={(e) => setPaymentFilters(f => ({ ...f, search: e.target.value }))}
+                    />
+                  </div>
+                  <Input type="date" value={paymentFilters.startDate} onChange={(e) => setPaymentFilters(f => ({ ...f, startDate: e.target.value }))} />
+                  <Input type="date" value={paymentFilters.endDate} onChange={(e) => setPaymentFilters(f => ({ ...f, endDate: e.target.value }))} />
+                  <Input type="number" placeholder="En az tutar" value={paymentFilters.minAmount} onChange={(e) => setPaymentFilters(f => ({ ...f, minAmount: e.target.value }))} />
+                  <Input type="number" placeholder="En çok tutar" value={paymentFilters.maxAmount} onChange={(e) => setPaymentFilters(f => ({ ...f, maxAmount: e.target.value }))} />
+                  <Select value={paymentFilters.method} onValueChange={(v) => setPaymentFilters(f => ({ ...f, method: v }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Ödeme yöntemi" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tüm Yöntemler</SelectItem>
+                      <SelectItem value="nakit">Nakit</SelectItem>
+                      <SelectItem value="kredi_karti">Kredi Kartı</SelectItem>
+                      <SelectItem value="havale">Havale</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="flex items-center gap-2 lg:col-span-2">
+                    <ArrowUpDown className="h-4 w-4 text-gray-500" />
+                    <Select value={paymentFilters.sortBy} onValueChange={(v) => setPaymentFilters(f => ({ ...f, sortBy: v }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sırala" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="date-newest">Tarih (Yeni → Eski)</SelectItem>
+                        <SelectItem value="date-oldest">Tarih (Eski → Yeni)</SelectItem>
+                        <SelectItem value="amount-high">Tutar (Yüksek → Düşük)</SelectItem>
+                        <SelectItem value="amount-low">Tutar (Düşük → Yüksek)</SelectItem>
+                        <SelectItem value="customer">Müşteri Adı (A → Z)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button variant="outline" onClick={() => setPaymentFilters({ ...emptyFilters })}>Filtreyi Temizle</Button>
+                </div>
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -938,6 +1018,37 @@ export const PaymentTracking = () => {
                 </div>
               </CardHeader>
               <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
+                  <div className="lg:col-span-2 relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      className="pl-10"
+                      placeholder="Müşteri, personel veya açıklama ara..."
+                      value={debtFilters.search}
+                      onChange={(e) => setDebtFilters(f => ({ ...f, search: e.target.value }))}
+                    />
+                  </div>
+                  <Input type="date" value={debtFilters.startDate} onChange={(e) => setDebtFilters(f => ({ ...f, startDate: e.target.value }))} />
+                  <Input type="date" value={debtFilters.endDate} onChange={(e) => setDebtFilters(f => ({ ...f, endDate: e.target.value }))} />
+                  <Input type="number" placeholder="En az tutar" value={debtFilters.minAmount} onChange={(e) => setDebtFilters(f => ({ ...f, minAmount: e.target.value }))} />
+                  <Input type="number" placeholder="En çok tutar" value={debtFilters.maxAmount} onChange={(e) => setDebtFilters(f => ({ ...f, maxAmount: e.target.value }))} />
+                  <div className="flex items-center gap-2 lg:col-span-2">
+                    <ArrowUpDown className="h-4 w-4 text-gray-500" />
+                    <Select value={debtFilters.sortBy} onValueChange={(v) => setDebtFilters(f => ({ ...f, sortBy: v }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sırala" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="date-newest">Tarih (Yeni → Eski)</SelectItem>
+                        <SelectItem value="date-oldest">Tarih (Eski → Yeni)</SelectItem>
+                        <SelectItem value="amount-high">Tutar (Yüksek → Düşük)</SelectItem>
+                        <SelectItem value="amount-low">Tutar (Düşük → Yüksek)</SelectItem>
+                        <SelectItem value="customer">Müşteri Adı (A → Z)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button variant="outline" onClick={() => setDebtFilters({ ...emptyFilters })}>Filtreyi Temizle</Button>
+                </div>
                 <Table>
                   <TableHeader>
                     <TableRow>
