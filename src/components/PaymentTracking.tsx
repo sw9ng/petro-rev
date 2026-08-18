@@ -19,6 +19,7 @@ import { generateTahsilatMakbuzu, numberToWords } from '@/lib/pdfUtils';
 import { Plus, Search, CreditCard, ArrowUpDown, Calendar, Users, TrendingUp, TrendingDown, Edit, Trash2, FileText, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { SearchableLimitedSelect } from '@/components/SearchableLimitedSelect';
+import { CustomerDetailView } from '@/components/CustomerDetailView';
 
 export const PaymentTracking = () => {
   const { customers } = useCustomers();
