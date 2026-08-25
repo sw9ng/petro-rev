@@ -183,8 +183,8 @@ export default function AttendantDashboard() {
   };
 
   const getShiftDisplayName = (shift: AttendantShift) => {
-    const startDate = new Date(shift.start_time);
-    const formattedDate = format(startDate, 'dd.MM.yyyy', { locale: tr });
+    const displayDate = shift.end_time ? new Date(shift.end_time) : new Date(shift.start_time);
+    const formattedDate = format(displayDate, 'dd.MM.yyyy', { locale: tr });
     const shiftNumber = shift.shift_number || 'V1';
     return `${formattedDate} – ${shiftNumber}`;
   };
