@@ -59,6 +59,8 @@ export const PaymentTracking = () => {
   const [editAmount, setEditAmount] = useState<string>('');
   const [editPaymentMethod, setEditPaymentMethod] = useState<string>('');
   const [editDescription, setEditDescription] = useState<string>('');
+  const [editDate, setEditDate] = useState<string>('');
+  const [editTime, setEditTime] = useState<string>('');
 
   // Bulk selection state for debt transactions
   const [selectedDebtTransactions, setSelectedDebtTransactions] = useState<Set<string>>(new Set());
@@ -227,6 +229,10 @@ export const PaymentTracking = () => {
     setEditAmount(transaction.amount.toString());
     setEditPaymentMethod(transaction.payment_method || '');
     setEditDescription(transaction.description || '');
+    const d = new Date(transaction.transaction_date);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    setEditDate(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+    setEditTime(`${pad(d.getHours())}:${pad(d.getMinutes())}`);
     setEditDialogOpen(true);
   };
 
@@ -236,11 +242,17 @@ export const PaymentTracking = () => {
       return;
     }
 
-    const result = await updateTransaction(editingTransaction.id, {
+    const updatePayload: any = {
       amount: parseFloat(editAmount),
       payment_method: editPaymentMethod,
       description: editDescription
-    });
+    };
+
+    if (editDate) {
+      updatePayload.transaction_date = new Date(`${editDate}T${editTime || '00:00'}:00`).toISOString();
+    }
+
+    const result = await updateTransaction(editingTransaction.id, updatePayload);
 
     if (result.error) {
       toast.error('İşlem güncellenirken hata oluştu');
@@ -251,6 +263,8 @@ export const PaymentTracking = () => {
       setEditAmount('');
       setEditPaymentMethod('');
       setEditDescription('');
+      setEditDate('');
+      setEditTime('');
     }
   };
 
@@ -1165,6 +1179,26 @@ export const PaymentTracking = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-2">
+                <Label htmlFor="edit-date">Tarih</Label>
+                <Input
+                  id="edit-date"
+                  type="date"
+                  value={editDate}
+                  onChange={(e) => setEditDate(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-time">Saat</Label>
+                <Input
+                  id="edit-time"
+                  type="time"
+                  value={editTime}
+                  onChange={(e) => setEditTime(e.target.value)}
+                />
+              </div>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="edit-amount">Tutar</Label>
               <Input

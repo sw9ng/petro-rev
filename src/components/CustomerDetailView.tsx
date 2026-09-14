@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft, CreditCard, User, Phone, MapPin, Calendar as CalendarIcon, FileText, Trash2, Download, CalendarCheck, Filter, CheckSquare } from 'lucide-react';
+import { ArrowLeft, CreditCard, User, Phone, MapPin, Calendar as CalendarIcon, FileText, Trash2, Download, CalendarCheck, Filter, CheckSquare, Edit2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useCustomerTransactions } from '@/hooks/useCustomerTransactions';
 import { formatCurrency } from '@/lib/numberUtils';
@@ -28,7 +29,7 @@ interface CustomerDetailViewProps {
 
 export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewProps) => {
   const { customers, loading: customersLoading } = useCustomers();
-  const { getCustomerTransactions, getCustomerBalance, deleteTransaction, loading: transactionsLoading } = useCustomerTransactions();
+  const { getCustomerTransactions, getCustomerBalance, deleteTransaction, updateTransaction, loading: transactionsLoading } = useCustomerTransactions();
   const { toast } = useToast();
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
@@ -106,6 +107,45 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
       case 'kredi_karti': return 'Kredi Kartı';
       case 'havale': return 'Havale';
       default: return method;
+    }
+  };
+
+  const [editingTransaction, setEditingTransaction] = useState<any>(null);
+  const [editForm, setEditForm] = useState({ date: '', time: '', amount: '', payment_method: '', description: '' });
+
+  const openEditDialog = (transaction: any) => {
+    const d = new Date(transaction.transaction_date);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    setEditForm({
+      date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+      time: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
+      amount: String(transaction.amount),
+      payment_method: transaction.payment_method || '',
+      description: transaction.description || '',
+    });
+    setEditingTransaction(transaction);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingTransaction) return;
+    const amountValue = parseFloat(editForm.amount);
+    if (!amountValue || !editForm.date) {
+      toast({ title: 'Hata', description: 'Tarih ve tutar zorunludur.', variant: 'destructive' });
+      return;
+    }
+
+    const { error } = await updateTransaction(editingTransaction.id, {
+      amount: amountValue,
+      payment_method: editForm.payment_method || undefined,
+      description: editForm.description,
+      transaction_date: new Date(`${editForm.date}T${editForm.time || '00:00'}:00`).toISOString(),
+    });
+
+    if (error) {
+      toast({ title: 'Hata', description: 'İşlem güncellenirken bir hata oluştu.', variant: 'destructive' });
+    } else {
+      toast({ title: 'Başarılı', description: 'İşlem güncellendi.' });
+      setEditingTransaction(null);
     }
   };
 
@@ -575,14 +615,24 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
                         )}
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteTransaction(transaction.id)}
-                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEditDialog(transaction)}
+                            className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteTransaction(transaction.id)}
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -602,6 +652,54 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!editingTransaction} onOpenChange={(open) => !open && setEditingTransaction(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>İşlemi Düzenle</DialogTitle>
+            <DialogDescription>Tarih, tutar ve diğer bilgileri güncelleyin</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-2">
+                <Label>Tarih</Label>
+                <Input type="date" value={editForm.date} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Saat</Label>
+                <Input type="time" value={editForm.time} onChange={(e) => setEditForm({ ...editForm, time: e.target.value })} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Tutar (₺)</Label>
+              <Input type="number" step="0.01" value={editForm.amount} onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })} />
+            </div>
+            {editingTransaction?.transaction_type === 'payment' && (
+              <div className="space-y-2">
+                <Label>Ödeme Yöntemi</Label>
+                <Select value={editForm.payment_method} onValueChange={(value) => setEditForm({ ...editForm, payment_method: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Ödeme yöntemi seçin" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border shadow-lg">
+                    <SelectItem value="nakit">Nakit</SelectItem>
+                    <SelectItem value="kredi_karti">Kredi Kartı</SelectItem>
+                    <SelectItem value="havale">Havale</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label>Açıklama</Label>
+              <Input value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} placeholder="Açıklama..." />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingTransaction(null)}>İptal</Button>
+            <Button onClick={handleSaveEdit}>Kaydet</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -58,6 +58,11 @@ export const ShiftEditDialog = ({ shift, isOpen, onOpenChange, onShiftUpdated }:
     handleInputChange('card_sales', totalCardSales);
   };
 
+  const toLocalInput = (date: Date) => {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
+
   useEffect(() => {
     if (shift && isOpen) {
       const startTime = new Date(shift.start_time);
@@ -65,8 +70,8 @@ export const ShiftEditDialog = ({ shift, isOpen, onOpenChange, onShiftUpdated }:
       
       setFormData({
         personnel_id: shift.personnel_id,
-        start_time: startTime.toISOString().slice(0, 16),
-        end_time: endTime ? endTime.toISOString().slice(0, 16) : '',
+        start_time: toLocalInput(startTime),
+        end_time: endTime ? toLocalInput(endTime) : '',
         cash_sales: shift.cash_sales,
         card_sales: shift.card_sales,
         otomasyon_satis: shift.otomasyon_satis,
@@ -121,8 +126,8 @@ export const ShiftEditDialog = ({ shift, isOpen, onOpenChange, onShiftUpdated }:
         .from('shifts')
         .update({
           personnel_id: formData.personnel_id,
-          start_time: formData.start_time,
-          end_time: formData.end_time || null,
+          start_time: new Date(formData.start_time).toISOString(),
+          end_time: formData.end_time ? new Date(formData.end_time).toISOString() : null,
           cash_sales: formData.cash_sales,
           card_sales: formData.card_sales,
           actual_amount: formData.otomasyon_satis,
