@@ -110,6 +110,45 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
     }
   };
 
+  const [editingTransaction, setEditingTransaction] = useState<any>(null);
+  const [editForm, setEditForm] = useState({ date: '', time: '', amount: '', payment_method: '', description: '' });
+
+  const openEditDialog = (transaction: any) => {
+    const d = new Date(transaction.transaction_date);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    setEditForm({
+      date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+      time: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
+      amount: String(transaction.amount),
+      payment_method: transaction.payment_method || '',
+      description: transaction.description || '',
+    });
+    setEditingTransaction(transaction);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingTransaction) return;
+    const amountValue = parseFloat(editForm.amount);
+    if (!amountValue || !editForm.date) {
+      toast({ title: 'Hata', description: 'Tarih ve tutar zorunludur.', variant: 'destructive' });
+      return;
+    }
+
+    const { error } = await updateTransaction(editingTransaction.id, {
+      amount: amountValue,
+      payment_method: editForm.payment_method || undefined,
+      description: editForm.description,
+      transaction_date: new Date(`${editForm.date}T${editForm.time || '00:00'}:00`).toISOString(),
+    });
+
+    if (error) {
+      toast({ title: 'Hata', description: 'İşlem güncellenirken bir hata oluştu.', variant: 'destructive' });
+    } else {
+      toast({ title: 'Başarılı', description: 'İşlem güncellendi.' });
+      setEditingTransaction(null);
+    }
+  };
+
   const handleDeleteTransaction = async (transactionId: string) => {
     const { error } = await deleteTransaction(transactionId);
     
