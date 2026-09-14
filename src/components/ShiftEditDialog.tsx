@@ -126,8 +126,8 @@ export const ShiftEditDialog = ({ shift, isOpen, onOpenChange, onShiftUpdated }:
         .from('shifts')
         .update({
           personnel_id: formData.personnel_id,
-          start_time: formData.start_time,
-          end_time: formData.end_time || null,
+          start_time: new Date(formData.start_time).toISOString(),
+          end_time: formData.end_time ? new Date(formData.end_time).toISOString() : null,
           cash_sales: formData.cash_sales,
           card_sales: formData.card_sales,
           actual_amount: formData.otomasyon_satis,
