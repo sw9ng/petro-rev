@@ -652,6 +652,54 @@ export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewPro
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!editingTransaction} onOpenChange={(open) => !open && setEditingTransaction(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>İşlemi Düzenle</DialogTitle>
+            <DialogDescription>Tarih, tutar ve diğer bilgileri güncelleyin</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-2">
+                <Label>Tarih</Label>
+                <Input type="date" value={editForm.date} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Saat</Label>
+                <Input type="time" value={editForm.time} onChange={(e) => setEditForm({ ...editForm, time: e.target.value })} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Tutar (₺)</Label>
+              <Input type="number" step="0.01" value={editForm.amount} onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })} />
+            </div>
+            {editingTransaction?.transaction_type === 'payment' && (
+              <div className="space-y-2">
+                <Label>Ödeme Yöntemi</Label>
+                <Select value={editForm.payment_method} onValueChange={(value) => setEditForm({ ...editForm, payment_method: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Ödeme yöntemi seçin" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border shadow-lg">
+                    <SelectItem value="nakit">Nakit</SelectItem>
+                    <SelectItem value="kredi_karti">Kredi Kartı</SelectItem>
+                    <SelectItem value="havale">Havale</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label>Açıklama</Label>
+              <Input value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} placeholder="Açıklama..." />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingTransaction(null)}>İptal</Button>
+            <Button onClick={handleSaveEdit}>Kaydet</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
