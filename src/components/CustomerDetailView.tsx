@@ -29,7 +29,7 @@ interface CustomerDetailViewProps {
 
 export const CustomerDetailView = ({ customerId, onBack }: CustomerDetailViewProps) => {
   const { customers, loading: customersLoading } = useCustomers();
-  const { getCustomerTransactions, getCustomerBalance, deleteTransaction, loading: transactionsLoading } = useCustomerTransactions();
+  const { getCustomerTransactions, getCustomerBalance, deleteTransaction, updateTransaction, loading: transactionsLoading } = useCustomerTransactions();
   const { toast } = useToast();
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
