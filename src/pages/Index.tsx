@@ -18,6 +18,7 @@ import {
   Banknote,
   Calculator,
   Truck,
+  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -36,6 +37,7 @@ const PaymentTracking = lazy(() => import("@/components/PaymentTracking").then(m
 const AdminPanel = lazy(() => import("@/components/AdminPanel").then(m => ({ default: m.AdminPanel })));
 const TankerManagement = lazy(() => import("@/components/TankerManagement").then(m => ({ default: m.TankerManagement })));
 const CashRegister = lazy(() => import("@/pages/CashRegister"));
+const AIExecutiveAnalysis = lazy(() => import("@/components/AIExecutiveAnalysis").then(m => ({ default: m.AIExecutiveAnalysis })));
 const Accounting = lazy(() => import("@/pages/Accounting"));
 
 const TabLoader = () => (
@@ -204,6 +206,10 @@ const Index = () => {
                 <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span>Rapor</span>
               </TabsTrigger>
+              <TabsTrigger value="ai" className="flex items-center space-x-1 sm:space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap">
+                <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span>AI Yönetici Analizi</span>
+              </TabsTrigger>
               {isAdmin && (
                 <TabsTrigger value="admin" className="flex items-center space-x-1 sm:space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap">
                   <Crown className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -271,6 +277,10 @@ const Index = () => {
             <FreemiumGate feature="Detaylı Raporlama" description="Gelişmiş analiz ve raporlama araçları premium özelliklerdir.">
               <ReportsView />
             </FreemiumGate>
+          </TabsContent>
+
+          <TabsContent value="ai" className="space-y-4 sm:space-y-6">
+            <AIExecutiveAnalysis />
           </TabsContent>
 
           {isAdmin && (

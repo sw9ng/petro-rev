@@ -134,8 +134,9 @@ Deno.serve(async (req) => {
   const date = parsed.data.date ?? istanbulYesterday();
 
   if (parsed.data.mode === "cron") {
-    const cronSecret = Deno.env.get("AI_CRON_SECRET");
-    if (!cronSecret || req.headers.get("x-cron-secret") !== cronSecret) return json({ error: "yetkisiz" }, 401);
+    const tok = req.headers.get("x-cron-secret") ?? "";
+    const { data: ok } = await admin.rpc("ai_check_cron", { p_token: tok });
+    if (!tok || !ok) return json({ error: "yetkisiz" }, 401);
     const since = new Date(Date.now() - 45 * 86400_000).toISOString();
     const { data } = await admin.from("shifts").select("station_id").gte("start_time", since).limit(1000);
     const stations = [...new Set((data ?? []).map((r: any) => r.station_id))].slice(0, 50);

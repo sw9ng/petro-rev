@@ -1403,6 +1403,7 @@ export type Database = {
         Args: { p_date: string; p_station: string; p_trigger: string }
         Returns: boolean
       }
+      ai_check_cron: { Args: { p_token: string }; Returns: boolean }
       ai_compute_metrics: {
         Args: { p_date: string; p_station: string }
         Returns: Json
