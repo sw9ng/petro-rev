@@ -1399,9 +1399,65 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ai_acquire_job: {
+        Args: { p_date: string; p_station: string; p_trigger: string }
+        Returns: boolean
+      }
+      ai_compute_metrics: {
+        Args: { p_date: string; p_station: string }
+        Returns: Json
+      }
+      ai_finish_job: {
+        Args: {
+          p_date: string
+          p_error: string
+          p_station: string
+          p_status: string
+        }
+        Returns: undefined
+      }
+      ai_latest_hash: {
+        Args: { p_date: string; p_station: string }
+        Returns: string
+      }
+      ai_regen_allowed: { Args: { p_station: string }; Returns: boolean }
+      ai_save_report: {
+        Args: {
+          p_date: string
+          p_hash: string
+          p_metrics: Json
+          p_model: string
+          p_payload: Json
+          p_quality: string
+          p_station: string
+        }
+        Returns: number
+      }
       authenticate_pump_attendant: {
         Args: { attendant_email_param: string; password_param: string }
         Returns: Json
+      }
+      get_ai_job_status: {
+        Args: never
+        Returns: {
+          attempts: number
+          business_date: string
+          error: string
+          status: string
+          updated_at: string
+        }[]
+      }
+      get_ai_reports: {
+        Args: { p_from: string; p_to: string }
+        Returns: {
+          business_date: string
+          created_at: string
+          data_quality_status: string
+          metrics: Json
+          model: string
+          payload: Json
+          revision: number
+        }[]
       }
       get_attendant_shifts: {
         Args: {
