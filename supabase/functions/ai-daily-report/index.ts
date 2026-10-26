@@ -5,8 +5,8 @@ import { z } from "npm:zod@3";
 const URL_ = Deno.env.get("SUPABASE_URL")!;
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
-const OPENAI = Deno.env.get("OPENAI_API_KEY");
-const MODEL = "gpt-5-mini";
+const AIKEY = Deno.env.get("LOVABLE_API_KEY");
+const MODEL = "openai/gpt-6-astra";
 
 const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -51,25 +51,37 @@ const Out = z.object({
 class Terminal extends Error {}
 
 async function callAI(metrics: unknown) {
-  if (!OPENAI) throw new Terminal("OPENAI_API_KEY eksik");
+  if (!AIKEY) throw new Terminal("LOVABLE_API_KEY eksik");
   const body = {
     model: MODEL,
     reasoning: { effort: "low" },
     store: false,
+    stream: true,
     instructions:
       "Sen bir akaryakıt istasyonu yönetici danışmanısın. Sadece verilen sayıları kullan, yeni sayı uydurma. Sayıları aynen aktar. Fırsatları kesin satış değil 'senaryo' olarak yaz. Veri eksikse açıkça söyle. Gelirden kâr çıkarma; brüt katkı yalnız maliyet verisi varsa. Çok basit Türkçe yaz (ilkokul seviyesi). Hedef günlük 10.000 litre.",
     input: JSON.stringify(metrics),
     text: { format: { type: "json_schema", name: "report", strict: true, schema: SCHEMA } },
   };
   for (let attempt = 1; attempt <= 3; attempt++) {
-    const r = await fetch("https://api.openai.com/v1/responses", {
+    const r = await fetch("https://ai.gateway.lovable.dev/v1/responses", {
       method: "POST",
-      headers: { Authorization: `Bearer ${OPENAI}`, "Content-Type": "application/json" },
+      headers: { "Lovable-API-Key": AIKEY, Authorization: `Bearer ${AIKEY}`, "X-Lovable-AIG-SDK": "fetch", "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
     if (r.ok) {
-      const d = await r.json();
-      const text = d.output_text ?? d.output?.flatMap((o: any) => o.content ?? []).find((c: any) => c.type === "output_text")?.text;
+      let text = "";
+      let refusal = "";
+      const raw = await r.text();
+      for (const line of raw.split("\n")) {
+        if (!line.startsWith("data:")) continue;
+        try {
+          const ev = JSON.parse(line.slice(5).trim());
+          if (ev.type === "response.output_text.delta") text += ev.delta;
+          if (ev.type === "response.refusal.delta") refusal += ev.delta;
+          if (ev.type === "response.failed" || ev.type === "error") throw new Error(JSON.stringify(ev).slice(0, 300));
+        } catch (e) { if (!(e instanceof SyntaxError)) throw e; }
+      }
+      if (refusal) throw new Terminal("AI isteği reddetti");
       if (!text) throw new Terminal("AI boş yanıt verdi");
       return Out.parse(JSON.parse(text));
     }
